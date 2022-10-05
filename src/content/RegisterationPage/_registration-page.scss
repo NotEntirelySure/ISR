@@ -1,0 +1,18 @@
+.registrationpage__r1 {margin-top: $spacing-07;}
+
+.registration-page__banner {
+  margin-top: $spacing-08 * 2;
+  padding-top: $spacing-05;
+  padding-bottom: $spacing-07 * 2;
+  background-color: #f4f4f4;
+}
+  
+.registrationFormContainer {
+  display: flex;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+.registrationFormItem {
+  margin-bottom: 2rem;
+}

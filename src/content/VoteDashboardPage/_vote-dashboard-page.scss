@@ -1,0 +1,62 @@
+
+.vote-dashboard-page {
+  overflow-x: hidden;
+}
+
+.vote-dashboard-page__banner {
+  padding-top: $spacing-05;
+  padding-bottom: $spacing-07 * 2;
+  background-color: #f4f4f4;
+}
+
+.vote-dashboard-page__r1 {
+  padding-top: $spacing-05;
+}
+.vote-dashboard-page__r2 {
+  padding-top: $spacing-05;
+}
+.vote-dashboard-page__r3 {
+  padding-top: $spacing-05;
+}
+.vote-dashboard-page__r4 {
+  display: block;
+  width: 100%;
+  margin-left: 6%;
+  padding-right: 6%;
+  padding-top: $spacing-05;
+}
+.ideaNameAndToggle{
+  display: flex;
+  justify-content: space-between;
+}
+
+.vote-dashboard-page-voter-list {
+  height:48vh;
+  overflow:scroll;
+  display:flex;
+  flex: 1 1 auto;
+  flex-wrap:wrap;
+  justify-content: start;
+  gap:1%;
+}
+
+.voter-list-item {
+  padding-bottom: $spacing-01;
+}
+
+.office-icon {
+  max-height: 60px;
+  max-width: 60px;
+}
+
+.officeTile {margin-bottom: 1%;}
+
+.reconnectButton {
+  cursor: pointer;
+  border: none;
+  margin-top: 10%;  
+  margin-left:10%;
+  height:70%;
+  width: 90%;
+  background-color: transparent;
+}

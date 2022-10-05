@@ -1,0 +1,14 @@
+.notificationPanel{
+    overflow: scroll;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+/* make notification panel scroll bar invisible while still allowing scrolling */
+::-webkit-scrollbar {
+    width: 0px;
+    background: transparent;
+}
+.panelNotification{
+    width: 99%;
+    padding-bottom: 5%;
+}

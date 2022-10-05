@@ -1,0 +1,113 @@
+#headerContainer {
+  margin: 0 auto;
+  padding-top: 1%;
+  padding-bottom: 2%;
+  background-color: #f4f4f4;
+  justify-content:space-around;
+}
+
+#userInfo {
+  display:flex;
+  align-items:center;
+}
+#userInfo > div {
+  flex: 1 1 auto;
+  text-align: center;
+  margin: 5px;
+}
+
+#user-icon {
+  max-height: 80px;
+  max-width: 80px;
+}
+
+.tile {
+  background-color: #f4f4f4;
+  border-radius: 10px;
+  padding: 2% 2% 2% 2%;
+  margin: auto;
+  margin-top: 3%;
+  box-shadow: 10px 10px 5px lightgrey;
+  -webkit-animation: fadein 1s;
+  animation: fadein 1s;
+  overflow: scroll;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
+.visible {
+  animation: movein 0.5s ease forwards, moveout 0.5s 3s ease forwards;
+}
+
+#notification {
+  width: 300px;
+  height: 100px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: fixed;
+  top: 100px;
+  right: -300px;
+  z-index: 1;
+}
+
+@keyframes movein {
+  from { right: -300px; }
+  to   { right: 10px; }
+}
+
+@keyframes moveout {
+  from { right: 10px; }
+  to   { right: -300px; }
+}
+
+@keyframes stay {
+  from { right: 10px; }
+  to   { right: 10px; }
+}
+
+.user-vote-page__banner {
+  margin-top: $spacing-05 * 4;
+  padding-top: $spacing-05;
+  padding-bottom: $spacing-03;
+  background-color: #f4f4f4;
+}
+
+.user-vote-page__r1 {
+  padding-top: $spacing-09;
+  //padding-bottom: $spacing-09;
+}
+
+.li-User-Vote-Page {
+  padding-bottom: $spacing-05;
+  -webkit-animation: fadein 1s;
+  animation: fadein 1s;
+}
+
+@keyframes fadein {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+// Firefox < 16
+@-moz-keyframes fadein {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+//Safari, Chrome and Opera > 12.1
+@-webkit-keyframes fadein {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+#votingCriteriaContainer {
+  display: flex;
+  justify-content:center;
+}
+
+#votingCriteriaImage {
+  margin-left: 15%;
+  width: 75vw;
+  height: auto;
+}
