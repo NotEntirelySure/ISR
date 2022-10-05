@@ -1,0 +1,5 @@
+one registered voter per office
+done - voting must be locked/unlocked for each project
+done - display what users still haven't voted and remove people from the list as users vote.
+create batch input of projects.
+done - only show average of votes, not total priority score.

@@ -1,9 +1,9 @@
 CREATE USER superuser WITH PASSWORD 'root';
 CREATE TABLE votes (
 	voteid SERIAL,
-	voteprojectid VARCHAR,
-	voteparticipantid INT,
-	voteparticipantoffice VARCHAR,
+	voteprojectid VARCHAR REFERENCES projects(projectid),
+	voteparticipantid INT REFERENCES participants(participantid),
+	voteparticipantoffice VARCHAR REFERENCES offices(officeid),
 	votevalue INT
 );
 CREATE TABLE participants (
@@ -17,6 +17,7 @@ CREATE TABLE projects (
 	projectsequence INT,
 	projectid VARCHAR,
 	projectdescription VARCHAR,
+	projectdomain INT REFERENCES projectdomains(projectdomainid),
 	projectdomain INT
 );
 CREATE TABLE projectdomains (
@@ -35,6 +36,7 @@ CREATE TABLE offices (
 );
 CREATE TABLE changelog (
 	changeid SERIAL PRIMARY KEY,
+	changevoteid INT REFERENCES votes(voteid),
 	changevoteid INT,
 	changepreviousvalue INT,
 	changenewvalue INT,

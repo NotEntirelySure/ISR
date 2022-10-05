@@ -1,0 +1,8 @@
+react-router-dom	//used to route pages
+File-Saver	//used to export projects to spreadsheet
+xlsx		//used to save exported projects as xlsx extension
+Express		//used to provide database API
+websocket	//used to provide websockets for real-time client communication
+xlsx-chart	//used to export chart to Excel spreadsheet
+jsonwebtoken	//used by the database API to manage JWTs
+buffer		//used to base64 decode jwt user data
