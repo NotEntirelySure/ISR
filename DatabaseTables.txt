@@ -1,0 +1,45 @@
+CREATE USER superuser WITH PASSWORD 'root';
+CREATE TABLE votes (
+	voteid SERIAL,
+	voteprojectid VARCHAR,
+	voteparticipantid INT,
+	voteparticipantoffice VARCHAR,
+	votevalue INT
+);
+CREATE TABLE participants (
+	participantid SERIAL,
+	participanttitle VARCHAR(6),
+	participantfname VARCHAR(25),
+	participantlname VARCHAR(25),
+	participantoffice VARCHAR(255)
+);
+CREATE TABLE projects (
+	projectsequence INT,
+	projectid VARCHAR,
+	projectdescription VARCHAR,
+	projectdomain INT
+);
+CREATE TABLE projectdomains (
+	projectdomainid SERIAL PRIMARY KEY,
+	projectdomainname VARCHAR,
+	projectdomaincolorhex VARCHAR
+);
+CREATE TABLE administrators (
+	userid SERIAL,
+	username VARCHAR,
+	password VARCHAR
+);
+CREATE TABLE offices (
+	officeid SERIAL PRIMARY KEY,
+	officename VARCHAR(255)
+);
+CREATE TABLE changelog (
+	changeid SERIAL PRIMARY KEY,
+	changevoteid INT,
+	changepreviousvalue INT,
+	changenewvalue INT,
+	changetime TIMESTAMP,
+	changeaction VARCHAR,
+	changecomment TEXT
+);
+INSERT INTO administrators (username, password) VALUES ('admin', '12345678');
