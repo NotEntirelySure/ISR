@@ -44,7 +44,7 @@ const rankHeaders = [
 const voteHeaders = [
   {key:'projectID', header:'Project ID'},
   {key:'projectDescription', header:'Project Description'},
-  {key:'participantID', header:'Participant ID'},
+  {key:'participant', header:'Participant'},
   {key:'office', header:'Office'},
   {key:'voteValue', header:'Vote Value'}
 ];
@@ -81,7 +81,7 @@ class StatisticsPage extends Component {
       }],
       offices:[],
       selectedChart:"start",
-      selectedOffice:"",
+      selectedOffice:null,
       comboBoxInvalid:false,
       chartData:null,
       domainList:[],
@@ -179,7 +179,7 @@ class StatisticsPage extends Component {
         "Title":participantList.rows[i].participanttitle,
         "First Name":participantList.rows[i].participantfname,
         "Last Name":participantList.rows[i].participantlname,
-        "Office":participantList.rows[i].participantoffice
+        "Office":participantList.rows[i].officename
       });
     }
 
@@ -192,7 +192,7 @@ class StatisticsPage extends Component {
         "Vote ID":voteList.rows[i].voteid,
         "Project ID":voteList.rows[i].voteprojectid,
         "Participant ID":voteList.rows[i].voteparticipantid,
-        "Participant Office":voteList.rows[i].voteparticipantoffice,
+        "Participant Office":voteList.rows[i].officename,
         "Vote Value":voteList.rows[i].votevalue
       });
     }
@@ -226,7 +226,6 @@ class StatisticsPage extends Component {
       })
     }
 
-    console.table(objLogs);
     const fileType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8";
     const worksheetParticipants = XLSX.utils.json_to_sheet(objParticipants);
     const worksheetVotes = XLSX.utils.json_to_sheet(objVotes);
@@ -425,7 +424,7 @@ class StatisticsPage extends Component {
       .then(data => {
         let objOffices = []  
         for (let i=0; i<data.rows.length; i++){
-          objOffices.push({id:data.rows[i].officename, text:data.rows[i].officename})
+          objOffices.push({id:data.rows[i].officeid, text:data.rows[i].officename})
         }
         this.setState({offices: objOffices})
     })
@@ -439,10 +438,9 @@ class StatisticsPage extends Component {
 
   GetVotesByOffice = () => {
     
-    let office = document.getElementById("combobox").value;
-    if (office === '') {this.setState({comboBoxInvalid:true})}
-    if (office !== '') {
-      fetch(`${process.env.REACT_APP_API_BASE_URL}/getvotesbyoffice/${office}`, {mode:'cors'})
+    if (this.state.selectedOffice === '' || this.state.selectedOffice === null) {this.setState({comboBoxInvalid:true})}
+    if (this.state.selectedOffice > -1) {
+      fetch(`${process.env.REACT_APP_API_BASE_URL}/getvotesbyoffice/${this.state.selectedOffice}`, {mode:'cors'})
         .then(response => response.json())
         .then(data => {
           let objVotes = [];
@@ -451,7 +449,7 @@ class StatisticsPage extends Component {
               id:"0",
               projectID:"no records found",
               projectDescription:"no records found",
-              participantID:"no records found",
+              participant:"no records found",
               office:"no records found",
               voteValue:"no records found"
             });
@@ -462,8 +460,8 @@ class StatisticsPage extends Component {
               id:String(i),
               projectID:data.rows[i].voteprojectid,
               projectDescription:data.rows[i].projectdescription,
-              participantID:data.rows[i].voteparticipantid,
-              office:data.rows[i].voteparticipantoffice,
+              participant:`${data.rows[i].participanttitle} ${data.rows[i].participantfname} ${data.rows[i].participantlname}`,
+              office:data.rows[i].officename,
               voteValue:data.rows[i].votevalue
             });
           }
@@ -586,7 +584,11 @@ class StatisticsPage extends Component {
                 <div id="byOfficeOptions">
                   <div>
                     {this.state.offices ? <ComboBox
-                      onChange={() => this.setState({comboBoxInvalid:false})}
+                      onChange={event => {
+                        console.info(typeof event.selectedItem.id);
+                        //this.state.comboBoxInvalid ? this.setState({comboBoxInvalid:false}):null;
+                        this.setState({selectedOffice:event.selectedItem.id})
+                      }}
                       id="combobox"
                       invalid={this.state.comboBoxInvalid}
                       invalidText="This is a required field." 

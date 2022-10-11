@@ -1,7 +1,3 @@
-const votes_model = require('./votes_model');
-const FileSaver = require('xlsx');
-const fs = require ("fs");
-const XLSX = require('xlsx');
 const XLSXChart = require ("xlsx-chart");
 const { start } = require('repl');
 const Pool = require('pg').Pool
@@ -9,7 +5,7 @@ const Pool = require('pg').Pool
 const pool = new Pool({
   user: 'superuser',
   host: 'localhost',
-  database: 'postgres',
+  database: 'isr',
   password: 'root',
   port: 5432,
 });

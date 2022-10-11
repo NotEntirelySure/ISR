@@ -4,7 +4,6 @@ import { Navigate } from 'react-router-dom';
 import {
 	Button,
 	ComboBox,
-	Content,
 	Form,
 	Select,
 	SelectItem,
@@ -22,8 +21,9 @@ class RegistrationPage extends Component {
 			lNameInvalid:false,
 			invalidText: "",
 			redirect:false,
-			offices:[]
-		}
+			offices:[],
+			selectedOfficeId:null
+		} 
 	}
     
 	componentDidMount() {
@@ -32,7 +32,7 @@ class RegistrationPage extends Component {
 			.then(data => {
 				let objOffices = []  
 				for (let i=0; i<data.rows.length; i++){
-					objOffices.push({id:data.rows[i].officename, text:data.rows[i].officename})
+					objOffices.push({id:data.rows[i].officeid, text:data.rows[i].officename})
 				}
 				this.setState({offices: objOffices})
 			})
@@ -40,7 +40,6 @@ class RegistrationPage extends Component {
     
 	Register = async() => {
 
-		let office = document.getElementById("combobox").value;
 		let title = document.getElementById("dropdown").value;
 		let fName = document.getElementById("fname").value;
 		let lName = document.getElementById("lname").value;
@@ -54,7 +53,7 @@ class RegistrationPage extends Component {
 			invalidText: ""
 		});
 
-		if (office === "") {
+		if (this.state.selectedOfficeId === "" || this.state.selectedOfficeId === null) {
 			this.setState({comboboxInvalid: true});
 			return;
 		}
@@ -94,27 +93,23 @@ class RegistrationPage extends Component {
 			});
 			return;
 		}
-		
-		if (office !== "" && title !== "0" && fName !== "" && lName !== "") {
 
-			const registrationRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/register`, {
-				method:'POST',
-				mode:'cors',
-				headers:{'Content-Type':'application/json'},
-				body:JSON.stringify({
-					"office":office,
-					"title":title,
-					"fname":fName,
-					"lname":lName
-				})
-			});
-			const registrationResponse = await registrationRequest.json();
-			console.log(registrationResponse);
-			const mintRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/mintjwt/${registrationResponse.participantid}`)
-			const mintResponse = await mintRequest.json();
-			localStorage.setItem("jwt", mintResponse.token);
-			this.setState({redirect:true});
-		};
+		const registrationRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/register`, {
+			method:'POST',
+			mode:'cors',
+			headers:{'Content-Type':'application/json'},
+			body:JSON.stringify({
+				"office":this.state.selectedOfficeId,
+				"title":title,
+				"fname":fName,
+				"lname":lName
+			})
+		});
+		const registrationResponse = await registrationRequest.json();
+		const mintRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/mintjwt/${registrationResponse.participantid}`)
+		const mintResponse = await mintRequest.json();
+		localStorage.setItem("jwt", mintResponse.token);
+		this.setState({redirect:true});
 	}
 
 	render() {
@@ -131,13 +126,13 @@ class RegistrationPage extends Component {
 					<Form>
 						<div className='registrationFormItem'>
 							<ComboBox
-								onChange={() => {}}
+								onChange={event => this.setState({selectedOfficeId:event.selectedItem.id})}
 								id="combobox"
 								placeholder="Select"
 								invalid={this.state.comboboxInvalid}
 								invalidText="This is a required field." 
 								items={this.state.offices}
-								itemToString={(office) => (office ? office.text : '')}
+								itemToString={office => office ? office.text : ''}
 								titleText="Office"
 								helperText=""
 							/>

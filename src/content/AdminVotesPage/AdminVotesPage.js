@@ -34,12 +34,10 @@ const headers = [
     {key:'voteID', header:'Vote ID'},
     {key:'projectID', header:'Project Number'},
     {key:'voter', header:'Voter'},
-    {key:'office', header:'Office'},
     {key:'voteValue', header:'Vote Value'},
     {key:'modified', header:'Modified?'},
     {key:'action', header:'Action'}
 ];
-
 
 class AdminVotesPage extends Component {
   
@@ -48,12 +46,14 @@ class AdminVotesPage extends Component {
     this.state = {
       votesList: [{
         id:'0',
-        voteID:'-',
-        projectID:'-',
-        voter:'-',
-        office: '-',
-        voteValue:'-',
-        action:'-'}],
+        voteID:null,
+        projectID:'',
+        voter:'',
+        office: '',
+        voteValue:'',
+        modified:"",
+        changeRecord:[],
+        action:''}],
       voteToAdd:{},
       voteToDelete: {
         voteID:"",
@@ -87,60 +87,78 @@ class AdminVotesPage extends Component {
   GetVotes = async() => {
     const votesRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/votes/all`, {mode:'cors'});
     const votesResponse = await votesRequest.json();
-    console.table(votesResponse)
     let votes = [];
-    let voteModified;
     for (let i=0; i<votesResponse.length; i++){
-      voteModified = 'no';
-      if (votesResponse[i].changeid !== null) voteModified = 'yes';
-      votes.push({
+      let currentVote = {
         "id":String(i),
         "voteID":votesResponse[i].voteid,
         "projectID":votesResponse[i].voteprojectid,
-        "voter":`${votesResponse[i].participanttitle} ${votesResponse[i].participantfname} ${votesResponse[i].participantlname}`,
-        "office":votesResponse[i].voteparticipantoffice,
+        "voter":votesResponse[i].voteparticipantid,
+        "office":votesResponse[i].officename,
         "voteValue":votesResponse[i].votevalue,
-        "modified":voteModified,
-        "comment":votesResponse[i].changecomment,
-        "timestamp":votesResponse[i].changetime,
-        "action":
-          <>
-            <div style={{marginTop:'-1rem'}}>
-              <Button
-                hasIconOnly
-                renderIcon={RequestQuote}
-                iconDescription='Edit Vote'
-                kind="primary"
-                onClick={() => {
-                  document.getElementById("editVoteValue").value = votesResponse[i].votevalue;
-                  this.setState({
-                    voteToEdit:{
-                      "voteid":votesResponse[i].voteid,
-                      "voter":`${votesResponse[i].participanttitle} ${votesResponse[i].participantfname} ${votesResponse[i].participantlname}`,
-                      "votevalue":votesResponse[i].votevalue,
-                      "projectid":votesResponse[i].voteprojectid
-                    },
-                    modalEditOpen:true
-                  })
-                }}
-              />
-              <Button 
-                hasIconOnly
-                renderIcon={TrashCan}
-                iconDescription='Delete Vote'
-                kind="danger"
-                onClick={() => {
-                  this.setState({voteToDelete:{
-                    voteID:votesResponse[i].voteid,
-                    projectID:votesResponse[i].voteprojectid,
-                    voter:`${votesResponse[i].participanttitle} ${votesResponse[i].participantfname} ${votesResponse[i].participantlname}`
-                  }})
-                  this.setState({modalDeleteOpen:true})
-                }}
-              />
-            </div>
-          </>
-      })
+        "modified":"",
+        "changeRecord":[],
+        "action":<>
+          <div>
+            <Button
+              hasIconOnly
+              renderIcon={RequestQuote}
+              iconDescription='Edit Vote'
+              kind="primary"
+              onClick={() => {
+                document.getElementById("editVoteValue").value = votesResponse[i].votevalue;
+                this.setState({
+                  voteToEdit:{
+                    "voteid":votesResponse[i].voteid,
+                    "voter":`${votesResponse[i].participanttitle} ${votesResponse[i].participantfname} ${votesResponse[i].participantlname}`,
+                    "votevalue":votesResponse[i].votevalue,
+                    "projectid":votesResponse[i].voteprojectid
+                  },
+                  modalEditOpen:true
+                })
+              }}
+            />
+            <Button 
+              hasIconOnly
+              renderIcon={TrashCan}
+              iconDescription='Delete Vote'
+              kind="danger"
+              onClick={() => {
+                this.setState({voteToDelete:{
+                  voteID:votesResponse[i].voteid,
+                  projectID:votesResponse[i].voteprojectid,
+                  voter:`${votesResponse[i].participanttitle} ${votesResponse[i].participantfname} ${votesResponse[i].participantlname}`
+                }})
+                this.setState({modalDeleteOpen:true})
+              }}
+            />
+          </div>
+        </>
+      }
+      if (votesResponse[i].changeid === null) {
+        currentVote.modified = "no";
+        currentVote.changeRecord.push(<><p>This vote has not been modified.</p></>);
+      }
+      if (votesResponse[i].changeid !== null) {
+        currentVote.modified = 'yes';
+        let found = votes.find(value => value.voteID === votesResponse[i].voteid);
+        //if the "found" variable is undefined, it means that it is the first record in the change log of it being modified.
+        if (found === undefined) currentVote.changeRecord.push(
+          <React.Fragment key={`entry${votesResponse[i].changetime}`}><div>
+        <h6>{`Time of modification:${votesResponse[i].changetime}`}</h6>
+        <TextArea rows={2} labelText="Comment" value={votesResponse[i].changecomment}/>
+      </div><hr/></React.Fragment>)
+        //If not undefined, it means there are multiple modifications to the same vote. Concatinate the modifications.
+        if (found !== undefined) {
+          found.changeRecord.push(<React.Fragment key={`entry${votesResponse[i].changetime}`}><div>
+          <h6>{`Time of modification:${votesResponse[i].changetime}`}</h6>
+          <TextArea rows={2} labelText="Comment" value={votesResponse[i].changecomment}/>
+        </div><hr/></React.Fragment>)
+          //continue breaks current iteration of the loop to prevent pushing a duplicate vote to the vote array.
+          continue;
+        };
+      }
+      votes.push(currentVote);
     }
     this.setState({
       votesList:votes,
@@ -164,8 +182,6 @@ class AdminVotesPage extends Component {
     this.setState({
       voteToAdd: {
         "voterID":this.state.addUserComboValue.userid,
-        "voter":`${this.state.addUserComboValue.title} ${this.state.addUserComboValue.fname} ${this.state.addUserComboValue.lname}`,
-        "office":this.state.addUserComboValue.office,
         "projectID":this.state.addProjectComboValue,
         "voteValue":voteValue,
         "comment":comment,
@@ -248,8 +264,8 @@ class AdminVotesPage extends Component {
         "title":usersResponse.rows[i].participanttitle,
         "fname":usersResponse.rows[i].participantfname,
         "lname":usersResponse.rows[i].participantlname,
-        "office":usersResponse.rows[i].participantoffice,
-        "text":`${usersResponse.rows[i].participanttitle} ${usersResponse.rows[i].participantfname} ${usersResponse.rows[i].participantlname} (${usersResponse.rows[i].participantoffice})`
+        "officeName":usersResponse.rows[i].officename,
+        "text":`${usersResponse.rows[i].participanttitle} ${usersResponse.rows[i].participantfname} ${usersResponse.rows[i].participantlname} (${usersResponse.rows[i].officename})`
       })
     }
     this.setState({userList:users});
@@ -309,7 +325,8 @@ class AdminVotesPage extends Component {
                     "title":item.selectedItem.title,
                     "fname":item.selectedItem.fname,
                     "lname":item.selectedItem.lname,
-                    "office":item.selectedItem.office
+                    "officeName":item.selectedItem.office,
+                    "officeId":item.selectedItem.officeId
                   }
                 })
               }
@@ -456,7 +473,6 @@ class AdminVotesPage extends Component {
             <div className="bx--row bx--offset-lg-1 ManageProjects__r1" >
               <div className="bx--col-lg-15">
                 <DataTable
-                  stickyHeader={true}
                   rows={this.state.votesList}
                   headers={headers}
                   isSortable={true}
@@ -470,22 +486,20 @@ class AdminVotesPage extends Component {
                   }) => (
                     <TableContainer title="Votes" description="Displays list of all votes cast at the ISR">
                       <TableToolbar>
-                          <TableToolbarContent>
-                              <TableToolbarSearch onChange={onInputChange} />
-                          </TableToolbarContent>
-                          <Button 
-                            renderIcon={Add}
-                            hasIconOnly={false}
-                            size='sm'
-                            iconDescription='Add Vote'
-                            onClick={() => {
-                              this.GetUsers();
-                              this.GetProjects();
-                              this.setState({modalAddOpen:true})}
-                            }
-                          />
-                          
-                          <Button onClick={() => {this.setState({modalDeleteAllOpen:true})}} kind='danger' renderIcon={TrashCan} size='sm'>Delete All</Button>
+                        <TableToolbarContent>
+                          <TableToolbarSearch onChange={onInputChange} />
+                        </TableToolbarContent>
+                        <Button 
+                          renderIcon={Add}
+                          hasIconOnly={true}
+                          iconDescription='Add Vote'
+                          onClick={() => {
+                            this.GetUsers();
+                            this.GetProjects();
+                            this.setState({modalAddOpen:true})}
+                          }
+                        />
+                        <Button onClick={() => {this.setState({modalDeleteAllOpen:true})}} kind='danger' renderIcon={TrashCan} size='sm'>Delete All</Button>
                       </TableToolbar>
                       <Table {...getTableProps()}>
                     <TableHead>
@@ -496,28 +510,16 @@ class AdminVotesPage extends Component {
                     </TableHead>
                     <TableBody>
                       {rows.map((row) => (
-                        
                         <React.Fragment key={row.id}>
                         <TableExpandRow expandHeader="expand" {...getRowProps({ row })}>
-                          {row.cells.map((cell) => (
-                            <TableCell key={cell.id}>{cell.value}</TableCell>
-                          ))}
+                          {row.cells.map(cell => <TableCell key={cell.id}>{cell.value}</TableCell>)}
                         </TableExpandRow>
                         <TableExpandedRow
                           colSpan={headers.length + 1}
-                          className="expanded-td">
-                          {
-                            row.cells[5].value === "yes" ?
-                              <>
-                                <div>
-                                  <h6>Time of modification: {this.state.votesList[parseInt(row.id)] ? this.state.votesList[parseInt(row.id)].timestamp:null}</h6>
-                                  <br/>
-                                  <TextArea rows={2} labelText="Comment" value={this.state.votesList[parseInt(row.id)] ? this.state.votesList[parseInt(row.id)].comment:null}/>
-                                </div>
-                              </>:<>
-                                <p>This vote has not been modified.</p>
-                              </>
-                          }
+                          className="expanded-td"
+                        >
+                          {console.log(this.state.votesList)}
+                          {this.state.votesList[parseInt(row.id)] ? this.state.votesList[parseInt(row.id)].changeRecord:null}
                         </TableExpandedRow>
                         </React.Fragment>
                       ))}

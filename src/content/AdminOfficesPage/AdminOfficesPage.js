@@ -1,23 +1,27 @@
 import React, { Component } from 'react'
 import { 
-    Button, 
-    Content,
-    DataTable,
-    DataTableSkeleton,
-    TextInput,
-    Modal,
-    TableContainer,
-    Table,
-    TableHead,
-    TableRow,
-    TableHeader,
-    TableBody,
-    TableCell,
-    TableToolbar,
-    TableToolbarContent,
-    TableToolbarSearch,
+  Button,
+  ComposedModal, 
+  Content,
+  DataTable,
+  DataTableSkeleton,
+  TextInput,
+  Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
+  TableContainer,
+  Table,
+  TableHead,
+  TableRow,
+  TableHeader,
+  TableBody,
+  TableCell,
+  TableToolbar,
+  TableToolbarContent,
+  TableToolbarSearch
 } from '@carbon/react';
-import { Add, TrashCan } from '@carbon/react/icons';
+import { Add, TrashCan, WarningHexFilled } from '@carbon/react/icons';
 
 const headers = [
   {key:'officeID', header:'Office ID'},
@@ -37,12 +41,15 @@ class AdminOfficesPage extends Component {
         action: '-'
       }],
       officeToDelete: {officeName:""},
-      modalDeleteOpen: false,
       modalAddOpen: false,
+      modalDeleteOpen: false,
+      modalErrorOpen:false,
       addNameInvalid:false,
       invalidMessage:"",
       displayTable: 'none',
-      displaySkeleton: 'block'
+      displaySkeleton: 'block',
+      errorTitle:"",
+      errorMessage:""
     }
   }
 
@@ -58,22 +65,23 @@ class AdminOfficesPage extends Component {
           id:String(i),
           officeID:data.rows[i].officeid,
           officeName:data.rows[i].officename,
-          action:
-            <>
-              <Button 
-                hasIconOnly
-                renderIcon={TrashCan}
-                iconDescription='Delete office'
-                kind="danger"
-                onClick={() => {
-                  this.setState({officeToDelete:{
+          action:<>
+            <Button 
+              hasIconOnly
+              renderIcon={TrashCan}
+              iconDescription='Delete office'
+              kind="danger"
+              onClick={() => {
+                this.setState({
+                  modalDeleteOpen:true,
+                  officeToDelete:{
                     officeID:data.rows[i].officeid,
                     officeName:data.rows[i].officename
-                  }})
-                  this.setState({modalDeleteOpen:true})
-                }}
-              />
-            </>
+                  }
+                })
+              }}
+            />
+          </>
         })
       }
       this.setState({
@@ -136,7 +144,15 @@ class AdminOfficesPage extends Component {
       headers:{'Content-Type':'application/json'},
       body:`{"officeID":"${this.state.officeToDelete.officeID}"}`    
     })
-    this.GetOffices()
+    const deleteResponse = await deleteRequest.json();
+    if (deleteResponse.result === "error" && parseInt(deleteResponse.code) === 23503) {
+      this.setState({
+        errorTitle:"Error: Foreign Key Violation",
+        errorMessage:`Could not delete office ${this.state.officeToDelete.officeName} because it is still referenced in other tables in the database. To delete this office, ensure there are no users nor votes associated with ${this.state.officeToDelete.officeName}, and try again.`,
+        modalErrorOpen:true
+      })
+    }
+    if (deleteResponse.code === 200) this.GetOffices()
   }
 
   render() {
@@ -173,6 +189,7 @@ class AdminOfficesPage extends Component {
         </Modal>
         <Modal
           danger
+          open={this.state.modalDeleteOpen}
           modalHeading='Confirm Delete'
           primaryButtonText="Delete"
           secondaryButtonText="Cancel"
@@ -180,11 +197,37 @@ class AdminOfficesPage extends Component {
           onRequestSubmit={() => {
             this.setState({modalDeleteOpen: false});
             this.DeleteOffice();
-            }
-          }
-          open={this.state.modalDeleteOpen}>
+          }}
+        >
             <p>Are you sure you want to delete office {this.state.officeToDelete.officeName}?</p>
         </Modal>
+        <ComposedModal
+          size='sm'
+          preventCloseOnClickOutside={true}
+          open={this.state.modalErrorOpen}
+          onClose={() => {this.setState({modalErrorOpen: false})}}
+        >
+          <ModalHeader>
+            <dir style={{display:'flex',gap:'1rem',color:'#DA1E28'}}>
+            <WarningHexFilled size='32'/>
+            <h4>{this.state.errorTitle}</h4>
+            </dir>
+          </ModalHeader>
+          <ModalBody><p style={{marginLeft:'2rem'}}>{this.state.errorMessage}</p></ModalBody>
+          <ModalFooter>
+            <Button 
+              onClick={() => {
+                this.setState({
+                  errorTitle:"",
+                  errorMessage:"",
+                  modalErrorOpen:false
+                })
+              }}
+            >
+              Ok
+            </Button>
+          </ModalFooter>
+        </ComposedModal>
         <Content>
           <div style={{display: `${this.state.displayTable}`}} className="bx--grid bx--grid--full-width adminPageBody">
             <div className="bx--row bx--offset-lg-1 admin-offices-page__r1" >

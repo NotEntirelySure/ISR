@@ -214,7 +214,7 @@ class UserGlobalHeader extends Component {
                     </HeaderGlobalAction>
                 </>:null
               }
-            <HeaderPanel className='userPanel' ref={this.userRef} expanded={this.state.userPanelOpen}>
+            <HeaderPanel aria-label='userPanel' className='userPanel' ref={this.userRef} expanded={this.state.userPanelOpen}>
               {this.props.isAuth ? 
                 <>
                   <br/>
@@ -236,7 +236,12 @@ class UserGlobalHeader extends Component {
                 </>:null     
               }
             </HeaderPanel>
-                <HeaderPanel className='notificationPanel' ref={this.notificationRef} expanded={this.state.notificationPanelOpen}>
+                <HeaderPanel 
+                  aria-label='notificationPanel'
+                  className='notificationPanel'
+                  ref={this.notificationRef}
+                  expanded={this.state.notificationPanelOpen}
+                >
                 
                   {[...this.state.notificationList].reverse().map((item, index) => {
                     return <>

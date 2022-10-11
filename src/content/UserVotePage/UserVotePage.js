@@ -85,7 +85,7 @@ export default class UserVotePage extends Component {
           const voterInfoResponse = await voterInfoRequest.json();
           if (voterInfoResponse.rowCount === 0) this.setState({modalOpen: true});
           if (voterInfoResponse.rowCount > 0) {
-            const officeLoggedInReq = await fetch(`${process.env.REACT_APP_API_BASE_URL}/checkofficeloggedin/${voterInfoResponse.rows[0].participantoffice}`, {mode:'cors'});
+            const officeLoggedInReq = await fetch(`${process.env.REACT_APP_API_BASE_URL}/checkofficeloggedin/${voterID}`, {mode:'cors'});
             const officeLoggedInRes = await officeLoggedInReq.json();
             if (officeLoggedInRes.rowCount > 0) {
               let loggedInUsers = []
@@ -106,7 +106,7 @@ export default class UserVotePage extends Component {
                     title:voterInfoResponse.rows[0].participanttitle,
                     firstName:voterInfoResponse.rows[0].participantfname,
                     lastName:voterInfoResponse.rows[0].participantlname,
-                    office:voterInfoResponse.rows[0].participantoffice,
+                    office:voterInfoResponse.rows[0].officename,
                     isAuth:true
                   }, this.connectWebSocket);
                 }
@@ -140,7 +140,7 @@ export default class UserVotePage extends Component {
                 title:voterInfoResponse.rows[0].participanttitle,
                 firstName:voterInfoResponse.rows[0].participantfname,
                 lastName:voterInfoResponse.rows[0].participantlname,
-                office:voterInfoResponse.rows[0].participantoffice,
+                office:voterInfoResponse.rows[0].officename,
                 isAuth:true
               }, this.connectWebSocket);
             }

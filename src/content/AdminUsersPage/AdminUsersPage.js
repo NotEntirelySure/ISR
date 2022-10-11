@@ -1,9 +1,13 @@
-import React, { Component } from 'react'
+import React, { useState, useEffect, useRef} from 'react'
 import { 
     Button, 
     DataTable,
+    ComposedModal,
     Content,
     Modal,
+    ModalBody,
+    ModalHeader,
+    ModalFooter,
     TableContainer,
     Table,
     TableHead,
@@ -15,7 +19,7 @@ import {
     TableToolbarContent,
     TableToolbarSearch,
 } from '@carbon/react';
-import { Logout, TrashCan, Renew } from '@carbon/react/icons';
+import { Logout, TrashCan, Renew, WarningHexFilled } from '@carbon/react/icons';
 
 const headers = [
   {key: 'voterid', header: 'User ID'},
@@ -26,90 +30,82 @@ const headers = [
   {key: 'loggedin', header:'Logged In?'},
   {key: 'action', header: 'Action'}
 ];
+export default function AdminUsersPage() {
 
-class AdminUsersPage extends Component {
+  const [rows, setRows] = useState([]);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalErrorOpen, setModalErrorOpen] = useState(false);
+  const [errorTitle, setErrorTitle] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const userToDelete = useRef({});
+
+  useEffect(() => {GetAllUsers();},[])
   
-  constructor(props) {
-    super(props)
-    this.state = {
-      rows: [{id:'0', voterid:'-', title:'-', fname:'-', lname:'-', office: '-', action:"-"}],
-      modalOpen: false,
-      userToDelete: {
-        voterid:"",
-        title:"",
-        fname:"",
-        lname:""
-      }
+  const GetAllUsers = async() => {
+    const allVotersRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getvoterinfo/all`, {mode:'cors'})
+    const allVotersResponse = await allVotersRequest.json();
+    let users = [];
+    for (let i=0; i<allVotersResponse.rows.length; i++){
+      users.push({
+        id:String(allVotersResponse.rows[i].participantid),
+        voterid:allVotersResponse.rows[i].participantid,
+        title:allVotersResponse.rows[i].participanttitle,
+        fname:allVotersResponse.rows[i].participantfname,
+        lname:allVotersResponse.rows[i].participantlname,
+        office:allVotersResponse.rows[i].officename,
+        loggedin:allVotersResponse.rows[i].participantloggedin ? "Yes":"No",
+        action:
+          <>
+            <div style={{marginTop:'-1rem'}}>
+              <Button 
+                hasIconOnly
+                renderIcon={TrashCan}
+                iconDescription='Delete User'
+                kind="danger"
+                onClick={() => {
+                  userToDelete.current = {
+                    voterid:allVotersResponse.rows[i].participantid,
+                    title:allVotersResponse.rows[i].participanttitle,
+                    fname:allVotersResponse.rows[i].participantfname,
+                    lname:allVotersResponse.rows[i].participantlname
+                  }
+                  setModalOpen(true);
+                }}
+              />
+              <Button 
+                hasIconOnly
+                disabled={!allVotersResponse.rows[i].participantloggedin}
+                renderIcon={Logout}
+                iconDescription='Log user out'
+                kind="primary"
+                onClick={() => LogUserOut(allVotersResponse.rows[i].participantid)}
+              />
+            </div>
+          </>
+        }
+      )
     }
+    setRows(users);
   }
 
-  componentDidMount() {this.GetAllUsers();}
-  
-  GetAllUsers = () => {
-    fetch(`${process.env.REACT_APP_API_BASE_URL}/getvoterinfo/all`, {mode:'cors'})
-    .then(response => response.json())
-    .then(data => {
-  
-      let users = [];
-      for (let i=0; i<data.rows.length; i++){
-        users.push({
-          id:String(data.rows[i].participantid),
-          voterid:data.rows[i].participantid,
-          title:data.rows[i].participanttitle,
-          fname:data.rows[i].participantfname,
-          lname:data.rows[i].participantlname,
-          office:data.rows[i].participantoffice,
-          loggedin:data.rows[i].participantloggedin ? "Yes":"No",
-          action:
-            <>
-              <div style={{marginTop:'-1rem'}}>
-                <Button 
-                  hasIconOnly
-                  renderIcon={TrashCan}
-                  iconDescription='Delete User'
-                  kind="danger"
-                  onClick={() => {
-                    this.setState({userToDelete:{
-                      voterid:data.rows[i].participantid,
-                      title:data.rows[i].participanttitle,
-                      fname:data.rows[i].participantfname,
-                      lname:data.rows[i].participantlname
-                    }})
-                    this.setState({modalOpen:true})
-                  }}
-                />
-                <Button 
-                  hasIconOnly
-                  disabled={!data.rows[i].participantloggedin}
-                  renderIcon={Logout}
-                  iconDescription='Log user out'
-                  kind="primary"
-                  onClick={() => this.LogUserOut(data.rows[i].participantid)}
-                />
-              </div>
-            </>
-          }
-        )
-      }
-      this.setState({rows: users});
-    })
-  }
-
-  DeleteUser = () => {
-    fetch(`${process.env.REACT_APP_API_BASE_URL}/deletevoter`, {
+  const DeleteUser = async() => {
+    const deleteRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/deletevoter`, {
       method:'DELETE',
       mode:'cors',
       headers:{'Content-Type':'application/json'},
-      body:`{"voterID":"${this.state.userToDelete.voterid}"}`    
+      body:`{"voterID":"${userToDelete.current.voterid}"}`    
     })
-      .then(response => response.json())
-      .then(data => {
-        if (data.severity === 'ERROR') {alert(data.severity + ": " + data.detail)}
-        else {this.GetAllUsers();}
-      })
+    const deleteResponse = await deleteRequest.json();
+
+    if (deleteResponse.result === "error" && parseInt(deleteResponse.code) === 23503) {
+      setErrorTitle("Error: Foreign Key Violation");
+      setErrorMessage(`Could not delete ${userToDelete.current.title} ${userToDelete.current.fname} ${userToDelete.current.lname} because they are still referenced in the votes table in the database. To delete this user, ensure there are no votes associated with this user, and try again.`)
+      setModalErrorOpen(true);
+    }
+    if (deleteResponse.code === 200) GetAllUsers();
   }
 
-  LogUserOut = async(voterId) => {
+  const LogUserOut = async(voterId) => {
     const logoutRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/userlogout`, {
       method:'POST',
       mode:'cors',
@@ -117,78 +113,103 @@ class AdminUsersPage extends Component {
       body:`{"voterId":"${voterId}"}`    
     })
     const logoutResponse = await logoutRequest.json();
-    this.GetAllUsers();
+    GetAllUsers();
   }
 
-  render() {
-    return (
-      <>  
-        <Modal
-          danger
-          modalHeading='Confirm Delete'
-          primaryButtonText="Delete"
-          secondaryButtonText="Cancel"
-          onRequestClose={() => this.setState({modalOpen: false})}
-          onRequestSubmit={() => {
-            this.setState({modalOpen: false});
-            this.DeleteUser();
-            }
-          }
-          open={this.state.modalOpen}>
-            <p>Are you sure you want to delete {this.state.userToDelete.title} {this.state.userToDelete.fname} {this.state.userToDelete.lname}?</p>
-        </Modal>
-        <Content>
-          <div className="bx--offset-lg-1 bx--grid bx--grid--full-width adminPageBody">
-            <DataTable
-              id="userTable"
-              stickyHeader={true}
-              rows={this.state.rows}
-              headers={headers}
-              isSortable={true}
-              render={({
-                rows,
-                headers,
-                getHeaderProps,
-                getRowProps,
-                getTableProps,
-                onInputChange
-              }) => (
-                <TableContainer 
-                  title="Users"
-                  description="Displays list of all registered users"
-                  
-                >
-                  <TableToolbar>
-                    <TableToolbarContent>
-                        <TableToolbarSearch onChange={onInputChange} />
-                    </TableToolbarContent>
-                    <Button renderIcon={Renew} hasIconOnly iconDescription='Refresh Table' onClick={() => this.GetAllUsers()}/>
-                  </TableToolbar>
-                  <Table {...getTableProps()}>
-                    <TableHead>
-                      <TableRow>
-                        {headers.map((header) => (<TableHeader key={header.key} {...getHeaderProps({ header })}>{header.header}</TableHeader>)
-                        )}
+  return (
+    <>  
+      <Modal
+        danger
+        modalHeading='Confirm Delete'
+        primaryButtonText="Delete"
+        secondaryButtonText="Cancel"
+        onRequestClose={() => setModalOpen(false)}
+        onRequestSubmit={() => {
+          setModalOpen(false);
+          DeleteUser();
+        }}
+        open={modalOpen}>
+          <p>Are you sure you want to delete {userToDelete.current.title} {userToDelete.current.fname} {userToDelete.current.lname}?</p>
+      </Modal>
+      <ComposedModal
+          size='sm'
+          preventCloseOnClickOutside={true}
+          open={modalErrorOpen}
+          onClose={() => setModalErrorOpen(false)}
+        >
+          <ModalHeader>
+            <dir style={{display:'flex',gap:'1rem',color:'#DA1E28'}}>
+            <WarningHexFilled size='32'/>
+            <h4>{errorTitle}</h4>
+            </dir>
+          </ModalHeader>
+          <ModalBody><p style={{marginLeft:'2rem'}}>{errorMessage}</p></ModalBody>
+          <ModalFooter>
+            <Button 
+              onClick={() => {
+                setErrorTitle("");
+                setErrorMessage("");
+                setModalErrorOpen(false);
+              }}
+            >
+              Ok
+            </Button>
+          </ModalFooter>
+        </ComposedModal>
+      <Content>
+        <div className="bx--offset-lg-1 bx--grid bx--grid--full-width adminPageBody">
+          <DataTable
+            id="userTable"
+            stickyHeader={true}
+            rows={rows}
+            headers={headers}
+            isSortable={true}
+            render={({
+              rows,
+              headers,
+              getHeaderProps,
+              getRowProps,
+              getTableProps,
+              onInputChange
+            }) => (
+              <TableContainer 
+                title="Users"
+                description="Displays list of all registered users"
+                
+              >
+                <TableToolbar>
+                  <TableToolbarContent>
+                      <TableToolbarSearch onChange={onInputChange} />
+                  </TableToolbarContent>
+                  <Button renderIcon={Renew} hasIconOnly iconDescription='Refresh Table' onClick={() => GetAllUsers()}/>
+                </TableToolbar>
+                <Table {...getTableProps()}>
+                  <TableHead>
+                    <TableRow>
+                      {headers.map((header) => (<TableHeader key={header.key} {...getHeaderProps({ header })}>{header.header}</TableHeader>)
+                      )}
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {rows.map((row) => (
+                      <TableRow key={row.id} {...getRowProps({ row })}>
+                        {row.cells.map((cell) => (
+                          <TableCell key={cell.id}>{cell.value}</TableCell>
+                        ))}
                       </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {rows.map((row) => (
-                        <TableRow key={row.id} {...getRowProps({ row })}>
-                          {row.cells.map((cell) => (
-                            <TableCell key={cell.id}>{cell.value}</TableCell>
-                          ))}
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              )}
-              />
-          </div>
-        </Content>
-      </>
-    );
-  }
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+            />
+        </div>
+      </Content>
+    </>
+  );
 }
 
-export default AdminUsersPage;
+
+
+
+

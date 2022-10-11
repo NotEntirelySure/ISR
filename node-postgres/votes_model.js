@@ -1,10 +1,8 @@
-const { forEachOfLimit } = require('async');
-
 const Pool = require('pg').Pool
 const pool = new Pool({
   user: 'superuser',
   host: 'localhost',
-  database: 'postgres',
+  database: 'isr',
   password: 'root',
   port: 5432,
 });
@@ -12,7 +10,17 @@ const pool = new Pool({
 //used by statistics page
 const getAllVotes = () => {
   return new Promise(function(resolve, reject) {
-    pool.query('SELECT * FROM votes ORDER BY voteid;', (error, results) => {
+    pool.query(`
+      SELECT
+        v.voteid,
+        v.voteprojectid,
+        v.voteparticipantid,
+        v.votevalue,
+        o.officename
+      FROM votes AS v
+      LEFT JOIN participants AS p ON p.participantid=v.voteparticipantid
+      LEFT JOIN offices AS o ON o.officeid=p.participantoffice
+      ORDER BY voteid;`, (error, results) => {
       if (error) {reject(error)}
       resolve(results);
     })
@@ -28,25 +36,26 @@ const getVotesByProject = (projectID) => {
         v.voteid,
         v.voteprojectid,
         v.voteValue,
-        v.voteparticipantoffice,
-        p.participanttitle,
-        p.participantfname,
-        p.participantlname,
+        v.voteparticipantid,
         cl.changeid,
         cl.changetime,
         cl.changecomment
-      FROM votes as v
-      LEFT JOIN participants AS p
-      ON p.participantid=v.voteparticipantid
-      LEFT JOIN changelog as cl
-      ON cl.changevoteid=v.voteid
-      ORDER BY v.voteid;`}
+      FROM votes AS v
+      LEFT JOIN changelog AS cl ON cl.changevoteid=v.voteid
+      ORDER BY v.voteid;
+    `;
+  }
   else {
     SqlQuery = `
-      SELECT voteparticipantid, voteparticipantoffice, votevalue
-      FROM votes
-      WHERE voteprojectid='${projectID}'
-      ORDER BY voteid;`
+      SELECT 
+        v.voteparticipantid,
+        v.votevalue,
+        o.officename
+      FROM votes AS v
+      LEFT JOIN participants AS p ON p.participantid=v.voteparticipantid
+      LEFT JOIN offices AS o ON o.officeid=p.participantoffice
+      WHERE voteprojectid='${projectID}';
+    `;
   }
   return new Promise(function(resolve, reject) { 
     pool.query(SqlQuery, (error, results) => {
@@ -70,15 +79,20 @@ const getVotesByVoter = (voterID) => {
 const getVotesByOffice = (officeID) => {
   return new Promise(function(resolve, reject) { 
     pool.query(`
-    SELECT 
-      votes.voteprojectid,
-      votes.voteparticipantid,
-      votes.voteValue,
-      votes.voteparticipantoffice,
-      projects.projectdescription
-    FROM votes
-    LEFT JOIN projects ON votes.voteprojectid=projects.projectid
-    WHERE votes.voteparticipantoffice='${officeID}';`, (error, results) => {
+      SELECT
+        v.voteprojectid,
+        v.voteValue,
+        pr.projectdescription,
+        pa.participanttitle,
+        pa.participantfname,
+        pa.participantlname,
+        o.officename
+      FROM votes AS v
+      LEFT JOIN projects AS pr ON v.voteprojectid=pr.projectid
+      LEFT JOIN participants AS pa ON pa.participantid=v.voteparticipantid
+      LEFT JOIN offices AS o ON o.officeid=pa.participantoffice
+      WHERE pa.participantoffice=${officeID};
+    `, (error, results) => {
       if (error) {reject(error)}
       resolve(results);
     })
@@ -129,7 +143,7 @@ const submitVote = (values) => {
       BEGIN 
         PERFORM * FROM votes WHERE voteprojectid='${values.projectID}' AND voteparticipantid='${values.voterID}';          
         IF FOUND THEN UPDATE votes SET votevalue='${values.voteValue}' WHERE voteprojectid='${values.projectID}' AND voteparticipantid='${values.voterID}';
-        ELSE INSERT INTO votes (voteprojectid, voteparticipantid, voteparticipantoffice, votevalue) VALUES ('${values.projectID}', '${values.voterID}', '${values.office}', '${values.voteValue}');
+        ELSE INSERT INTO votes (voteprojectid, voteparticipantid, votevalue) VALUES ('${values.projectID}', '${values.voterID}', '${values.voteValue}');
         END IF;
       END
     $$;`, (error, results) => {
