@@ -17,8 +17,7 @@ CREATE TABLE projects (
 	projectsequence INT,
 	projectid VARCHAR,
 	projectdescription VARCHAR,
-	projectdomain INT REFERENCES projectdomains(projectdomainid),
-	projectdomain INT
+	projectdomain INT REFERENCES projectdomains(projectdomainid)
 );
 CREATE TABLE projectdomains (
 	projectdomainid SERIAL PRIMARY KEY,
@@ -36,7 +35,6 @@ CREATE TABLE offices (
 );
 CREATE TABLE changelog (
 	changeid SERIAL PRIMARY KEY,
-	changevoteid INT REFERENCES votes(voteid),
 	changevoteid INT,
 	changepreviousvalue INT,
 	changenewvalue INT,
