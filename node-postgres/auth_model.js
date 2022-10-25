@@ -13,16 +13,24 @@ const pool = new Pool({
 
 //used by admin login page
 const adminLogin = (username, password) => {
-  // replace below query with:
-  // `SELECT convert_from(decrypt(users_otp_key::bytea, '${process.env.DATABASE_PASSWORD_ENCRYPTION_KEY}', 'aes'), 'SQL_ASCII') from users where users_email='${loginValues.user.toLowerCase()}';`);
-  return new Promise(function(resolve, reject) {
-    pool.query(`SELECT (EXISTS (SELECT FROM administrators WHERE username='${username}' AND password='${password}'));`, (error, results) => {
+  sqlQuery = `
+    SELECT (
+      EXISTS (
+        SELECT FROM administrators
+        WHERE username=$1
+        AND password=crypt($2, password)
+      )
+    );`;
+  sqlValues = [username,password];
+
+  return new Promise((resolve, reject) => {
+    pool.query(sqlQuery, sqlValues, (error, results) => {
       if (error) reject(error);
       if (results.rows[0].exists) {
         const token = jwt.sign({'username':`${username}`,type:'admin'}, process.env.JWT_SECRET_KEY,{expiresIn: '1d'});
         resolve({"jwt":token});
       }
-      else {resolve({"result":401});}
+      else resolve({"result":401});
     })
   }) 
 }

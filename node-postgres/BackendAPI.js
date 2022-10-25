@@ -13,7 +13,6 @@ const votes_model = require('./votes_model');
 const excel_model = require('./excel_model');
 
 const app = express().use('*', cors());
-const port = 3001;
 
 app.use(express.json());
 app.use(function (req, res, next) {
@@ -395,6 +394,6 @@ app.delete('/resetlogs', (req, res) => {
   })
 })
 
-app.listen(port, () => {
-  console.log(`Postgres API running on port ${port}.`)
+app.listen(process.env.API_LISTENING_PORT, () => {
+  console.log(`Postgres API running on port ${process.env.API_LISTENING_PORT}.`)
 })
