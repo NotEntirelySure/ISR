@@ -11,14 +11,13 @@ const projects_model = require('./projects_model');
 const voter_model = require('./voter_model');
 const votes_model = require('./votes_model');
 const excel_model = require('./excel_model');
-const { response } = require('express');
 
 const app = express().use('*', cors());
 const port = 3001;
 
 app.use(express.json())
 app.use(function (req, res, next) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Origin', process.env.API_ACCESS_CONTROL_ORIGIN);
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Access-Control-Allow-Headers');
   next();
