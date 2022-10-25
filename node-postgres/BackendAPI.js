@@ -1,3 +1,6 @@
+//allows access to .env file for environment variable declaration
+require('dotenv').config();
+
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
@@ -12,8 +15,6 @@ const { response } = require('express');
 
 const app = express().use('*', cors());
 const port = 3001;
-
-const jwtSecret = "theTip0fTheIceb3rg"
 
 app.use(express.json())
 app.use(function (req, res, next) {

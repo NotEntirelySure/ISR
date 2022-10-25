@@ -1,0 +1,72 @@
+CREATE DATABASE isr;
+CREATE USER superuser WITH ENCRYPTED PASSWORD 'th3ri@nthr0pe';
+GRANT ALL PRIVILEGES ON DATABASE isr TO superuser;
+GRANT ALL ON SCHEMA public TO superuser;
+CREATE USER participant_account WITH ENCRYPTED PASSWORD 'Aqrabu@m3lu';
+
+//execute the below commands AFTER logging in to newly created isr database using newly created superuser account.
+
+CREATE EXTENSION pgcrypto;
+
+CREATE TABLE projectdomains (
+	projectdomainid SERIAL PRIMARY KEY,
+	projectdomainname VARCHAR,
+	projectdomaincolorhex VARCHAR
+);
+CREATE TABLE projects (
+	projectsequence INT,
+	projectid VARCHAR PRIMARY KEY UNIQUE,
+	projectdescription VARCHAR,
+	projectdomain INT REFERENCES projectdomains(projectdomainid)
+);
+CREATE TABLE administrators (
+	userid SERIAL PRIMARY KEY,
+	firstname VARCHAR,
+	lastname VARCHAR,
+	username TEXT NOT NULL,
+	password TEXT NOT NULL
+);
+CREATE TABLE offices (
+	officeid SERIAL PRIMARY KEY,
+	officename VARCHAR(255)
+);
+CREATE TABLE participants (
+	participantid SERIAL PRIMARY KEY,
+	participanttitle VARCHAR(6),
+	participantfname VARCHAR(25),
+	participantlname VARCHAR(25),
+	participantoffice INT REFERENCES offices(officeid)
+);
+CREATE TABLE votes (
+	voteid SERIAL PRIMARY KEY,
+	voteprojectid VARCHAR REFERENCES projects(projectid),
+	voteparticipantid INT REFERENCES participants(participantid),
+	votevalue INT
+);
+CREATE TABLE changelog (
+	changeid SERIAL PRIMARY KEY,
+	changevoteid INT,
+	changepreviousvalue INT,
+	changenewvalue INT,
+	changetime TIMESTAMP,
+	changeaction VARCHAR,
+	changecomment TEXT
+);
+GRANT UPDATE,SELECT,INSERT ON votes TO participant_account;
+GRANT SELECT,INSERT ON participants TO participant_account;
+GRANT SELECT ON offices TO participant_account;
+GRANT USAGE,SELECT ON SEQUENCE votes_voteid_seq TO participant_account;
+GRANT USAGE,SELECT ON SEQUENCE participants_participantid_seq TO participant_account;
+
+INSERT INTO administrators (
+	firstname,
+	lastname,
+	username,
+	password
+)
+VALUES (
+	'Cliff',
+	'Rosenberg',
+	'carosenberg',
+	crypt('Password1!', gen_salt('bf'))
+);

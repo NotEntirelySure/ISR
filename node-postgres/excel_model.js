@@ -7,11 +7,11 @@ const { start } = require('repl');
 const Pool = require('pg').Pool
 
 const pool = new Pool({
-  user: 'superuser',
-  host: 'localhost',
-  database: 'postgres',
-  password: 'root',
-  port: 5432,
+  user: process.env.API_BASE_SUPERUSER_ACCOUNT,
+  host: process.env.API_BASE_HOST_URL,
+  database: process.env.API_BASE_DATABASE_NAME,
+  password: process.env.API_BASE_SUPERUSER_PASSWORD,
+  port: process.env.API_BASE_PORT_NUMBER,
 });
 
 const exportExcel = async(slice) => {

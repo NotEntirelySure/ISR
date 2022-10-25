@@ -1,22 +1,25 @@
+//allows access to .env file for environment variable declaration
+require('dotenv').config();
+
 const jwt = require('jsonwebtoken');
 const Pool = require('pg').Pool
 const pool = new Pool({
-  user: 'superuser',
-  host: 'localhost',
-  database: 'postgres',
-  password: 'root',
-  port: 5432,
+  user: process.env.API_BASE_SUPERUSER_ACCOUNT,
+  host: process.env.API_BASE_HOST_URL,
+  database: process.env.API_BASE_DATABASE_NAME,
+  password: process.env.API_BASE_SUPERUSER_PASSWORD,
+  port: process.env.API_BASE_PORT_NUMBER,
 });
-
-const jwtSecret = "theTip0fTheIceb3rg"
 
 //used by admin login page
 const adminLogin = (username, password) => {
+  // replace below query with:
+  // `SELECT convert_from(decrypt(users_otp_key::bytea, '${process.env.DATABASE_PASSWORD_ENCRYPTION_KEY}', 'aes'), 'SQL_ASCII') from users where users_email='${loginValues.user.toLowerCase()}';`);
   return new Promise(function(resolve, reject) {
     pool.query(`SELECT (EXISTS (SELECT FROM administrators WHERE username='${username}' AND password='${password}'));`, (error, results) => {
       if (error) reject(error);
       if (results.rows[0].exists) {
-        const token = jwt.sign({'username':`${username}`,type:'admin'}, jwtSecret,{expiresIn: '1d'});
+        const token = jwt.sign({'username':`${username}`,type:'admin'}, process.env.JWT_SECRET_KEY,{expiresIn: '1d'});
         resolve({"jwt":token});
       }
       else {resolve({"result":401});}
@@ -44,7 +47,7 @@ const userLogin = (userId) => {
           AND participantid!='${userId}';
           `, (error, results) => {
           if (error) reject(error)
-          const token = jwt.sign({"participantid":userId}, jwtSecret,{expiresIn: '4d'});
+          const token = jwt.sign({"participantid":userId}, process.env.JWT_SECRET_KEY,{expiresIn: '4d'});
           resolve({"token":token});
         })
       }
@@ -64,14 +67,14 @@ const userLogout = (userId) => {
 
 const mintJwt = (userId) => {
   return new Promise ((resolve, reject) => {
-    const token = jwt.sign({"participantid":userId}, jwtSecret,{expiresIn: '4d'});
+    const token = jwt.sign({"participantid":userId}, process.env.JWT_SECRET_KEY,{expiresIn: '4d'});
     resolve({"result":200, "token":token});
   })
 }
 
 const verifyJwt = (token) => {
   return new Promise((resolve, reject) => {
-    jwt.verify(token, jwtSecret, (err, decoded) => {
+    jwt.verify(token, process.env.JWT_SECRET_KEY, (err, decoded) => {
       if (err) resolve({"status":401}); 
       if (!err) resolve({"status":200}); 
     })
