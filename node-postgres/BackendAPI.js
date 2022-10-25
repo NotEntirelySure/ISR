@@ -15,7 +15,7 @@ const excel_model = require('./excel_model');
 const app = express().use('*', cors());
 const port = 3001;
 
-app.use(express.json())
+app.use(express.json());
 app.use(function (req, res, next) {
   res.setHeader('Access-Control-Allow-Origin', process.env.API_ACCESS_CONTROL_ORIGIN);
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');

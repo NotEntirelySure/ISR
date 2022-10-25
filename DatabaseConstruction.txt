@@ -53,7 +53,7 @@ CREATE TABLE changelog (
 	changecomment TEXT
 );
 GRANT UPDATE,SELECT,INSERT ON votes TO participant_account;
-GRANT SELECT,INSERT ON participants TO participant_account;
+GRANT UPDATE,SELECT,INSERT ON participants TO participant_account;
 GRANT SELECT ON offices TO participant_account;
 GRANT USAGE,SELECT ON SEQUENCE votes_voteid_seq TO participant_account;
 GRANT USAGE,SELECT ON SEQUENCE participants_participantid_seq TO participant_account;
