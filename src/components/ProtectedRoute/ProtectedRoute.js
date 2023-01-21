@@ -30,7 +30,7 @@ class ProtectedRoute extends Component {
             if (jwtResult.status === 200 && userType === "admin") {this.setState({isAuth:true});}
             if (jwtResult.status === 401) {this.setState({isAuth:false})}
         }
-        if (token === null) {this.setState({isAuth:false})}
+        if (token === null) {this.setState({isAuth:true})}
     }
     
     render() {

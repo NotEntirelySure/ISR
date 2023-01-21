@@ -1,5 +1,7 @@
 //allows access to .env file for environment variable declaration
 require('dotenv').config();
+const jwt = require('jsonwebtoken');
+const auth_model = require('./auth_model');
 
 const Pool = require('pg').Pool
 const pool = new Pool({
@@ -12,49 +14,28 @@ const pool = new Pool({
 
 //used by user registration page
 const registerVoter = (userInfo) => {
-  
-  return new Promise(function(resolve, reject) { 
+  return new Promise((resolve, reject) => { 
     pool.query(
-      `DO $$ 
-        BEGIN 
-          PERFORM * FROM participants 
-          WHERE participanttitle='${userInfo.title}' 
-          AND participantfname='${userInfo.fname}' 
-          AND participantlname='${userInfo.lname}'
-          AND participantoffice='${userInfo.office}';
-    
-          IF NOT FOUND THEN 
-            INSERT INTO participants (
-              participanttitle,
-              participantfname,
-              participantlname,
-              participantoffice,
-              participantloggedin
-            )
-            VALUES (
-              '${userInfo.title}',
-              '${userInfo.fname}',
-              '${userInfo.lname}',
-              '${userInfo.office}',
-              'false'
-            );
-          END IF;
-        END
-      $$;
-      SELECT participantid FROM participants 
-      WHERE participanttitle='${userInfo.title}' 
-      AND participantfname='${userInfo.fname}' 
-      AND participantlname='${userInfo.lname}'
-      AND participantoffice='${userInfo.office}';`, (error, results) => {
-        if (error) {reject(error)}
-        resolve(results[1].rows[0]);
-    });
+      'SELECT register_participant($1,$2,$3,$4);',
+      [userInfo.title, userInfo.fname, userInfo.lname, userInfo.office],
+      (error, results) => {
+        if (error) reject({code:500});
+        const jwt = auth_model._mintJwt(results.rows[0].register_participant);
+        resolve({code:200,token:jwt});
+      }
+    );
   });
 };
 
 const checkOfficeLoggedIn = (officeId) => {
   return new Promise((resolve, reject) => { 
-    pool.query(`SELECT participantid FROM participants WHERE participantoffice='${officeId}' AND participantloggedin='true';`, (error, results) => {
+    pool.query(`
+      SELECT participantid
+      FROM participants as p
+      JOIN offices as o on o.officeid=p.participantoffice
+      WHERE o.officename='${officeId}'
+      AND participantloggedin='true';
+    `, (error, results) => {
       if (error) {reject(error)}
       resolve(results);
     })
@@ -75,22 +56,56 @@ const getVoterByName = (userInfo) => {
     })
   });
 }
-//used by user vote page and admin vote page
-const getVoterInfo = (voterID) => {
-  let SqlQuery;
-  if (voterID === "all"){SqlQuery = "SELECT * FROM participants ORDER BY participantid";}
-  else {SqlQuery = `SELECT * FROM participants WHERE participantid='${voterID}'`}
+const getAllVoters = () => {
   return new Promise((resolve, reject) => { 
-    pool.query(SqlQuery, (error, results) => {
-      if (error) {reject(error)}
-      resolve(results);
-    })
+    pool.query(`
+      SELECT 
+        p.participantid,
+        p.participanttitle,
+        p.participantfname,
+        p.participantlname,
+        p.participantoffice,
+        p.participantloggedin,
+        o.officename
+      FROM participants as p
+      JOIN offices as o on o.officeid=p.participantoffice;`, 
+      (error, results) => {
+        if (error) {reject(error)}
+        resolve(results);
+      })
+  });
+  
+  
+}
+//used by user vote page and admin users page
+const getVoterInfo = (token) => {  
+  return new Promise((resolve, reject) => {
+    const isVerified = jwt.verify(token, process.env.JWT_SECRET_KEY)
+    if (isVerified.participantid){
+      pool.query(
+        `SELECT 
+        p.participantid,
+        p.participanttitle,
+        p.participantfname,
+        p.participantlname,
+        p.participantoffice,
+        p.participantloggedin,
+        o.officename
+        FROM participants as p
+        JOIN offices as o on o.officeid=p.participantoffice
+        WHERE participantid=$1;`,
+        [isVerified.participantid],
+        (error, results) => {
+          if (error) {reject(error)}
+          resolve(results);
+      })
+    }
   });
 }
-
+    
 //used by user admin page
 const deleteVoter = (voterID) => {
-    return new Promise(function(resolve, reject) { 
+  return new Promise(function(resolve, reject) { 
     pool.query(`DELETE FROM participants WHERE participantid='${voterID}'`, (error, results) => {
       if (error) {reject(error)}
       resolve(results);
@@ -129,6 +144,7 @@ module.exports = {
   checkOfficeLoggedIn,
   getVoterByName,
   getVoterInfo,
+  getAllVoters,
   deleteVoter,
   userLogout,
   resetParticipantsTable

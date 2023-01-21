@@ -5,7 +5,9 @@ import AdminLoginPage from './content/AdminLoginPage';
 import RegistrationPage from './content/RegisterationPage';
 import LandingPage from './content/LandingPage';
 import UserVotePage from './content/UserVotePage';
+import ResultsPage from './content/ResultsPage';
 import ProtectedRoute from './components/ProtectedRoute';
+
 document.title = "ISR Voting System";
 
 export default function App() {
@@ -16,8 +18,9 @@ export default function App() {
         <Route exact path="/" element={<LandingPage />} />
         <Route path="/vote" element={<UserVotePage />} />
         <Route path="/register" element={<RegistrationPage />} />
-        <Route path="/admin" element={<AdminLoginPage />} />
+        <Route path="/results" element={<ResultsPage />} />
 
+        <Route path="/admin" element={<AdminLoginPage />} />
         <Route path="/adminhome" element={<ProtectedRoute page="adminhome"/>}/>
         <Route path="/votedashboard" element={<ProtectedRoute page="votedashboard"/>}/>
         <Route path="/manageprojects" element={<ProtectedRoute page="manageprojects"/>}/>

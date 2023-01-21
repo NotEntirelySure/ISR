@@ -28,7 +28,7 @@ CREATE TABLE administrators (
 );
 CREATE TABLE offices (
 	officeid SERIAL PRIMARY KEY,
-	officename VARCHAR(255)
+	officename VARCHAR(255) UNIQUE
 );
 CREATE TABLE participants (
 	participantid SERIAL PRIMARY KEY,
@@ -70,3 +70,78 @@ VALUES (
 	'carosenberg',
 	crypt('Password1!', gen_salt('bf'))
 );
+
+CREATE OR REPLACE FUNCTION register_participant(title VARCHAR, fname VARCHAR, lname VARCHAR, office INT) RETURNS integer
+LANGUAGE plpgsql
+AS $$
+  BEGIN 
+    PERFORM * FROM participants 
+    WHERE participanttitle=title
+    AND participantfname=fname
+    AND participantlname=lname
+    AND participantoffice=office;
+    
+    IF NOT FOUND THEN
+      INSERT INTO participants (
+        participanttitle,
+        participantfname,
+        participantlname,
+        participantoffice,
+        participantloggedin
+      )
+      VALUES (title, fname, lname, office, 'false');
+    END IF;
+	
+    RETURN (
+      SELECT participantid
+      FROM participants
+      WHERE participanttitle=title
+      AND participantfname=fname
+      AND participantlname=lname
+      AND participantoffice=office
+    );
+  END;
+$$;
+
+CREATE OR REPLACE FUNCTION login_participant(id INT) RETURNS TEXT
+LANGUAGE plpgsql
+AS $$
+  BEGIN 
+    PERFORM FROM participants
+    WHERE participantoffice=(
+      SELECT participantoffice
+      FROM participants
+      WHERE participantid=id
+    )
+    AND participantloggedin='true'
+    AND participantid!=id;
+    
+    IF FOUND THEN
+      RETURN('other_logged_in');
+    END IF;
+    
+    IF NOT FOUND THEN
+      PERFORM FROM participants 
+      WHERE participantid=id;
+	
+      IF NOT FOUND THEN 
+	  RETURN('not_found');
+      END IF;
+      
+	IF FOUND THEN
+        UPDATE participants 
+        SET participantloggedin='true'
+        WHERE participantid=id;
+	  UPDATE participants
+        SET participantloggedin='false' 
+        WHERE participantoffice=(
+          SELECT participantoffice 
+          FROM participants
+          WHERE participantid=id
+         )
+         AND participantid!=id;
+	   RETURN(id);
+ 	END IF;
+    END IF;
+  END;
+$$;

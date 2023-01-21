@@ -30,7 +30,7 @@ const headers = [
     {key:'action', header:'Action'}
 ];
   
-const AdminDomainsPage = () => {
+export default function AdminDomainsPage() {
 
   const [domainsList, setDomainsList] = useState([]);
   const [domainToEdit, setDomainToEdit] = useState({"domainId":"", "domainName":"","colorHex":""});
@@ -375,5 +375,3 @@ const AdminDomainsPage = () => {
       </Content>
     )
 }
-
-export default AdminDomainsPage;

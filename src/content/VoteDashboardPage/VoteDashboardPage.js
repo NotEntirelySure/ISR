@@ -65,7 +65,7 @@ class VoteDashboardPage extends Component {
       reconnectButtonDisplay:"none"
     });
     
-    client = new w3cwebsocket(`${process.env.REACT_APP_WEBSOCKET_BASE_URL}/admin`);
+    client = new w3cwebsocket(`${process.env.REACT_APP_WEBSOCKET_BASE_URL}/adminDash`);
 
     client.onopen = () => {
       this.setState({
@@ -75,7 +75,7 @@ class VoteDashboardPage extends Component {
       })
 
       client.send(JSON.stringify({
-        sender:"admin",
+        sender:"adminDash",
         action: "getVotingEnabledProjects",
       }))
     };
@@ -151,7 +151,7 @@ class VoteDashboardPage extends Component {
     if (this.state.toggleChecked) {
       this.setState({toggleChecked:false})
       client.send(JSON.stringify({
-        sender:"admin",
+        sender:"adminDash",
         source:"dashboard",
         action: "removeProject",
         payload: `{"id":"${this.state.currentProject.projectID}","description":"${this.state.currentProject.projectDescription}"}`
@@ -195,7 +195,7 @@ class VoteDashboardPage extends Component {
     for (let i=0;i<this.state.votingEnabledProjects.length; i++){
       if (this.state.votingEnabledProjects[i].projectID === this.state.currentProject.projectID) {
         client.send(JSON.stringify({
-          sender:"admin",
+          sender:"adminDash",
           action: "getRemainingVoters"
         }))
       }
@@ -243,7 +243,7 @@ class VoteDashboardPage extends Component {
                       onToggle={(state) => {
                         this.setState({toggleChecked:state})
                         client.send(JSON.stringify({
-                          sender:"admin",
+                          sender:"adminDash",
                           source:"dashboard",
                           action: state ? "addProject":"removeProject",
                           payload: `{"id":"${this.state.currentProject.projectID}","description":"${this.state.currentProject.projectDescription}"}`

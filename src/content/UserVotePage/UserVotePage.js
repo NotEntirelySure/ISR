@@ -73,97 +73,61 @@ export default class UserVotePage extends Component {
 
     if (token !== null) {
 
-      const token = localStorage.getItem("jwt");
-      const jwtRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/verifyjwt/${token}`, {mode:'cors'});
-      const jwtResponse = await jwtRequest.json();
+      const loginRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/userlogin`, {
+        method:'POST',
+        mode:'cors',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({"jwt":token})
+      });
+      const loginResponse = await loginRequest.json();
 
-      switch (jwtResponse.status) {
+      switch (loginResponse.code) {
         case 200:
-          //extract participant id from JWT
-          const voterID = JSON.parse(Buffer.from(token.split(".")[1], "base64").toString('ascii')).participantid;
-          const voterInfoRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getvoterinfo/${voterID}`, {mode:'cors'})
+          const voterInfoRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getvoterinfo/${localStorage.getItem("jwt")}`, {mode:'cors'})
           const voterInfoResponse = await voterInfoRequest.json();
-          if (voterInfoResponse.rowCount === 0) this.setState({modalOpen: true});
-          if (voterInfoResponse.rowCount > 0) {
-            const officeLoggedInReq = await fetch(`${process.env.REACT_APP_API_BASE_URL}/checkofficeloggedin/${voterInfoResponse.rows[0].participantoffice}`, {mode:'cors'});
-            const officeLoggedInRes = await officeLoggedInReq.json();
-            if (officeLoggedInRes.rowCount > 0) {
-              let loggedInUsers = []
-              //loop through the users from the office that have their login status as true. 
-              for (let i=0;i<officeLoggedInRes.rowCount;i++) {loggedInUsers.push(officeLoggedInRes.rows[i].participantid);}
-              if (loggedInUsers.includes(voterInfoResponse.rows[0].participantid)) {
-                const loginRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/userlogin`, {
-                  method:'POST',
-                  mode:'cors',
-                  headers:{'Content-Type':'application/json'},
-                  body:`{"userId":"${voterInfoResponse.rows[0].participantid}"}`
-                });
-                const loginResponse = await loginRequest.json();
-                if(loginResponse.error) this.setState({modalOpen: true})
-                else {
-                  this.setState({
-                    voterID:voterInfoResponse.rows[0].participantid,
-                    title:voterInfoResponse.rows[0].participanttitle,
-                    firstName:voterInfoResponse.rows[0].participantfname,
-                    lastName:voterInfoResponse.rows[0].participantlname,
-                    office:voterInfoResponse.rows[0].participantoffice,
-                    isAuth:true
-                  }, this.connectWebSocket);
-                }
-              }
-              if (!loggedInUsers.includes(voterInfoResponse.rows[0].participantid)) this.setState({
-                modalHeading:"Other Participant Logged In",
-                modalMessage:<>
-                  <p>You have been registered in the system, however, another participant from {voterInfoResponse.rows[0].participantoffice} is currently logged in.</p>
-                  <p>Only one participant from the same office may be logged in at a time. If you wish to vote in the ISR, you can do one of the following:</p>
-                  <div style={{marginLeft:'5%'}}>
-                    <OrderedList>
-                      <ListItem>Contact the person from office {voterInfoResponse.rows[0].participantoffice} and ask them to logout.</ListItem>
-                      <ListItem>Return to the registration page and register under a different office.</ListItem>
-                      <ListItem>Contact the system administrator to manually log the participant, from {voterInfoResponse.rows[0].participantoffice}, out.</ListItem>
-                    </OrderedList>
-                  </div>
-                </>,
-                modalOpen: true});
-            }
-            //if the result is empty, it means no one is logged in. Log the user in.
-            if (officeLoggedInRes.rowCount === 0) {
-              const loginRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/userlogin`, {
-                method:'POST',
-                mode:'cors',
-                headers:{'Content-Type':'application/json'},
-                body:`{"userId":"${voterInfoResponse.rows[0].participantid}"}`
-              });
-              const loginResponse = await loginRequest.json();
-              this.setState({
-                voterID:voterInfoResponse.rows[0].participantid,
-                title:voterInfoResponse.rows[0].participanttitle,
-                firstName:voterInfoResponse.rows[0].participantfname,
-                lastName:voterInfoResponse.rows[0].participantlname,
-                office:voterInfoResponse.rows[0].participantoffice,
-                isAuth:true
-              }, this.connectWebSocket);
-            }
-          }
+          this.setState({
+            voterID:voterInfoResponse.rows[0].participantid,
+            title:voterInfoResponse.rows[0].participanttitle,
+            firstName:voterInfoResponse.rows[0].participantfname,
+            lastName:voterInfoResponse.rows[0].participantlname,
+            office:voterInfoResponse.rows[0].officename,
+            isAuth:true
+          }, this.connectWebSocket);
           break;
-        
-        case 401:
+        case 401: 
+          this.setState({
+            modalHeading:"Not Registered",
+            modalMessage:<><p>You must register before you are able to vote.</p></>,
+            modalOpen:true
+          });
+          break;
+        case 601:
+          this.setState({
+            modalHeading:"Other Participant Logged In",
+            modalMessage:<>
+              <p>You have been registered in the system, however, another participant from your office is currently logged in.</p>
+              <p>Only one participant from the same office may be logged in at a time. If you wish to vote in the ISR, you can do one of the following:</p>
+              <div style={{marginLeft:'5%'}}>
+                <OrderedList>
+                  <ListItem>Contact the person from your office and ask them to logout.</ListItem>
+                  <ListItem>Return to the registration page and register under a different office.</ListItem>
+                  <ListItem>Contact the system administrator and ask them to log the other person out.</ListItem>
+                </OrderedList>
+              </div>
+            </>,
+            modalOpen:true
+          });
+          break;
+        case 602:
           this.setState({
             modalHeading:"Session Expired",
             modalMessage:<><p>Your session has expired. Please visit the registration page to reregister.</p></>,
             modalOpen:true
           });
           break;
-        
-        default: 
-          this.setState({
-            modalHeading:"Not Registered",
-            modalMessage:<><p>You must register before you are able to vote.</p></>,
-            modalOpen:true
-          })
-      }
+      };
     };
-  }
+  };
   
   connectWebSocket = () => {
     this.setState({
@@ -448,7 +412,7 @@ handleThemeChange = (selectedTheme) => {
                   />
                 </div>
                 <div >
-                  <h4>{`${this.state.title} ${this.state.firstName} ${this.state.lastName} (${this.state.office})`}</h4>
+                  <h4>{this.state.isAuth ? `${this.state.title} ${this.state.firstName} ${this.state.lastName} (${this.state.office})`:null}</h4>
                 </div>
               </div>
             </div>

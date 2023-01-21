@@ -1,6 +1,7 @@
 import React, { Component } from 'react'
 import * as FileSaver from 'file-saver';
 import * as XLSX from "xlsx";
+import { w3cwebsocket } from "websocket";
 import {
     Button,
     ComboBox,
@@ -21,7 +22,7 @@ import {
     TableRow,
     TableContainer,
 } from '@carbon/react';
-import { Renew, DocumentExport } from '@carbon/react/icons';
+import { DocumentExport, Renew, Share } from '@carbon/react/icons';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -44,7 +45,8 @@ const rankHeaders = [
 const voteHeaders = [
   {key:'projectID', header:'Project ID'},
   {key:'projectDescription', header:'Project Description'},
-  {key:'participantID', header:'Participant ID'},
+  {key:'participantName', header:'Participant Name'},
+  //{key:'participantID', header:'Participant ID'},
   {key:'office', header:'Office'},
   {key:'voteValue', header:'Vote Value'}
 ];
@@ -54,7 +56,7 @@ const chartOptions = {
   elements: {bar:{borderWidth:2}},
   responsive: true,
   plugins: {
-    legend: {position: 'right'},
+    legend: {display: false, position: 'bottom'},
     title: {display: false},
   }
 };
@@ -115,6 +117,33 @@ class StatisticsPage extends Component {
       Tooltip,
       Legend
     );
+  }
+
+  publishResults = () => {
+
+    this.setState({
+      connectionStatus:"active",
+      connectionMessage:"Connecting...",
+      reconnectButtonDisplay:"none"
+    });
+    
+    let client = new w3cwebsocket(`${process.env.REACT_APP_WEBSOCKET_BASE_URL}/adminStat`);
+
+    client.onopen = () => {
+      client.send(JSON.stringify({
+        sender:"adminStat",
+        action: "publishResults",
+      }))
+    };
+    
+    client.onmessage = (message) => {
+      const messageData = JSON.parse(message.data);
+    };
+    
+    client.onclose = () => {}
+
+    client.onerror = (event) => {}
+
   }
 
   UpdateStatTable = async() => {
@@ -305,6 +334,66 @@ class StatisticsPage extends Component {
 
   }
 
+  ProcessChartData = (args) => {
+
+    let average;
+    let ideaTitle;
+    let chartSlice = [];
+    let labels = [];
+    let voteData = [];
+    let barColors = [];
+    
+    if (args.action === "update" && args.sliceValue === "all") chartSlice = this.state.projects;
+    if (args.action === "update" && args.sliceValue !== "all") chartSlice = this.state.projects.slice(args.sliceValue[0], args.sliceValue[1]);
+    
+    if (args.action === "publish") console.log("publish");chartSlice = this.state.projects;
+
+    for (let i=0;i<chartSlice.length;i++){
+      ideaTitle = `#${args.start}) ${chartSlice[i].projectID}: ${chartSlice[i].projectDescription}`
+      if (ideaTitle.length > 56) ideaTitle = ideaTitle.substring(0,55)
+      labels.push(ideaTitle);
+      if (isNaN(chartSlice[i].averageScore)) average = 0;
+      else {average = parseFloat(chartSlice[i].averageScore);}
+      voteData.push(average);
+      args.start++;
+    }
+
+    for (let i=0;i<chartSlice.length;i++) {barColors.push(chartSlice[i].projectdomaincolorhex);}
+
+    let chartData = {
+      labels,
+      datasets: [
+        {
+          label: 'Average Score',
+          data: voteData,
+          borderColor: 'rgb(22, 22, 22)',
+          backgroundColor: barColors
+        }
+      ]
+    };
+    switch (args.action) {
+      case "update": 
+        this.setState({chartData: chartData});
+        break;
+      case "publish":
+        console.log(this.state.projects);
+        let client = new w3cwebsocket(`${process.env.REACT_APP_WEBSOCKET_BASE_URL}/adminStat`);
+        client.onopen = () => {
+          client.send(
+            JSON.stringify(
+              {
+                 sender:"adminStat",
+                 action: "publishResults",
+                 data:this.state.projects,
+              }
+            )
+          )
+        };
+        break;
+    }
+
+  }
+
   SwitchTabs = (tabName) => {
     switch (tabName) {
       case "ranktable":
@@ -331,92 +420,107 @@ class StatisticsPage extends Component {
 
   UpdateChart = async() => {
     
-    if (this.state.domainList.length === 0) {await this.GetDomains()}
+    if (this.state.domainList.length === 0) await this.GetDomains();
     if (this.state.exportButtonDisplay === "none") this.setState({exportButtonDisplay:'block'});
 
-    let chartSlice, chartTitle, startInt;
     switch (this.state.selectedChart) {
       case "all":
-        chartSlice = this.state.projects;
-        startInt = 1;
-        chartTitle = "All Ranked Projects";
+        this.ProcessChartData(
+          {
+            action:"update",
+            sliceValue:"all",
+            start:1,
+            title:"All Ranked Projects"
+          }
+        )
         this.setState({exportButtonText:"Export All Projects"});
         break;
 
       case "first":
-        chartSlice = this.state.projects.slice(0, 25);
-        startInt = 1;
-        chartTitle = "Top 25 Ranked Projects";
+        this.ProcessChartData(
+          {
+            action:"update",
+            sliceValue:[0,25],
+            start:1,
+            title:"Top 25 Ranked Projects"
+          }
+        )
         this.setState({exportButtonText:"Export Top 25"});
         break;
 
       case "second":
-        chartSlice = this.state.projects.slice(25, 50);
-        startInt = 26;
-        chartTitle = "#26 - #50 Ranked Projects";
+        this.ProcessChartData(
+          {
+            action:"update",
+            sliceValue:[25, 50],
+            start:26,
+            title:"#26 - #50 Ranked Projects"
+          }
+        )
         this.setState({exportButtonText:"Export Second 25"});
         break;
 
       case "third":
-        chartSlice = this.state.projects.slice(50, 75);
-        startInt = 51;
-        chartTitle = "#51 - #75 Ranked Projects";
+        this.ProcessChartData(
+          {
+            action:"update",
+            sliceValue:[50,75],
+            start:51,
+            title:"#51 - #75 Ranked Projects"
+          }
+        )
         this.setState({exportButtonText:"Export Third 25"});
         break;
 
       case "fourth":
-        chartSlice = this.state.projects.slice(75, 100);
-        startInt = 76;
-        chartTitle = "#76 - #100 Ranked Projects";
+        this.ProcessChartData(
+          {
+            action:"update",
+            sliceValue:[75,100],
+            start:76,
+            title:"#76 - #100 Ranked Projects"
+          }
+        )
         this.setState({exportButtonText:"Export Fourth 25"})
         break;
 
       case "fifth":
-        chartSlice = this.state.projects.slice(100, 125);
-        startInt = 101;
-        chartTitle = "#101 - #125 Ranked Projects";
+        this.ProcessChartData(
+          {
+            action:"update",
+            sliceValue:[100, 125],
+            start:101,
+            title:"#101 - #125 Ranked Projects"
+          }
+        )
         this.setState({exportButtonText:"Export Fifth 25"});
         break;
 
       case "sixth":
-        chartSlice = this.state.projects.slice(125, 150);
-        startInt = 126;
-        chartTitle = "Sixth 25 Ranked (#126 - #150)";
+        this.ProcessChartData(
+          {
+            action:"update",
+            sliceValue:[125, 150],
+            start:126,
+            title:"Sixth 25 Ranked (#126 - #150)"
+          }
+        )
         this.setState({exportButtonText:"Export Sixth 25"});
         break;
 
       case "remainder":
-        chartSlice = this.state.projects.slice(150);
-        startInt = 151;
-        chartTitle = "Remaining Ranked Projects (#151...)";
+        this.ProcessChartData(
+          {
+            action:"update",
+            sliceValue:[150],
+            start:151,
+            title:"Remaining Ranked Projects (#151...)"
+          }
+        )
         this.setState({exportButtonText:"Export Remainder"})
         break;
     }
 
-    let labels = [], voteData = [], barColors = [];
-    let average;
-    for (let i=0;i<chartSlice.length;i++){
-      labels.push(`#${startInt}) ${chartSlice[i].projectID}: ${chartSlice[i].projectDescription}`)
-      if (isNaN(chartSlice[i].averageScore)) {average = 0;}
-      else {average = parseFloat(chartSlice[i].averageScore);}
-      voteData.push(average);
-      startInt++;
-    }
-
-    for (let i=0;i<chartSlice.length;i++) {barColors.push(chartSlice[i].projectdomaincolorhex);}
-
-    let chartData = {
-      labels,
-      datasets: [
-        {
-          label: 'Average Score',
-          data: voteData,
-          borderColor: 'rgb(22, 22, 22)',
-          backgroundColor: barColors
-        }
-      ]
-    };
-    this.setState({chartData: chartData})
   }
 
   GetOffices = () => {
@@ -437,38 +541,38 @@ class StatisticsPage extends Component {
     this.setState({domainList:domainResponse});
   }
 
-  GetVotesByOffice = () => {
+  GetVotesByOffice = async() => {
     
     let office = document.getElementById("combobox").value;
     if (office === '') {this.setState({comboBoxInvalid:true})}
     if (office !== '') {
-      fetch(`${process.env.REACT_APP_API_BASE_URL}/getvotesbyoffice/${office}`, {mode:'cors'})
-        .then(response => response.json())
-        .then(data => {
-          let objVotes = [];
-          if (data.rows.length === 0) {
-            objVotes.push({
-              id:"0",
-              projectID:"no records found",
-              projectDescription:"no records found",
-              participantID:"no records found",
-              office:"no records found",
-              voteValue:"no records found"
-            });
-          }
-          
-          for (let i=0; i<data.rows.length; i++) {
-            objVotes.push({
-              id:String(i),
-              projectID:data.rows[i].voteprojectid,
-              projectDescription:data.rows[i].projectdescription,
-              participantID:data.rows[i].voteparticipantid,
-              office:data.rows[i].voteparticipantoffice,
-              voteValue:data.rows[i].votevalue
-            });
-          }
-          this.setState({voteData: objVotes});
-      })
+      const votesRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getvotesbyoffice/${office}`, {mode:'cors'})
+      const votesResponse = await votesRequest.json();
+      let objVotes = [];
+      if (votesResponse.rows.length === 0) {
+        objVotes.push({
+          id:"0",
+          projectID:"no records found",
+          projectDescription:"no records found",
+          participantName:"no records found",
+          //participantID:"no records found",
+          office:"no records found",
+          voteValue:"no records found"
+        });
+      }
+      
+      for (let i=0; i<votesResponse.rows.length; i++) {
+        objVotes.push({
+          id:String(i),
+          projectID:votesResponse.rows[i].voteprojectid,
+          projectDescription:votesResponse.rows[i].projectdescription,
+          participantName:`${votesResponse.rows[i].participanttitle} ${votesResponse.rows[i].participantfname} ${votesResponse.rows[i].participantlname}`,
+          //participantID:votesResponse.rows[i].voteparticipantid,
+          office:votesResponse.rows[i].voteparticipantoffice,
+          voteValue:votesResponse.rows[i].votevalue
+        });
+      }
+      this.setState({voteData: objVotes});
     }
 
   }
@@ -555,17 +659,16 @@ class StatisticsPage extends Component {
                     />
                   </div>
                   <div>
-                    <div style={{display:'flex'}}>
+                    <div style={{display:'flex',gap:'0.5rem',flexWrap:'wrap'}}>
                       <div style={{display:this.state.exportButtonDisplay}}>
                         <Button
                           id="chartExportButton"
+                          hasIconOnly={true}
                           renderIcon={DocumentExport}
-                          iconDescription="export selection to excel spreadsheet"
-                          description='Export Selection to Excel Spreadsheet'
+                          iconDescription={this.state.exportButtonText}
+                          description={this.state.exportButtonText}
                           onClick={() => this.ExportChart()}
-                        >
-                          {this.state.exportButtonText}
-                        </Button>
+                        />
                       </div>
                       <div style={{display:this.state.exportLoading}}>
                         <InlineLoading
@@ -574,6 +677,17 @@ class StatisticsPage extends Component {
                           status='active'
                         />
                       </div>
+                      <div style={{display:this.state.exportButtonDisplay}}>
+                          <Button 
+                            id="publishResultsButton"
+                            kind="secondary"
+                            hasIconOnly={true}
+                            renderIcon={Share}
+                            description='Publishes the rusults of the ISR voting'
+                            iconDescription='Publish Results'
+                            onClick={() => this.ProcessChartData({action:"publish", start:1})}
+                          />
+                        </div>
                     </div>
                   </div>
                 </div>

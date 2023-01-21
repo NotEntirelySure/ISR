@@ -12,40 +12,43 @@ const pool = new Pool({
 
 //used by admin offices page
 const getOffices = () => {
-    return new Promise(function(resolve, reject) { 
-        pool.query("SELECT * FROM offices ORDER BY officename;", (error, results) => {
-            if (error) {reject(error)}
-            resolve(results);
-        });
-    }); 
+	return new Promise((resolve, reject) => { 
+		pool.query("SELECT * FROM offices ORDER BY officename;", (error, results) => {
+			if (error) reject(error)
+			resolve(results);
+		});
+	});
 };
 
 //used by admin offices page
 const addOffice = (officeName) => {
-    
-    return new Promise(function(resolve, reject) {
-        /*
-        uses regex to test if the string contains a space, tab, or carriage return
-        custom error codes: 
-            600 = office name null.
-            601 = office name contains a space.
-        */
-        if (officeName === "" || officeName === null || officeName === undefined) {
-            resolve(JSON.stringify({addError:600}))
-            return;
-        }
-
-        if ((/\s/).test(officeName)) {
-            resolve(JSON.stringify({addError:601}))
-            return;
-        }
-        
-        pool.query(`INSERT INTO offices (officename) VALUES ('${officeName}');`, (error, results) => {
-            if (error) {reject(error)}
-            if (results.rowCount === 1) {resolve(JSON.stringify({result:"success"}));}
-        });
-        
-    }); 
+	
+	return new Promise(function(resolve, reject) {
+		/*
+		uses regex to test if the string contains a space, tab, or carriage return
+		error codes: 
+			201 = office name was created
+			409 = provided office name already exists
+			600 = office name null.
+			601 = office name contains a space.
+		*/
+		if (officeName === "" || officeName === null || officeName === undefined) resolve({code:600})
+		if ((/\s/).test(officeName)) resolve({code:601})
+		
+		pool.query(`
+			INSERT INTO offices (officename) 
+			VALUES ($1)
+			ON CONFLICT("officename")
+				DO NOTHING
+			RETURNING (select true) AS not_exist;`, 
+			[officeName],
+			(error, results) => {
+				if (error) {reject(error)}
+				if (results.rowCount === 0) resolve({code:409});
+				if (results.rowCount === 1) resolve({code:201});
+		});
+			
+	}); 
 };
   
 //used by admin offices page

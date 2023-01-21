@@ -1,4 +1,4 @@
-import React, { Component } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { 
     Button, 
     DataTable,
@@ -27,26 +27,17 @@ const headers = [
   {key: 'action', header: 'Action'}
 ];
 
-class AdminUsersPage extends Component {
+export default function AdminUsersPage() {
   
-  constructor(props) {
-    super(props)
-    this.state = {
-      rows: [{id:'0', voterid:'-', title:'-', fname:'-', lname:'-', office: '-', action:"-"}],
-      modalOpen: false,
-      userToDelete: {
-        voterid:"",
-        title:"",
-        fname:"",
-        lname:""
-      }
-    }
-  }
-
-  componentDidMount() {this.GetAllUsers();}
+  const userToDelete = useRef({voterid:"",title:"",fname:"",lname:""})
   
-  GetAllUsers = () => {
-    fetch(`${process.env.REACT_APP_API_BASE_URL}/getvoterinfo/all`, {mode:'cors'})
+  const [rows, setRows] = useState([{id:'0', voterid:'-', title:'-', fname:'-', lname:'-', office: '-', action:"-"}])
+  const [modalOpen, setModalOpen] = useState(false);
+  
+  useEffect(() => {GetAllUsers();},[])
+  
+  function GetAllUsers() {
+    fetch(`${process.env.REACT_APP_API_BASE_URL}/getallvoters`, {mode:'cors'})
     .then(response => response.json())
     .then(data => {
   
@@ -58,7 +49,7 @@ class AdminUsersPage extends Component {
           title:data.rows[i].participanttitle,
           fname:data.rows[i].participantfname,
           lname:data.rows[i].participantlname,
-          office:data.rows[i].participantoffice,
+          office:data.rows[i].officename,
           loggedin:data.rows[i].participantloggedin ? "Yes":"No",
           action:
             <>
@@ -69,13 +60,13 @@ class AdminUsersPage extends Component {
                   iconDescription='Delete User'
                   kind="danger"
                   onClick={() => {
-                    this.setState({userToDelete:{
+                    userToDelete.current = {
                       voterid:data.rows[i].participantid,
                       title:data.rows[i].participanttitle,
                       fname:data.rows[i].participantfname,
                       lname:data.rows[i].participantlname
-                    }})
-                    this.setState({modalOpen:true})
+                    }
+                    setModalOpen(true);
                   }}
                 />
                 <Button 
@@ -84,32 +75,32 @@ class AdminUsersPage extends Component {
                   renderIcon={Logout}
                   iconDescription='Log user out'
                   kind="primary"
-                  onClick={() => this.LogUserOut(data.rows[i].participantid)}
+                  onClick={() => LogUserOut(data.rows[i].participantid)}
                 />
               </div>
             </>
           }
         )
       }
-      this.setState({rows: users});
+      setRows(users);
     })
   }
 
-  DeleteUser = () => {
+  function DeleteUser() {
     fetch(`${process.env.REACT_APP_API_BASE_URL}/deletevoter`, {
       method:'DELETE',
       mode:'cors',
       headers:{'Content-Type':'application/json'},
-      body:`{"voterID":"${this.state.userToDelete.voterid}"}`    
+      body:`{"voterID":"${userToDelete.current.voterid}"}`    
     })
       .then(response => response.json())
       .then(data => {
         if (data.severity === 'ERROR') {alert(data.severity + ": " + data.detail)}
-        else {this.GetAllUsers();}
+        else {GetAllUsers();}
       })
   }
 
-  LogUserOut = async(voterId) => {
+  async function LogUserOut(voterId) {
     const logoutRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/userlogout`, {
       method:'POST',
       mode:'cors',
@@ -117,78 +108,73 @@ class AdminUsersPage extends Component {
       body:`{"voterId":"${voterId}"}`    
     })
     const logoutResponse = await logoutRequest.json();
-    this.GetAllUsers();
+    GetAllUsers();
   }
 
-  render() {
-    return (
-      <>  
-        <Modal
-          danger
-          modalHeading='Confirm Delete'
-          primaryButtonText="Delete"
-          secondaryButtonText="Cancel"
-          onRequestClose={() => this.setState({modalOpen: false})}
-          onRequestSubmit={() => {
-            this.setState({modalOpen: false});
-            this.DeleteUser();
-            }
-          }
-          open={this.state.modalOpen}>
-            <p>Are you sure you want to delete {this.state.userToDelete.title} {this.state.userToDelete.fname} {this.state.userToDelete.lname}?</p>
-        </Modal>
-        <Content>
-          <div className="bx--offset-lg-1 bx--grid bx--grid--full-width adminPageBody">
-            <DataTable
-              id="userTable"
-              stickyHeader={true}
-              rows={this.state.rows}
-              headers={headers}
-              isSortable={true}
-              render={({
-                rows,
-                headers,
-                getHeaderProps,
-                getRowProps,
-                getTableProps,
-                onInputChange
-              }) => (
-                <TableContainer 
-                  title="Users"
-                  description="Displays list of all registered users"
-                  
-                >
-                  <TableToolbar>
-                    <TableToolbarContent>
-                        <TableToolbarSearch onChange={onInputChange} />
-                    </TableToolbarContent>
-                    <Button renderIcon={Renew} hasIconOnly iconDescription='Refresh Table' onClick={() => this.GetAllUsers()}/>
-                  </TableToolbar>
-                  <Table {...getTableProps()}>
-                    <TableHead>
-                      <TableRow>
-                        {headers.map((header) => (<TableHeader key={header.key} {...getHeaderProps({ header })}>{header.header}</TableHeader>)
-                        )}
+  return (
+    <>  
+      <Modal
+        danger
+        modalHeading='Confirm Delete'
+        primaryButtonText="Delete"
+        secondaryButtonText="Cancel"
+        onRequestClose={() => setModalOpen(false)}
+        onRequestSubmit={() => {
+          setModalOpen(false);
+          DeleteUser();
+        }}
+        open={modalOpen}>
+          <p>Are you sure you want to delete {userToDelete.current.title} {userToDelete.current.fname} {userToDelete.current.lname}?</p>
+      </Modal>
+      <Content>
+        <div className="bx--offset-lg-1 bx--grid bx--grid--full-width adminPageBody">
+          <DataTable
+            id="userTable"
+            stickyHeader={true}
+            rows={rows}
+            headers={headers}
+            isSortable={true}
+            render={({
+              rows,
+              headers,
+              getHeaderProps,
+              getRowProps,
+              getTableProps,
+              onInputChange
+            }) => (
+              <TableContainer 
+                title="Users"
+                description="Displays list of all registered users"
+                
+              >
+                <TableToolbar>
+                  <TableToolbarContent>
+                      <TableToolbarSearch onChange={onInputChange} />
+                  </TableToolbarContent>
+                  <Button renderIcon={Renew} hasIconOnly iconDescription='Refresh Table' onClick={() => GetAllUsers()}/>
+                </TableToolbar>
+                <Table {...getTableProps()}>
+                  <TableHead>
+                    <TableRow>
+                      {headers.map((header) => (<TableHeader key={header.key} {...getHeaderProps({ header })}>{header.header}</TableHeader>)
+                      )}
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {rows.map((row) => (
+                      <TableRow key={row.id} {...getRowProps({ row })}>
+                        {row.cells.map((cell) => (
+                          <TableCell key={cell.id}>{cell.value}</TableCell>
+                        ))}
                       </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {rows.map((row) => (
-                        <TableRow key={row.id} {...getRowProps({ row })}>
-                          {row.cells.map((cell) => (
-                            <TableCell key={cell.id}>{cell.value}</TableCell>
-                          ))}
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              )}
-              />
-          </div>
-        </Content>
-      </>
-    );
-  }
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+            />
+        </div>
+      </Content>
+    </>
+  );
 }
-
-export default AdminUsersPage;

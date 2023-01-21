@@ -188,6 +188,7 @@ class UserGlobalHeader extends Component {
             <HeaderNavigation aria-label='navItems'>
               <HeaderMenuItem element={Link} to="/vote">Vote</HeaderMenuItem>
               <HeaderMenuItem element={Link} to="/register">Register</HeaderMenuItem>
+              <HeaderMenuItem element={Link} to="/results">Voting Results</HeaderMenuItem>
             </HeaderNavigation>
             <HeaderGlobalBar>
               {this.props.isAuth ? 
@@ -214,7 +215,12 @@ class UserGlobalHeader extends Component {
                     </HeaderGlobalAction>
                 </>:null
               }
-            <HeaderPanel className='userPanel' ref={this.userRef} expanded={this.state.userPanelOpen}>
+            <HeaderPanel
+              aria-label='User Panel'
+              className='userPanel'
+              ref={this.userRef}
+              expanded={this.state.userPanelOpen}
+            >
               {this.props.isAuth ? 
                 <>
                   <br/>
@@ -236,7 +242,12 @@ class UserGlobalHeader extends Component {
                 </>:null     
               }
             </HeaderPanel>
-                <HeaderPanel className='notificationPanel' ref={this.notificationRef} expanded={this.state.notificationPanelOpen}>
+                <HeaderPanel 
+                  aria-label='notification panel'
+                  className='notificationPanel'
+                  ref={this.notificationRef}
+                  expanded={this.state.notificationPanelOpen}
+                >
                 
                   {[...this.state.notificationList].reverse().map((item, index) => {
                     return <>
@@ -268,6 +279,7 @@ class UserGlobalHeader extends Component {
               <SideNavItems>
                 <SideNavLink element={Link} to="/vote">Vote</SideNavLink>
                 <SideNavLink element={Link} to="/register">Register</SideNavLink>
+                <SideNavLink element={Link} to="/results">Voting Results</SideNavLink>
               </SideNavItems>
             </SideNav>
           </Header>

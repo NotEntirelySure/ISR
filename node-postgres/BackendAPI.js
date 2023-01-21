@@ -72,8 +72,18 @@ app.get('/votesbyvoter/:voterID', (req, res) => {
   })
 })
 
-app.get('/getvoterinfo/:voterID', (req, res) => {
-  voter_model.getVoterInfo(req.params.voterID)
+app.get('/getvoterinfo/:token', (req, res) => {
+  voter_model.getVoterInfo(req.params.token)
+  .then(response => {
+    res.status(200).send(response);
+  })
+  .catch(error => {
+    res.status(500).send(error);
+  })
+})
+
+app.get('/getallvoters', (req, res) => {
+  voter_model.getAllVoters()
   .then(response => {
     res.status(200).send(response);
   })
@@ -152,16 +162,6 @@ app.get('/getchangelog', (req,res) => {
   })
 })
 
-app.get('/getvoterbyname', (req, res) => {
-  voter_model.getVoterByName(req.body)
-  .then(response => {
-    res.status(200).send(response);
-  })
-  .catch(error => {
-    res.status(500).send(error);
-  })
-})
-
 app.get('/checkofficeloggedin/:officeid', (req, res) => {
   voter_model.checkOfficeLoggedIn(req.params.officeid)
   .then(response => {
@@ -179,6 +179,16 @@ app.get('/mintjwt/:userId', (req, res) => {
   })
   .catch(error => {
     res.status(500).send(error)
+  })
+})
+
+app.post('/getvoterbyname', (req, res) => {
+  voter_model.getVoterByName(req.body)
+  .then(response => {
+    res.status(200).send(response);
+  })
+  .catch(error => {
+    res.status(500).send(error);
   })
 })
 
@@ -223,7 +233,7 @@ app.post('/adminlogin', (req, res) => {
 })
 
 app.post('/userlogin', (req, res) => {
-  auth_model.userLogin(req.body.userId)
+  auth_model.userLogin(req.body.jwt)
   .then(response => {
     res.status(200).send(response);
   })

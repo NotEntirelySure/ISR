@@ -1,4 +1,4 @@
-import React, { Component } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { 
     Button, 
     Content,
@@ -25,31 +25,26 @@ const headers = [
   {key:'action', header:'Action'}
 ];
 
-class AdminOfficesPage extends Component {
+export default function AdminOfficesPage() {
   
-  constructor(props) {
-    super(props)
-    this.state = {
-      rows: [{
-        id:'0',
-        officeID:'-',
-        officeName:'-',
-        action: '-'
-      }],
-      officeToDelete: {officeName:""},
-      modalDeleteOpen: false,
-      modalAddOpen: false,
-      addNameInvalid:false,
-      invalidMessage:"",
-      displayTable: 'none',
-      displaySkeleton: 'block'
-    }
-  }
+  
+  const officeToDelete = useRef({officeName:""});
+  const addName = useRef();
 
-  componentDidMount() {this.GetOffices();}
+  const [rows, setRows] = useState([{id:'0',officeID:'-',officeName:'-',action: '-'}]);
+  const [modalAddOpen, setModalAddOpen] = useState(false);
+  const [modalDeleteOpen, setModalDeleteOpen] = useState(false);
+  const [modalErrorOpen, setModalErrorOpen] = useState(false);
+  const [errorInfo, setErrorInfo] = useState({heading:'',message:''});
+  const [addNameInvalid, setAddNameInvalid] = useState(false);
+  const [invalidMessage, setInvalidMessage] = useState("");
+  const [displayTable, setDisplayTable] = useState('none');
+  const [displaySkeleton, setDisplaySkeleton] = useState('block');
+
+  useEffect(() => {GetOffices();},[])
     
-  GetOffices = () => {
-    fetch(`${process.env.REACT_APP_API_BASE_URL}/offices/`, {mode:'cors'})
+  function GetOffices() {
+    fetch(`${process.env.REACT_APP_API_BASE_URL}/offices`, {mode:'cors'})
     .then(response => response.json())
     .then(data => {
       let offices = [];
@@ -66,181 +61,184 @@ class AdminOfficesPage extends Component {
                 iconDescription='Delete office'
                 kind="danger"
                 onClick={() => {
-                  this.setState({officeToDelete:{
+                  officeToDelete.current = {
                     officeID:data.rows[i].officeid,
                     officeName:data.rows[i].officename
-                  }})
-                  this.setState({modalDeleteOpen:true})
+                  };
+                  setModalDeleteOpen(true);
                 }}
               />
             </>
         })
       }
-      this.setState({
-        rows:offices,
-        displayTable:'block',
-        displaySkeleton:'none'
-      });
+      setDisplayTable('block');
+      setDisplaySkeleton('none');
+      setRows(offices);
 
     })
   }
 
-  AddOffice = async() => {
-
-    let officeName = document.getElementById('addName').value;
+  async function AddOffice() {
     
-    this.setState({
-      addNameInvalid: false,
-      invalidMessage: ""
-    })
+    setAddNameInvalid(false);
+    setInvalidMessage("");
 
     const addRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/addoffice`, {
       method:'POST',
       mode:'cors',
       headers:{'Content-Type':'application/json'},
-      body:`{"officename":"${officeName}"}`   
+      body:`{"officename":"${addName.current.value}"}`   
     })
 
     const addResponse = await addRequest.json();
-    
-    if (addResponse.result && addResponse.result === "success") {
-      this.setState({
-        modalAddOpen: false,
-        addNameInvalid:false,
-        invalidMessage:""
-      })
-      document.getElementById('addName').value = "";
-      this.GetOffices()
+    switch (addResponse.code) {
+      case 201:
+        setModalAddOpen(false);
+        setAddNameInvalid(false);
+        setInvalidMessage("");
+        addName.current.value = "";
+        GetOffices();
+        break;
+      
+      case 409:
+        setModalAddOpen(false);
+        setAddNameInvalid(false);
+        setInvalidMessage("");
+        setModalErrorOpen(true);
+        setErrorInfo({
+          heading:"Office Already Exists",
+          message:`No office was added. ${addName.current.value} already exists.`
+        })
+        addName.current.value = "";
+      case 600:
+        setAddNameInvalid(true);
+        setInvalidMessage("The office name cannot be null");
+        break;
+      
+      case 601:
+        setAddNameInvalid(true);
+        setInvalidMessage("The office name cannot contain any spaces");
+        break;
     }
-    
-    if (addResponse.addError && addResponse.addError === 600) {
-      this.setState({
-        addNameInvalid: true,
-        invalidMessage:"The office name cannot be null"
-      })
-    }
-
-    if (addResponse.addError && addResponse.addError === 601) {
-      this.setState({
-        addNameInvalid: true,
-        invalidMessage:"The office name cannot contain any spaces"
-      })
-    }
-    
   }
 
-  DeleteOffice = async() => {
+  async function DeleteOffice() {
     const deleteRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/deleteoffice`, {
       method:'DELETE',
       mode:'cors',
       headers:{'Content-Type':'application/json'},
-      body:`{"officeID":"${this.state.officeToDelete.officeID}"}`    
+      body:`{"officeID":"${officeToDelete.current.officeID}"}`    
     })
-    this.GetOffices()
+    GetOffices();
   }
 
-  render() {
-    return (
-      <>
-        <Modal
-          id='modalAdd' 
-          primaryButtonText="Add"
-          secondaryButtonText="Cancel"
-          shouldSubmitOnEnter={true}
-          modalHeading='Add Office'
-          onRequestClose={() => {
-            this.setState({
-              modalAddOpen: false,
-              addNameInvalid:false,
-              invalidMessage:""
-            })
-            document.getElementById("addName").value = "";
-          }}
-          onRequestSubmit={() => {this.AddOffice();}} 
-          open={this.state.modalAddOpen}>
-          
-          <TextInput
-            style={{ marginBottom: '1rem'}}
-            labelText="Office Name"
-            helperText=""
-            id="addName"
-            invalid={this.state.addNameInvalid}
-            onKeyPress={() => {this.setState({addNameInvalid:false})}}
-            invalidText={this.state.invalidMessage}
-            placeholder="Enter the name of the office"
-            tabIndex={0}
-          />
-        </Modal>
-        <Modal
-          danger
-          modalHeading='Confirm Delete'
-          primaryButtonText="Delete"
-          secondaryButtonText="Cancel"
-          onRequestClose={() => this.setState({modalDeleteOpen: false})}
-          onRequestSubmit={() => {
-            this.setState({modalDeleteOpen: false});
-            this.DeleteOffice();
-            }
-          }
-          open={this.state.modalDeleteOpen}>
-            <p>Are you sure you want to delete office {this.state.officeToDelete.officeName}?</p>
-        </Modal>
-        <Content>
-          <div style={{display: `${this.state.displayTable}`}} className="bx--grid bx--grid--full-width adminPageBody">
-            <div className="bx--row bx--offset-lg-1 admin-offices-page__r1" >
-              <div className="bx--col-lg-15">
-                <DataTable
-                  rows={this.state.rows}
-                  headers={headers}
-                  isSortable={true}
-                  render={({
-                    rows,
-                    headers,
-                    getHeaderProps,
-                    getRowProps,
-                    getTableProps,
-                    onInputChange
-                  }) => (
-                    <TableContainer 
-                      title="Offices" 
-                      description="Displays list of all office names that participants can choose from when registering."
-                      >
-                      <TableToolbar>
-                          <TableToolbarContent>
-                              <TableToolbarSearch onChange={onInputChange} />
-                          </TableToolbarContent>
-                          <Button renderIcon={Add} hasIconOnly iconDescription='Add Office' onClick={() => this.setState({modalAddOpen:true})}/>
-                      </TableToolbar>
-                      <Table {...getTableProps()}>
-                    <TableHead>
-                      <TableRow>
-                        {headers.map((header) => (<TableHeader key={header.key} {...getHeaderProps({ header })}>{header.header}</TableHeader>)
-                        )}
+  return (
+    <>
+      <Modal
+        id='modalAdd' 
+        primaryButtonText="Add"
+        secondaryButtonText="Cancel"
+        shouldSubmitOnEnter={true}
+        modalHeading='Add Office'
+        onRequestClose={() => {
+          setModalAddOpen(false);
+          setAddNameInvalid(false);
+          setInvalidMessage("");
+          addName.current.value = "";
+        }}
+        onRequestSubmit={() => AddOffice()} 
+        open={modalAddOpen}>
+        
+        <TextInput
+          style={{ marginBottom: '1rem'}}
+          labelText="Office Name"
+          helperText=""
+          id="addName"
+          ref={addName}
+          invalid={addNameInvalid}
+          onKeyPress={() => {if(addNameInvalid) setAddNameInvalid(false)}}
+          invalidText={invalidMessage}
+          placeholder="Enter the name of the office"
+          tabIndex={0}
+        />
+      </Modal>
+      <Modal
+        danger
+        modalHeading='Confirm Delete'
+        primaryButtonText="Delete"
+        secondaryButtonText="Cancel"
+        onRequestClose={() => setModalDeleteOpen(false)}
+        onRequestSubmit={() => {
+          setModalDeleteOpen(false);
+          DeleteOffice();
+        }}
+        open={modalDeleteOpen}>
+          <p>Are you sure you want to delete office {officeToDelete.current.officeName}?</p>
+      </Modal>
+      <Modal
+        id="modalError"
+        open={modalErrorOpen}
+        modalHeading={errorInfo.heading}
+        primaryButtonText="Ok"
+        onRequestSubmit={() => setModalErrorOpen(false)}
+        onRequestClose={() => setModalErrorOpen(false)}
+        shouldSubmitOnEnter={true}
+      >
+        {errorInfo.message}
+      </Modal>
+      <Content>
+        <div style={{display: `${displayTable}`}} className="bx--grid bx--grid--full-width adminPageBody">
+          <div className="bx--row bx--offset-lg-1 admin-offices-page__r1" >
+            <div className="bx--col-lg-15">
+              <DataTable
+                rows={rows}
+                headers={headers}
+                isSortable={true}
+                render={({
+                  rows,
+                  headers,
+                  getHeaderProps,
+                  getRowProps,
+                  getTableProps,
+                  onInputChange
+                }) => (
+                  <TableContainer 
+                    title="Offices" 
+                    description="Displays list of all office names that participants can choose from when registering."
+                    >
+                    <TableToolbar>
+                        <TableToolbarContent>
+                            <TableToolbarSearch onChange={onInputChange} />
+                        </TableToolbarContent>
+                        <Button renderIcon={Add} hasIconOnly iconDescription='Add Office' onClick={() => setModalAddOpen(true)}/>
+                    </TableToolbar>
+                    <Table {...getTableProps()}>
+                  <TableHead>
+                    <TableRow>
+                      {headers.map((header) => (<TableHeader key={header.key} {...getHeaderProps({ header })}>{header.header}</TableHeader>)
+                      )}
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {rows.map((row) => (
+                      <TableRow key={row.id} {...getRowProps({ row })}>
+                        {row.cells.map((cell) => (
+                          <TableCell key={cell.id}>{cell.value}</TableCell>
+                        ))}
                       </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {rows.map((row) => (
-                        <TableRow key={row.id} {...getRowProps({ row })}>
-                          {row.cells.map((cell) => (
-                            <TableCell key={cell.id}>{cell.value}</TableCell>
-                          ))}
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                    </TableContainer>
-                  )}
-                />
-              </div>
+                    ))}
+                  </TableBody>
+                </Table>
+                  </TableContainer>
+                )}
+              />
             </div>
           </div>
-          <div style={{display: `${this.state.displaySkeleton}`}} className="bx--offset-lg-1 bx--col-lg-13">
-            <DataTableSkeleton columnCount={3} headers={headers}/>
-          </div>
-        </Content>
-      </>
-    );
-  }
+        </div>
+        <div style={{display: `${displaySkeleton}`}} className="bx--offset-lg-1 bx--col-lg-13">
+          <DataTableSkeleton columnCount={3} headers={headers}/>
+        </div>
+      </Content>
+    </>
+  );
 }
-
-export default AdminOfficesPage;

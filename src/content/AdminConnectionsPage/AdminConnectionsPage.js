@@ -1,4 +1,4 @@
-import React, { Component } from 'react'
+import React, { useState, useEffect } from 'react'
 import { w3cwebsocket } from "websocket";
 import { 
     Button, 
@@ -26,43 +26,33 @@ const headers = [
 ];
 var client;
 
-class AdminConnectionsPage extends Component {
-  
-  constructor(props) {
-    super(props)
-    this.state = {
-      displaySkeleton: "block",
-      displayTable:"none",
-      connectionStatus:"",
-      connectionMessage:"",
-      clients:[]
-    }
-  }
+export default function AdminConnectionsPage() {
 
-  componentDidMount() {this.connectWebSocket()}
+  const [displaySkeleton, setDisplaySkeleton] = useState('block');
+  const [displayTable, setDisplayTable] = useState('none');
+  const [connectionStatus, setConnectionStatus] = useState('');
+  const [connectionMessage, setConnectionMessage] = useState('');
+  const [clients, setClients] = useState([]);
+
+  useEffect (() => {ConnectWebSocket()},[])
+
+  function ConnectWebSocket() {
+
+    setConnectionStatus("active");
+    setConnectionMessage("Connecting...");
     
-  connectWebSocket = () => {
-    this.setState({
-      connectionStatus:"active",
-      connectionMessage:"Connecting..."
-    });
-    
-    client = new w3cwebsocket(`${process.env.REACT_APP_WEBSOCKET_BASE_URL}/admin`);
+    client = new w3cwebsocket(`${process.env.REACT_APP_WEBSOCKET_BASE_URL}/adminConn`);
     
     client.onopen = () => {
-      this.setState({
-        connectionStatus:"finished",
-        connectionMessage:"Connected to server"
-      })
-      this.GetClients();
+      setConnectionStatus("finished");
+      setConnectionMessage("Connected to server");
+      GetClients();
     };
     
     client.onmessage = (message) => {
       let messageData = JSON.parse(message.data);
-      console.log(messageData);
       switch (messageData.source) {
         case "getClients":
-            
           let payload = JSON.parse(messageData.payload);
           let clientList = [];
           for (let i=0; i<payload.length;i++) {
@@ -76,123 +66,117 @@ class AdminConnectionsPage extends Component {
                   renderIcon={TrashCan}
                   iconDescription='Remove Connecton'
                   kind="danger"
-                  onClick={() => this.RemoveClient(payload[i].client)}
+                  onClick={() => RemoveClient(payload[i].client)}
                 />
               </>
             })
           }
-          this.setState({
-            clients: clientList,
-            displaySkeleton:"none",
-            displayTable:"block"});
+          setClients(clientList);
+          setDisplaySkeleton("none");
+          setDisplayTable("block");
+          break;
+        case "removeClient":
+          GetClients();
           break;
         }
 
     };
     
     client.onclose = () => {
-      this.setState({
-        connectionStatus:"error",
-        connectionMessage:"Disconnected from server"
-      })
+      setConnectionStatus("error");
+      setConnectionMessage("Disconnected from server");
       console.log("connection closed");
     }
 
     client.onerror = (event) => {
       console.log(event);
-      this.setState({
-        connectionStatus:"error",
-        connectionMessage:"Failed to connect to server"
-      })
+      setConnectionStatus("error");
+      setConnectionMessage("Failed to connect to server");
     }
   }
 
-  GetClients = () => {
+  function GetClients() {
     client.send(JSON.stringify({
-      sender:"admin",
+      sender:"adminConn",
       action: "getClients",
     }))
   }
 
-  RemoveClient = (clientToRemove) => {
+  function RemoveClient(clientToRemove) {
     client.send(JSON.stringify({
-      sender:"admin",
+      sender:"adminConn",
       action: "removeClient",
       payload: clientToRemove
     }))
   }
 
-  render() {
-    return (
-      <>
-        <Content>
-          <div style={{display: `${this.state.displayTable}`}} className="bx--grid adminPageBody">
-            <div className='bx--row vote-dashboard-page__banner'>
-              <div className="bx--offset-lg-1 bx--col-lg-8">
-                <h1 className="vote-dashboard-page__heading">Websocket Connections</h1>
-                <p>Displays a list of connections to the WebSocket server.</p>             
-              </div>
-              <div className='bx--offset-lg-3 bx--col' style={{display:"flex",marginTop:'1%'}}>
-                <div>
-                  <InlineLoading
-                  style={{ marginLeft: '1rem'}}
-                  description={this.state.connectionMessage}
-                  status={this.state.connectionStatus}
-                />
-                </div>
+  return (
+    <>
+      <Content>
+        <div style={{display: `${displayTable}`}} className="bx--grid adminPageBody">
+          <div className='bx--row vote-dashboard-page__banner'>
+            <div className="bx--offset-lg-1 bx--col-lg-8">
+              <h1 className="vote-dashboard-page__heading">Websocket Connections</h1>
+              <p>Displays a list of connections to the WebSocket server.</p>             
+            </div>
+            <div className='bx--offset-lg-3 bx--col' style={{display:"flex",marginTop:'1%'}}>
+              <div>
+                <InlineLoading
+                style={{ marginLeft: '1rem'}}
+                description={connectionMessage}
+                status={connectionStatus}
+              />
               </div>
             </div>
-            <div className="bx--row bx--offset-lg-1 admin-offices-page__r1" >
-              <div className="bx--col-lg-15">
-                <DataTable
-                  rows={this.state.clients}
-                  headers={headers}
-                  isSortable={true}
-                  render={({
-                    rows,
-                    headers,
-                    getHeaderProps,
-                    getRowProps,
-                    getTableProps,
-                    onInputChange
-                  }) => (
-                    <TableContainer>
-                      <TableToolbar>
-                          <TableToolbarContent>
-                              <TableToolbarSearch onChange={onInputChange} />
-                          </TableToolbarContent>
-                          <Button renderIcon={Renew} hasIconOnly iconDescription='Refresh' onClick={() => this.GetClients()} />
-                      </TableToolbar>
-                      <Table {...getTableProps()}>
-                    <TableHead>
-                      <TableRow>
-                        {headers.map((header) => (<TableHeader key={header.key} {...getHeaderProps({ header })}>{header.header}</TableHeader>)
-                        )}
+          </div>
+          <div className="bx--row bx--offset-lg-1 admin-offices-page__r1" >
+            <div className="bx--col-lg-15">
+              <DataTable
+                rows={clients}
+                headers={headers}
+                isSortable={true}
+                render={({
+                  rows,
+                  headers,
+                  getHeaderProps,
+                  getRowProps,
+                  getTableProps,
+                  onInputChange
+                }) => (
+                  <TableContainer>
+                    <TableToolbar>
+                        <TableToolbarContent>
+                            <TableToolbarSearch onChange={onInputChange} />
+                        </TableToolbarContent>
+                        <Button renderIcon={Renew} hasIconOnly iconDescription='Refresh' onClick={() => GetClients()} />
+                    </TableToolbar>
+                    <Table {...getTableProps()}>
+                  <TableHead>
+                    <TableRow>
+                      {headers.map((header) => (<TableHeader key={header.key} {...getHeaderProps({ header })}>{header.header}</TableHeader>)
+                      )}
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {rows.map((row) => (
+                      <TableRow key={row.id} {...getRowProps({ row })}>
+                        {row.cells.map((cell) => (
+                          <TableCell key={cell.id}>{cell.value}</TableCell>
+                        ))}
                       </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {rows.map((row) => (
-                        <TableRow key={row.id} {...getRowProps({ row })}>
-                          {row.cells.map((cell) => (
-                            <TableCell key={cell.id}>{cell.value}</TableCell>
-                          ))}
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                    </TableContainer>
-                  )}
-                />
-              </div>
+                    ))}
+                  </TableBody>
+                </Table>
+                  </TableContainer>
+                )}
+              />
             </div>
           </div>
-          <div style={{display: `${this.state.displaySkeleton}`}} className="bx--offset-lg-1 bx--col-lg-13">
-            <DataTableSkeleton columnCount={3} headers={headers}/>
-          </div>
-        </Content>
-      </>
-    );
-  }
+        </div>
+        <div style={{display: `${displaySkeleton}`}} className="bx--offset-lg-1 bx--col-lg-13">
+          <DataTableSkeleton columnCount={3} headers={headers}/>
+        </div>
+      </Content>
+    </>
+  );
 }
-
-export default AdminConnectionsPage;

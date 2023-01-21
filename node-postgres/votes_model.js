@@ -29,7 +29,6 @@ const getVotesByProject = (projectID) => {
         v.voteid,
         v.voteprojectid,
         v.voteValue,
-        v.voteparticipantoffice,
         p.participanttitle,
         p.participantfname,
         p.participantlname,
@@ -41,10 +40,11 @@ const getVotesByProject = (projectID) => {
       ON p.participantid=v.voteparticipantid
       LEFT JOIN changelog as cl
       ON cl.changevoteid=v.voteid
-      ORDER BY v.voteid;`}
+      ORDER BY v.voteid;`
+  }
   else {
     SqlQuery = `
-      SELECT voteparticipantid, voteparticipantoffice, votevalue
+      SELECT voteparticipantid, votevalue
       FROM votes
       WHERE voteprojectid='${projectID}'
       ORDER BY voteid;`
@@ -72,12 +72,11 @@ const getVotesByOffice = (officeID) => {
   return new Promise(function(resolve, reject) { 
     pool.query(`
     SELECT 
-      votes.voteprojectid,
-      votes.voteparticipantid,
-      votes.voteValue,
-      votes.voteparticipantoffice,
+      v.voteprojectid,
+      v.voteparticipantid,
+      v.voteValue,
       projects.projectdescription
-    FROM votes
+    FROM votes as v
     LEFT JOIN projects ON votes.voteprojectid=projects.projectid
     WHERE votes.voteparticipantoffice='${officeID}';`, (error, results) => {
       if (error) {reject(error)}
@@ -100,7 +99,6 @@ const getChangeLogs = () => {
         cl.changeaction,
         v.voteprojectid,
         v.voteparticipantid,
-        v.voteparticipantoffice,
         v.votevalue,
         p.projectid,
         p.projectdescription,
@@ -130,13 +128,13 @@ const submitVote = (values) => {
       BEGIN 
         PERFORM * FROM votes WHERE voteprojectid='${values.projectID}' AND voteparticipantid='${values.voterID}';          
         IF FOUND THEN UPDATE votes SET votevalue='${values.voteValue}' WHERE voteprojectid='${values.projectID}' AND voteparticipantid='${values.voterID}';
-        ELSE INSERT INTO votes (voteprojectid, voteparticipantid, voteparticipantoffice, votevalue) VALUES ('${values.projectID}', '${values.voterID}', '${values.office}', '${values.voteValue}');
+        ELSE INSERT INTO votes (voteprojectid, voteparticipantid, votevalue) VALUES ('${values.projectID}', '${values.voterID}', '${values.voteValue}');
         END IF;
       END
     $$;`, (error, results) => {
       if (error) {reject(error)}
       if (values.source === "admin") {
-        if (values.comment === "") {values["comment"] = "Vote added by administrator."}
+        if (values.comment === "") values["comment"] = "Vote added by administrator."
           pool.query(`
             INSERT INTO changelog (
               changevoteid,
@@ -229,7 +227,6 @@ const editVote = (values) => {
           voteid SERIAL,
           voteprojectid VARCHAR,
           voteparticipantid INT,
-          voteparticipantoffice VARCHAR,
           votevalue INT
         );`, (error, results) => {
           if (error) {resolve({"result":500})}
