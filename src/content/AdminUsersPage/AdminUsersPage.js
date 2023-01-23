@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { 
     Button, 
     DataTable,
+    DataTableSkeleton,
     Content,
     Modal,
     TableContainer,
@@ -29,6 +30,9 @@ const headers = [
 
 export default function AdminUsersPage() {
   
+  const [displaySkeleton, setDisplaySkeleton] = useState('block');
+  const [displayTable, setDisplayTable] = useState('none');
+
   const userToDelete = useRef({voterid:"",title:"",fname:"",lname:""})
   
   const [rows, setRows] = useState([{id:'0', voterid:'-', title:'-', fname:'-', lname:'-', office: '-', action:"-"}])
@@ -83,6 +87,8 @@ export default function AdminUsersPage() {
         )
       }
       setRows(users);
+      setDisplaySkeleton('none');
+      setDisplayTable('block');
     })
   }
 
@@ -127,7 +133,10 @@ export default function AdminUsersPage() {
           <p>Are you sure you want to delete {userToDelete.current.title} {userToDelete.current.fname} {userToDelete.current.lname}?</p>
       </Modal>
       <Content>
-        <div className="bx--offset-lg-1 bx--grid bx--grid--full-width adminPageBody">
+        <div 
+          className="bx--offset-lg-1 bx--grid bx--grid--full-width adminPageBody"
+          style={{display: `${displayTable}`}}
+        >
           <DataTable
             id="userTable"
             stickyHeader={true}
@@ -173,6 +182,12 @@ export default function AdminUsersPage() {
               </TableContainer>
             )}
             />
+        </div>
+        <div
+          className="bx--offset-lg-1 bx--grid bx--grid--full-width adminPageBody"
+          style={{display: `${displaySkeleton}`}}
+        >
+          <DataTableSkeleton columnCount={4} headers={headers}/>
         </div>
       </Content>
     </>

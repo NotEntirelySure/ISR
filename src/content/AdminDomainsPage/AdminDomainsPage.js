@@ -3,6 +3,7 @@ import {
     Button, 
     Content,
     DataTable,
+    DataTableSkeleton,
     Modal,
     TableContainer,
     Table,
@@ -32,6 +33,9 @@ const headers = [
   
 export default function AdminDomainsPage() {
 
+  const [displaySkeleton, setDisplaySkeleton] = useState('block');
+  const [displayTable, setDisplayTable] = useState('none');
+
   const [domainsList, setDomainsList] = useState([]);
   const [domainToEdit, setDomainToEdit] = useState({"domainId":"", "domainName":"","colorHex":""});
   const [domainToDelete, setDomainToDelete] = useState({"domainId":"", "domainName":""});
@@ -48,7 +52,7 @@ export default function AdminDomainsPage() {
   const [colorInvalidMessage, setColorInvalidMessage] = useState('');
   const [previewColor, setPreviewColor] = useState('');
 
-  useEffect(() => {getDomains();}, [])
+  useEffect(() => {getDomains();}, []);
 
   const getDomains = async() => {
     const domainsRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getdomains`, {mode:'cors'})
@@ -109,6 +113,8 @@ export default function AdminDomainsPage() {
       })
     }
     setDomainsList(domains);
+    setDisplaySkeleton('none');
+    setDisplayTable('block');
   }
 
   const addDomain = async() => {
@@ -325,53 +331,56 @@ export default function AdminDomainsPage() {
       </Modal>
       <div className="bx--grid bx--grid--full-width adminPageBody">
         <div className="bx--row bx--offset-lg-1 domainsadmin__r1">
-      <div  className="bx--col-lg-15">
-        <DataTable
-          rows={domainsList}
-          headers={headers}
-          isSortable={true}
-          render={({
-            rows,
-            headers,
-            getHeaderProps,
-            getRowProps,
-            getTableProps,
-            onInputChange
-          }) => (
-          <TableContainer title="Idea Domains" description="Displays a list of all domains related to ISR ideas">
-            <TableToolbar>
-              <TableToolbarContent>
-                  <TableToolbarSearch onChange={onInputChange} />
-              </TableToolbarContent>
-              <Button 
-                renderIcon={Add}
-                hasIconOnly
-                iconDescription='Add Vote'
-                onClick={() => setModalAddOpen(true)}
-              />
-            </TableToolbar>
-            <Table {...getTableProps()}>
-              <TableHead>
-                <TableRow>
-                  {headers.map((header) => (<TableHeader key={header.key} {...getHeaderProps({ header })}>{header.header}</TableHeader>))}
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {
-                  rows.map((row) => (
-                    <TableRow key={row.id} {...getRowProps({ row })}>
-                      {row.cells.map((cell) => (<TableCell key={cell.id}>{cell.value}</TableCell>))}
+          <div className="bx--col-lg-15" style={{display: `${displayTable}`}}>
+            <DataTable
+              rows={domainsList}
+              headers={headers}
+              isSortable={true}
+              render={({
+                rows,
+                headers,
+                getHeaderProps,
+                getRowProps,
+                getTableProps,
+                onInputChange
+              }) => (
+              <TableContainer title="Idea Domains" description="Displays a list of all domains related to ISR ideas">
+                <TableToolbar>
+                  <TableToolbarContent>
+                      <TableToolbarSearch onChange={onInputChange} />
+                  </TableToolbarContent>
+                  <Button 
+                    renderIcon={Add}
+                    hasIconOnly
+                    iconDescription='Add Vote'
+                    onClick={() => setModalAddOpen(true)}
+                  />
+                </TableToolbar>
+                <Table {...getTableProps()}>
+                  <TableHead>
+                    <TableRow>
+                      {headers.map((header) => (<TableHeader key={header.key} {...getHeaderProps({ header })}>{header.header}</TableHeader>))}
                     </TableRow>
-                  ))
-                }
-              </TableBody>
-            </Table>
-          </TableContainer>
-          )}
-        />
+                  </TableHead>
+                  <TableBody>
+                    {
+                      rows.map((row) => (
+                        <TableRow key={row.id} {...getRowProps({ row })}>
+                          {row.cells.map((cell) => (<TableCell key={cell.id}>{cell.value}</TableCell>))}
+                        </TableRow>
+                      ))
+                    }
+                  </TableBody>
+                </Table>
+              </TableContainer>
+              )}
+            />
+          </div>
+          <div className="bx--col-lg-15" style={{display:`${displaySkeleton}`}}>
+            <DataTableSkeleton columnCount={4} headers={headers}/>
+          </div>
         </div>
       </div>
-        </div>
       </Content>
     )
 }

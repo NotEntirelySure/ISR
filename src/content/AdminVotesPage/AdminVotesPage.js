@@ -87,7 +87,6 @@ class AdminVotesPage extends Component {
   GetVotes = async() => {
     const votesRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/votes/all`, {mode:'cors'});
     const votesResponse = await votesRequest.json();
-    console.table(votesResponse)
     let votes = [];
     let voteModified;
     for (let i=0; i<votesResponse.length; i++){
@@ -98,7 +97,7 @@ class AdminVotesPage extends Component {
         "voteID":votesResponse[i].voteid,
         "projectID":votesResponse[i].voteprojectid,
         "voter":`${votesResponse[i].participanttitle} ${votesResponse[i].participantfname} ${votesResponse[i].participantlname}`,
-        "office":votesResponse[i].voteparticipantoffice,
+        "office":votesResponse[i].officename,
         "voteValue":votesResponse[i].votevalue,
         "modified":voteModified,
         "comment":votesResponse[i].changecomment,

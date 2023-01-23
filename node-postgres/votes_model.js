@@ -32,14 +32,14 @@ const getVotesByProject = (projectID) => {
         p.participanttitle,
         p.participantfname,
         p.participantlname,
+        o.officename,
         cl.changeid,
         cl.changetime,
         cl.changecomment
       FROM votes as v
-      LEFT JOIN participants AS p
-      ON p.participantid=v.voteparticipantid
-      LEFT JOIN changelog as cl
-      ON cl.changevoteid=v.voteid
+      LEFT JOIN participants AS p ON p.participantid=v.voteparticipantid
+      LEFT JOIN offices AS o ON o.officeid=p.participantoffice
+      LEFT JOIN changelog as cl ON cl.changevoteid=v.voteid
       ORDER BY v.voteid;`
   }
   else {
@@ -124,14 +124,35 @@ const getChangeLogs = () => {
 //used by user vote page
 const submitVote = (values) => {
   return new Promise(function(resolve, reject) {
-    pool.query(`DO $$ 
-      BEGIN 
-        PERFORM * FROM votes WHERE voteprojectid='${values.projectID}' AND voteparticipantid='${values.voterID}';          
-        IF FOUND THEN UPDATE votes SET votevalue='${values.voteValue}' WHERE voteprojectid='${values.projectID}' AND voteparticipantid='${values.voterID}';
-        ELSE INSERT INTO votes (voteprojectid, voteparticipantid, votevalue) VALUES ('${values.projectID}', '${values.voterID}', '${values.voteValue}');
-        END IF;
-      END
-    $$;`, (error, results) => {
+    pool.query(`
+      DO $$ 
+        BEGIN 
+          PERFORM FROM votes
+          WHERE voteprojectid='${values.projectID}'
+          AND voteparticipantid=${values.voterID};          
+          
+          IF FOUND THEN 
+            UPDATE votes
+            SET votevalue=${values.voteValue}
+            WHERE voteprojectid='${values.projectID}'
+            AND voteparticipantid=${values.voterID};
+          END IF;
+          
+          IF NOT FOUND THEN 
+            INSERT INTO votes (
+              voteprojectid,
+              voteparticipantid,
+              votevalue
+            ) 
+            VALUES (
+              '${values.projectID}',
+              ${values.voterID},
+              ${values.voteValue}
+            );
+          END IF;
+        END;
+      $$;`,
+      (error, results) => {
       if (error) {reject(error)}
       if (values.source === "admin") {
         if (values.comment === "") values["comment"] = "Vote added by administrator."
@@ -150,11 +171,11 @@ const submitVote = (values) => {
               'add',
               $$${values.comment}$$
             );`, (error, results) => {
-              if (error) {reject(error)}
-              resolve(results);
+              if (error) reject({code:500})
+              resolve({code:200});
           })
         }
-        resolve(results);
+        resolve({code:200});
       })
     }) 
   }
@@ -173,8 +194,7 @@ const checkVote = (voteTag) => {
       if (error) {reject(error)}
       resolve(results.rows);
     })
-  }) 
-
+  })
 }
 //used by admin vote page
 const deleteVote = (voteID) => {
