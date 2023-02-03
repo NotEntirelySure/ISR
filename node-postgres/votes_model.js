@@ -13,83 +13,90 @@ const pool = new Pool({
 //used by statistics page
 const getAllVotes = () => {
   return new Promise(function(resolve, reject) {
-    pool.query('SELECT * FROM votes ORDER BY voteid;', (error, results) => {
-      if (error) {reject(error)}
-      resolve(results);
-    })
-  }) 
-}
-
-//used by statistics and admin votes page
-const getVotesByProject = (projectID) => {
-  let SqlQuery;
-  if (projectID === "all"){
-    SqlQuery = `
-      SELECT 
+    pool.query(`
+      SELECT
         v.voteid,
         v.voteprojectid,
-        v.voteValue,
+        v.votevalue,
+        v.votetime,
+        v.votemodified,
+        p.participantid,
         p.participanttitle,
         p.participantfname,
         p.participantlname,
-        o.officename,
-        cl.changeid,
-        cl.changetime,
-        cl.changecomment
+        o.officename
       FROM votes as v
       LEFT JOIN participants AS p ON p.participantid=v.voteparticipantid
       LEFT JOIN offices AS o ON o.officeid=p.participantoffice
-      LEFT JOIN changelog as cl ON cl.changevoteid=v.voteid
-      ORDER BY v.voteid;`
-  }
-  else {
-    SqlQuery = `
-      SELECT voteparticipantid, votevalue
+      ORDER BY v.voteid;`,
+      (error, results) => {
+        if (error) {reject(error)}
+        resolve(results.rows);
+      }
+    );
+  });
+};
+
+//used by statistics and admin votes page
+const getVotesByProject = (projectID) => {
+  return new Promise((resolve, reject) => { 
+    pool.query(
+      `SELECT voteparticipantid, votevalue
       FROM votes
-      WHERE voteprojectid='${projectID}'
-      ORDER BY voteid;`
-  }
-  return new Promise(function(resolve, reject) { 
-    pool.query(SqlQuery, (error, results) => {
-      if (error) {reject(error)}
-      resolve(results.rows);
-    })
-  }) 
-}
+      WHERE voteprojectid=$1
+      ORDER BY voteid;`,
+      [projectID],
+      (error, results) => {
+        if (error) {reject(error)}
+        resolve(results.rows);
+      }
+    );
+  });
+};
 
 //used by statistics page
-const getVotesByVoter = (voterID) => {
+const getVotesByOffice = (officeName) => {
   return new Promise(function(resolve, reject) { 
-    pool.query(`SELECT voteprojectid, votevalue FROM votes WHERE voteparticipantid='${voterID}';`, (error, results) => {
-      if (error) {reject(error)}
-      resolve(results.rows);
+    pool.query(
+      `SELECT
+        v.voteprojectid,
+        v.voteparticipantid,
+        v.voteValue,
+        o.officename,
+        p.participanttitle,
+        p.participantfname,
+        p.participantlname,
+        pr.projectdescription
+      FROM votes AS v
+      LEFT JOIN participants AS p ON p.participantid=v.voteparticipantid
+      LEFT JOIN projects AS pr ON v.voteprojectid=pr.projectid
+      LEFT JOIN offices AS o ON o.officeid=p.participantoffice
+      WHERE o.officename=$1;`,
+      [officeName],
+      (error, results) => {
+        if (error) {reject(error)}
+        resolve(results.rows);
     })
   }) 
 }
 
-//used by statistics page
-const getVotesByOffice = (officeID) => {
-  return new Promise(function(resolve, reject) { 
-    pool.query(`
-    SELECT 
-      v.voteprojectid,
-      v.voteparticipantid,
-      v.voteValue,
-      projects.projectdescription
-    FROM votes as v
-    LEFT JOIN projects ON votes.voteprojectid=projects.projectid
-    WHERE votes.voteparticipantoffice='${officeID}';`, (error, results) => {
-      if (error) {reject(error)}
-      resolve(results);
-    })
-  }) 
-}
-
-const getChangeLogs = () => {
-
+const getChangeLogById = (voteId) => {
   return new Promise((resolve, reject) => {
-    pool.query(`
-      SELECT  
+    pool.query(
+      `SELECT * FROM changelog WHERE changevoteid=$1;`,
+      [voteId],
+      (error, results) => {
+        if (error) reject(error)
+        resolve(results.rows)
+      }
+    );
+  })
+}
+
+const getAllChangeLogs = () => {
+  return new Promise((resolve, reject) => {
+    pool.query(
+      `SELECT
         cl.changeid,
         cl.changevoteid,
         cl.changepreviousvalue,
@@ -102,83 +109,38 @@ const getChangeLogs = () => {
         v.votevalue,
         p.projectid,
         p.projectdescription,
-        part.participantid,
-        part.participanttitle,
-        part.participantfname,
-        part.participantlname
+        pa.participantid,
+        pa.participanttitle,
+        pa.participantfname,
+        pa.participantlname
       FROM changelog AS cl
-      LEFT JOIN votes AS v
-      ON cl.changevoteid=v.voteid
-      LEFT JOIN projects AS p
-      ON p.projectid=v.voteprojectid
-      LEFT JOIN participants as part
-      ON v.voteparticipantid=part.participantid;
-    `, (error, results) => {
-      if (error) reject(error)
-      resolve(results)
-    })
-  })
-
-}
+      LEFT JOIN votes AS v ON cl.changevoteid=v.voteid
+      LEFT JOIN projects AS p ON p.projectid=v.voteprojectid
+      LEFT JOIN participants as pa ON v.voteparticipantid=pa.participantid;`,
+      (error, results) => {
+        if (error) reject(error)
+        resolve(results)
+      }
+    );
+  });
+};
 
 //used by user vote page
 const submitVote = (values) => {
   return new Promise(function(resolve, reject) {
-    pool.query(`
-      DO $$ 
-        BEGIN 
-          PERFORM FROM votes
-          WHERE voteprojectid='${values.projectID}'
-          AND voteparticipantid=${values.voterID};          
-          
-          IF FOUND THEN 
-            UPDATE votes
-            SET votevalue=${values.voteValue}
-            WHERE voteprojectid='${values.projectID}'
-            AND voteparticipantid=${values.voterID};
-          END IF;
-          
-          IF NOT FOUND THEN 
-            INSERT INTO votes (
-              voteprojectid,
-              voteparticipantid,
-              votevalue
-            ) 
-            VALUES (
-              '${values.projectID}',
-              ${values.voterID},
-              ${values.voteValue}
-            );
-          END IF;
-        END;
-      $$;`,
+    if (values.source === "admin" && values.comment === "") values["comment"] = "Admin created or modified this vote."
+    pool.query(
+      'SELECT submit_vote($1,$2,$3,$4,$5);',
+      [values.projectID,values.voterID,values.voteValue,values.source,values.comment],
       (error, results) => {
-      if (error) {reject(error)}
-      if (values.source === "admin") {
-        if (values.comment === "") values["comment"] = "Vote added by administrator."
-          pool.query(`
-            INSERT INTO changelog (
-              changevoteid,
-              changenewvalue,
-              changetime,
-              changeaction,
-              changecomment
-            )
-            VALUES (
-              (SELECT voteid FROM votes WHERE voteprojectid='${values.projectID}' AND voteparticipantid='${values.voterID}'),
-              '${values.voteValue}',
-              (SELECT NOW()),
-              'add',
-              $$${values.comment}$$
-            );`, (error, results) => {
-              if (error) reject({code:500})
-              resolve({code:200});
-          })
-        }
-        resolve({code:200});
-      })
-    }) 
-  }
+        if (error) reject({code:500});
+        if (results.rows[0].submit_vote === 0) reject({code:500, message:"An error occured submitting the vote."});
+        if (results.rows[0].submit_vote === 1) resolve({code:200});
+        reject({code:404});
+      }
+    );
+  });
+};
 
 const checkVote = (voteTag) => {
   //QUERY SQL for existence of vote
@@ -276,9 +238,9 @@ const editVote = (values) => {
 module.exports = {
   getAllVotes,
   getVotesByProject,
-  getVotesByVoter,
   getVotesByOffice,
-  getChangeLogs,
+  getChangeLogById,
+  getAllChangeLogs,
   submitVote,
   editVote,
   deleteVote,

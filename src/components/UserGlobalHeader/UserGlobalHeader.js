@@ -56,17 +56,13 @@ class UserGlobalHeader extends Component {
   }
 
   componentDidMount() {if (this.props.notificationActive) {this.setState({bellEmpty:"block"})}}
-  componentDidUpdate (previousProps) {
-    
+  componentDidUpdate(previousProps) {
     if (previousProps.notificationData !== this.props.notificationData) {
       this.setState(previousState => ({
         bellEmpty:"none",
         bellNew:"block",
         bellFilled:"none",
         notificationList:[...previousState.notificationList, this.props.notificationData]}));
-    }
-    if (localStorage.getItem("jwt")) {
-
     }
   }
 
@@ -233,7 +229,7 @@ class UserGlobalHeader extends Component {
                       />
                     <p>{this.props.userInfo.office}</p>
                     <SwitcherDivider/>
-                    <p style={{}}>Title: {this.props.userInfo.title}</p>
+                    <p>Title: {this.props.userInfo.title}</p>
                     <p>First Name: {this.props.userInfo.fname}</p>
                     <p>Last Name: {this.props.userInfo.lname}</p>
                     <SwitcherDivider/>
@@ -251,19 +247,21 @@ class UserGlobalHeader extends Component {
                 
                   {[...this.state.notificationList].reverse().map((item, index) => {
                     return <>
+                      <div style={{margin:'0rem 0rem 0.25rem 0rem'}}>
                       <ToastNotification
                         className='panelNotification'
                         key={index}
                         timeout={0}
-                        kind={item.notificationKind}
+                        kind={item.kind}
                         lowContrast={false}
-                        title={item.notificationTitle}
-                        subtitle={item.notificationMessage}
-                        statusIconDescription={item.notificationKind}
+                        title={item.title}
+                        subtitle={item.message}
+                        statusIconDescription={item.kind}
                         hideCloseButton={true}
                         >
-                        {item.notificationTimestamp}
+                        {item.timestamp}
                       </ToastNotification>
+                      </div>
                     </>
                   })}
                 </HeaderPanel>

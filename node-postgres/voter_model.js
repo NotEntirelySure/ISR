@@ -27,35 +27,6 @@ const registerVoter = (userInfo) => {
   });
 };
 
-const checkOfficeLoggedIn = (officeId) => {
-  return new Promise((resolve, reject) => { 
-    pool.query(`
-      SELECT participantid
-      FROM participants as p
-      JOIN offices as o on o.officeid=p.participantoffice
-      WHERE o.officename='${officeId}'
-      AND participantloggedin='true';
-    `, (error, results) => {
-      if (error) {reject(error)}
-      resolve(results);
-    })
-  });
-}
-
-const getVoterByName = (userInfo) => {
-  return new Promise((resolve, reject) => { 
-    pool.query(`
-      SELECT participantid
-      FROM participants
-      WHERE participanttitle='${userInfo.title}' 
-      AND participantfname='${userInfo.fname}'
-      AND participantlname='${userInfo.lname}'
-      AND participantoffice='${userInfo.office}';`, (error, results) => {
-      if (error) {reject(error)}
-      resolve(results);
-    })
-  });
-}
 const getAllVoters = () => {
   return new Promise((resolve, reject) => { 
     pool.query(`
@@ -75,24 +46,24 @@ const getAllVoters = () => {
       })
   });
   
-  
 }
 //used by user vote page and admin users page
 const getVoterInfo = (token) => {  
   return new Promise((resolve, reject) => {
     const isVerified = jwt.verify(token, process.env.JWT_SECRET_KEY)
+    console.log(isVerified);
     if (isVerified.participantid){
-      pool.query(
-        `SELECT 
-        p.participantid,
-        p.participanttitle,
-        p.participantfname,
-        p.participantlname,
-        p.participantoffice,
-        p.participantloggedin,
-        o.officename
+      pool.query(`
+        SELECT 
+          p.participantid,
+          p.participanttitle,
+          p.participantfname,
+          p.participantlname,
+          p.participantoffice,
+          p.participantloggedin,
+          o.officename
         FROM participants as p
-        JOIN offices as o on o.officeid=p.participantoffice
+        JOIN offices AS o ON o.officeid=p.participantoffice
         WHERE participantid=$1;`,
         [isVerified.participantid],
         (error, results) => {
@@ -141,8 +112,6 @@ const resetParticipantsTable = () => {
 
 module.exports = {
   registerVoter,
-  checkOfficeLoggedIn,
-  getVoterByName,
   getVoterInfo,
   getAllVoters,
   deleteVoter,

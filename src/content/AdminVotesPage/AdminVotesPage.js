@@ -1,6 +1,6 @@
 import React, { Component } from 'react'
-import { 
-    Button, 
+import {
+    Button,
     ComboBox,
     Content,
     Checkbox,
@@ -10,21 +10,20 @@ import {
     NumberInput,
     TableContainer,
     Table,
-    TableExpandHeader,
-    TableExpandRow,
-    TableExpandedRow,
     TableHead,
-    TableRow,
     TableHeader,
+    TableRow,
     TableBody,
     TableCell,
     TableToolbar,
     TableToolbarContent,
     TableToolbarSearch,
-    TextArea
+    TextArea,
+    Loading
 } from '@carbon/react';
 import {
   Add,
+  RecentlyViewed,
   RequestQuote,
   TrashCan,
   WarningHex
@@ -36,13 +35,14 @@ const headers = [
     {key:'voter', header:'Voter'},
     {key:'office', header:'Office'},
     {key:'voteValue', header:'Vote Value'},
+    {key:'voteTime', header:'Time of Vote'},
     {key:'modified', header:'Modified?'},
     {key:'action', header:'Action'}
 ];
 
 
 class AdminVotesPage extends Component {
-  
+
   constructor(props) {
     super(props)
     this.state = {
@@ -65,6 +65,7 @@ class AdminVotesPage extends Component {
       modalEditOpen:false,
       modalDeleteOpen: false,
       modalDeleteAllOpen: false,
+      modalHistoryOpen:false,
       deleteAllDisabled: true,
       addIdInvalid:false,
       addDescriptionInvalid:false,
@@ -75,23 +76,24 @@ class AdminVotesPage extends Component {
       displaySkeleton: 'block',
       userComboInvalid:false,
       userList:[],
-      projctComboInvalid:false,
       projectList:[],
+      voteHistory:[],
+      projctComboInvalid:false,
       selectedProject:"",
-      addValueInvalid:false
+      addValueInvalid:false,
+      showHistoryContent:'none',
+      showLoading:'flex',
+      currentVoteHistory:0
     }
   }
 
   componentDidMount() {this.GetVotes();}
-  
+
   GetVotes = async() => {
-    const votesRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/votes/all`, {mode:'cors'});
+    const votesRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getallvotes`, {mode:'cors'});
     const votesResponse = await votesRequest.json();
     let votes = [];
-    let voteModified;
     for (let i=0; i<votesResponse.length; i++){
-      voteModified = 'no';
-      if (votesResponse[i].changeid !== null) voteModified = 'yes';
       votes.push({
         "id":String(i),
         "voteID":votesResponse[i].voteid,
@@ -99,14 +101,14 @@ class AdminVotesPage extends Component {
         "voter":`${votesResponse[i].participanttitle} ${votesResponse[i].participantfname} ${votesResponse[i].participantlname}`,
         "office":votesResponse[i].officename,
         "voteValue":votesResponse[i].votevalue,
-        "modified":voteModified,
-        "comment":votesResponse[i].changecomment,
-        "timestamp":votesResponse[i].changetime,
+        "voteTime":votesResponse[i].votetime ? `${new Date(votesResponse[i].votetime).toUTCString()}`:"",
+        "modified":votesResponse[i].votemodified ? "yes":"no",
         "action":
           <>
-            <div style={{marginTop:'-1rem'}}>
+            <div style={{display:'flex', gap:'0.25rem'}}>
               <Button
                 hasIconOnly
+                size='md'
                 renderIcon={RequestQuote}
                 iconDescription='Edit Vote'
                 kind="primary"
@@ -123,8 +125,24 @@ class AdminVotesPage extends Component {
                   })
                 }}
               />
-              <Button 
+              <Button
                 hasIconOnly
+                size='md'
+                renderIcon={RecentlyViewed}
+                iconDescription='Vote History'
+                kind="secondary"
+                onClick={() => {
+                  this.setState({
+                    modalHistoryOpen:true,
+                    showLoading:'block',
+                    showHistoryContent:'none'
+                  });
+                  this.GetVoteHistory(votesResponse[i].voteid)
+                }}
+              />
+              <Button
+                hasIconOnly
+                size='md'
                 renderIcon={TrashCan}
                 iconDescription='Delete Vote'
                 kind="danger"
@@ -148,7 +166,7 @@ class AdminVotesPage extends Component {
     });
   }
 
-  CheckVote = () => {
+  CheckVoteExists = () => {
     if (this.state.addUserComboValue === null) {
       this.setState({userComboInvalid:true});
       return;
@@ -173,15 +191,15 @@ class AdminVotesPage extends Component {
     }, async() => {
       const checkVoteReqest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/votes/checkvote/${this.state.voteToAdd.voterID}&${this.state.voteToAdd.projectID}`, {mode:'cors'});
       const checkVoteResponse = await checkVoteReqest.json();
-      
+
       if (checkVoteResponse[0].exists) {this.setState({modalExistsOpen:true})}
       if (!checkVoteResponse[0].exists) {this.AddVote()}
     })
-    
+
   }
 
   AddVote = async() => {
-    const voteRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/votes/submitvote`, {
+    const voteRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/submitvote`, {
       method:'POST',
       mode:'cors',
       headers:{'Content-Type':'application/json'},
@@ -198,15 +216,15 @@ class AdminVotesPage extends Component {
     document.getElementById("addComment").value = "";
     this.GetVotes();
   }
-  
+
   EditVote = async() => {
-    
+
     const newVoteValue = parseInt(document.getElementById('editVoteValue').value);
 
     if (newVoteValue >= 0 && newVoteValue <= 10) {
-    
+
       this.setState({modalEditOpen: false});
-      
+
       let requestData = {
         "voteid":this.state.voteToEdit.voteid,
         "newvalue": newVoteValue,
@@ -218,7 +236,7 @@ class AdminVotesPage extends Component {
         method:'POST',
         mode:'cors',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify(requestData)    
+        body:JSON.stringify(requestData)
       })
       document.getElementById("editComment").value = "";
       this.GetVotes()
@@ -238,7 +256,7 @@ class AdminVotesPage extends Component {
   }
 
   GetUsers = async() => {
-    const usersRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getvoterinfo/all`, {mode:'cors'})
+    const usersRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getallvoters`, {mode:'cors'})
     const usersResponse = await usersRequest.json();
     let users = [];
     for (let i=0; i<usersResponse.rows.length; i++){
@@ -248,7 +266,7 @@ class AdminVotesPage extends Component {
         "fname":usersResponse.rows[i].participantfname,
         "lname":usersResponse.rows[i].participantlname,
         "office":usersResponse.rows[i].participantoffice,
-        "text":`${usersResponse.rows[i].participanttitle} ${usersResponse.rows[i].participantfname} ${usersResponse.rows[i].participantlname} (${usersResponse.rows[i].participantoffice})`
+        "text":`${usersResponse.rows[i].participanttitle} ${usersResponse.rows[i].participantfname} ${usersResponse.rows[i].participantlname} (${usersResponse.rows[i].officename})`
       })
     }
     this.setState({userList:users});
@@ -268,6 +286,64 @@ class AdminVotesPage extends Component {
     this.setState({projectList:projects});
   }
 
+  GetVoteHistory = async(voteId) => {
+    this.setState({
+      showLoading:'flex',
+      showHistoryContent:'none'
+    });
+    const historyRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getchangelogbyid/${voteId}`, {mode:'cors'});
+    const historyResponse = await historyRequest.json();
+    let historyList = [];
+    if (historyResponse.length <= 0) {
+      historyList.push(<><p>This vote has not been modified.</p></>);
+    }
+    if (historyResponse.length > 0) {
+      for (let i=0; i<historyResponse.length;i++){
+        historyList.push(
+          <>
+            <div 
+              style={{
+                margin:'0.5rem',
+                padding:'0.5rem',
+                backgroundColor:'#dedede',
+                borderRadius:'10px'
+              }}>
+              <h6>Modification type: {historyResponse[i].changeaction}</h6>
+              <h6>Time of modification: {historyResponse[i].changetime}</h6>
+              {
+                historyResponse[i].changeaction==="add" ? 
+                  <>
+                    <h6>Initial Value: {historyResponse[i].changenewvalue}</h6>
+                  </>
+                  :null
+              }
+              {
+                historyResponse[i].changeaction==="edit" ? 
+                  <>
+                    <h6>Previous Value: {historyResponse[i].changepreviousvalue}</h6>
+                   <h6>New Value: {historyResponse[i].changenewvalue}</h6>
+                  </>
+                  :null
+              }
+              <TextArea
+                rows={2}
+                labelText="Comment"
+                value={historyResponse[i].changecomment}
+                />
+              
+            </div>
+          </>
+        );
+      };
+    }
+
+    this.setState({
+      showLoading:'none',
+      showHistoryContent:'block',
+      currentVoteHistory:voteId,
+      voteHistory:historyList
+    })
+  }
   render() {
     return (
       <>
@@ -285,7 +361,7 @@ class AdminVotesPage extends Component {
             <p>If you choose to continue, the existing vote will be updated with the specified value of {this.state.voteToAdd.voteValue} instead of creating a new vote entry.</p>
         </Modal>
         <Modal
-          id='modalAdd' 
+          id='modalAdd'
           primaryButtonText="Add"
           secondaryButtonText="Cancel"
           shouldSubmitOnEnter={true}
@@ -294,9 +370,9 @@ class AdminVotesPage extends Component {
             this.setState({modalAddOpen: false, voteToAdd:{}})
             document.getElementById("addComment").value = "";
           }}
-          onRequestSubmit={() => {this.CheckVote();}} 
+          onRequestSubmit={() => {this.CheckVoteExists();}}
           open={this.state.modalAddOpen}>
-          
+
           <ComboBox
             onChange={(item) => {
               if (this.state.userComboInvalid === true) this.setState({userComboInvalid:false})
@@ -316,7 +392,7 @@ class AdminVotesPage extends Component {
             id="addUserCombobox"
             placeholder="Select"
             invalid={this.state.userComboInvalid}
-            invalidText="This is a required field." 
+            invalidText="This is a required field."
             items={this.state.userList}
             itemToString={(user) => (user ? `${user.userid} - ${user.text}` : '')}
             titleText="User"
@@ -333,7 +409,7 @@ class AdminVotesPage extends Component {
             id="addProjectCombobox"
             placeholder="Select"
             invalid={this.state.projctComboInvalid}
-            invalidText="This is a required field." 
+            invalidText="This is a required field."
             items={this.state.projectList}
             itemToString={(project) => (project ? project.text: "")}
             titleText="Idea"
@@ -359,7 +435,7 @@ class AdminVotesPage extends Component {
           />
         </Modal>
         <Modal
-          id='modalEdit' 
+          id='modalEdit'
           primaryButtonText="Save"
           secondaryButtonText="Cancel"
           shouldSubmitOnEnter={true}
@@ -450,12 +526,37 @@ class AdminVotesPage extends Component {
               }}
             />
         </Modal>
+        <Modal
+          hasScrollingContent={true}
+          id='voteHistory'
+          modalHeading={`History of Vote ID ${this.state.currentVoteHistory}`}
+          primaryButtonText="Ok"
+          onRequestClose={() => this.setState({modalHistoryOpen:false})}
+          onRequestSubmit={() => this.setState({modalHistoryOpen:false})}
+          open={this.state.modalHistoryOpen}>
+            <div
+              style={{
+                display:this.state.showLoading,
+                justifyContent:'center',
+                padding:'1rem'
+              }}
+            >
+              <Loading
+                withOverlay={false}
+                active={true}
+                description="Loading History..."
+              />
+            </div>
+            <div style={{display:this.state.showHistoryContent}}>
+              {this.state.voteHistory}
+            </div>
+        </Modal>
         <Content>
-          <div style={{display: `${this.state.displayTable}`}} className="bx--grid bx--grid--full-width adminPageBody">
+          <div style={{display:this.state.displayTable}} className="bx--grid bx--grid--full-width adminPageBody">
             <div className="bx--row bx--offset-lg-1 ManageProjects__r1" >
               <div className="bx--col-lg-15">
                 <DataTable
-                  stickyHeader={true}
+                  stickyHeader={false}
                   rows={this.state.votesList}
                   headers={headers}
                   isSortable={true}
@@ -472,10 +573,10 @@ class AdminVotesPage extends Component {
                           <TableToolbarContent>
                               <TableToolbarSearch onChange={onInputChange} />
                           </TableToolbarContent>
-                          <Button 
+                          <Button
                             renderIcon={Add}
-                            hasIconOnly={false}
-                            size='sm'
+                            hasIconOnly={true}
+                            size='lg'
                             iconDescription='Add Vote'
                             onClick={() => {
                               this.GetUsers();
@@ -483,45 +584,24 @@ class AdminVotesPage extends Component {
                               this.setState({modalAddOpen:true})}
                             }
                           />
-                          
                           <Button onClick={() => {this.setState({modalDeleteAllOpen:true})}} kind='danger' renderIcon={TrashCan} size='sm'>Delete All</Button>
                       </TableToolbar>
                       <Table {...getTableProps()}>
-                    <TableHead>
-                      <TableRow>
-                        <TableExpandHeader id="expand" />
-                        {headers.map((header, i) => (<TableHeader key={i} {...getHeaderProps({ header })}>{header.header}</TableHeader>))}
+                        <TableHead>
+                          <TableRow>
+                            {headers.map((header, i) => (<TableHeader key={i} {...getHeaderProps({ header })}>{header.header}</TableHeader>))}
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {rows.map((row) => (
+                            <TableRow key={row.id} {...getRowProps({ row })}>
+                              {row.cells.map((cell) => (
+                                <TableCell key={cell.id}>{cell.value}</TableCell>
+                              ))}
                       </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {rows.map((row) => (
-                        
-                        <React.Fragment key={row.id}>
-                        <TableExpandRow expandHeader="expand" {...getRowProps({ row })}>
-                          {row.cells.map((cell) => (
-                            <TableCell key={cell.id}>{cell.value}</TableCell>
-                          ))}
-                        </TableExpandRow>
-                        <TableExpandedRow
-                          colSpan={headers.length + 1}
-                          className="expanded-td">
-                          {
-                            row.cells[5].value === "yes" ?
-                              <>
-                                <div>
-                                  <h6>Time of modification: {this.state.votesList[parseInt(row.id)] ? this.state.votesList[parseInt(row.id)].timestamp:null}</h6>
-                                  <br/>
-                                  <TextArea rows={2} labelText="Comment" value={this.state.votesList[parseInt(row.id)] ? this.state.votesList[parseInt(row.id)].comment:null}/>
-                                </div>
-                              </>:<>
-                                <p>This vote has not been modified.</p>
-                              </>
-                          }
-                        </TableExpandedRow>
-                        </React.Fragment>
-                      ))}
-                    </TableBody>
-                  </Table>
+                    ))}
+                  </TableBody>
+                      </Table>
                     </TableContainer>
                   )}
                 />
@@ -529,7 +609,7 @@ class AdminVotesPage extends Component {
             </div>
           </div>
           <div style={{display: `${this.state.displaySkeleton}`}} className="bx--offset-lg-1 bx--col-lg-13">
-            <DataTableSkeleton columnCount={3} headers={headers}/>
+            <DataTableSkeleton columnCount={5} headers={headers}/>
           </div>
         </Content>
       </>

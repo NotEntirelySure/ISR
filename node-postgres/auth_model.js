@@ -56,22 +56,26 @@ const userLogin = (token) => {
 
 const userLogout = (userId) => {
   return new Promise((resolve, reject) => {
-    pool.query(`UPDATE participants SET participantloggedin='false' WHERE participantid='${userId}'));`, (error, results) => {
-      if (error) reject(error)
-      resolve({"result":200});
-    })
-  })
-}
-
-const mintJwt = (userId) => {
-  return new Promise ((resolve, reject) => {
-    const token = jwt.sign({"participantid":userId}, process.env.JWT_SECRET_KEY,{expiresIn: '4d'});
-    resolve({"result":200, "token":token});
-  })
-}
+    pool.query(
+      `UPDATE participants SET participantloggedin='false' WHERE participantid=$1));`,
+      [userId],
+      (error, results) => {
+        if (error) reject(error)
+        resolve({"result":200});
+      }
+    );
+  });
+};
 
 const _mintJwt = (userId) => {
   return jwt.sign({"participantid":userId}, process.env.JWT_SECRET_KEY,{expiresIn: '4d'});
+}
+
+const _verifyJwt = (token) => {
+  jwt.verify(token, process.env.JWT_SECRET_KEY, (err, decoded) => {
+    if (err) return({"status":401});
+    return({"status":200, data:decoded}); 
+  })
 }
 
 const verifyJwt = (token) => {
@@ -83,11 +87,47 @@ const verifyJwt = (token) => {
   })
 }
 
+function _verifyAdmin(token) {
+  return new Promise((resolve, reject) => {
+    try {
+      const isVerified = jwt.verify(token, process.env.JWT_SECRET_KEY);
+      if (!isVerified.username) resolve({code:401, message:"Unauthorized"});
+      if (isVerified.username) {
+        pool.query(
+          `SELECT(EXISTS(SELECT FROM administrators WHERE username=$1));`,
+          [isVerified.username],
+          (error, results) => {
+            if (error) reject({code:403,message:"Unauthorized"});
+            if (results.rows[0].exists) resolve({code:200});
+            resolve({code:403,message:"Unauthorized"});
+          }
+        );
+      };
+    }
+    catch (error) {
+      if (error.message === "jwt must be provided") {
+        resolve({code:401, message:"No authentication token was presented to the server."});
+      }
+      if (error.message.startsWith('Unexpected token') || error.message.startsWith("Unexpected end")) {
+        resolve({code:401, message:"The server was prestented with an invalid authentication token."});
+      }
+      if (error.message === "invalid signature") {
+        resolve({code:401, message:"Invalid signature in authentication token."});
+      }
+      if (error.message === "jwt expired") {
+        resolve({code:401, message:"The supplied authentication token has expired."});
+      }
+      resolve({code:500,type:error.message})
+    }
+  })
+};
+
 module.exports = {
   adminLogin,
   userLogin,
   userLogout,
-  mintJwt,
   verifyJwt,
-  _mintJwt
+  _verifyJwt,
+  _mintJwt,
+  _verifyAdmin
 };

@@ -11,6 +11,7 @@ const projects_model = require('./projects_model');
 const voter_model = require('./voter_model');
 const votes_model = require('./votes_model');
 const excel_model = require('./excel_model');
+const participant_action_model = require('./participant_action_model');
 
 const app = express().use('*', cors());
 
@@ -42,7 +43,7 @@ app.get('/projects', (req, res) => {
   })
 })
 
-app.get('/allvotes', (req, res) => {
+app.get('/getallvotes', (req, res) => {
   votes_model.getAllVotes()
   .then(response => {
     res.status(200).send(response);
@@ -62,18 +63,8 @@ app.get('/votes/:projectID', (req, res) => {
   })
 })
 
-app.get('/votesbyvoter/:voterID', (req, res) => {
-  votes_model.getVotesByVoter(req.params.voterID)
-  .then(response => {
-    res.status(200).send(response);
-  })
-  .catch(error => {
-    res.status(500).send(error);
-  })
-})
-
 app.get('/getvoterinfo/:token', (req, res) => {
-  voter_model.getVoterInfo(req.params.token)
+  participant_action_model.getParticipantInfo(req.params.token)
   .then(response => {
     res.status(200).send(response);
   })
@@ -102,8 +93,8 @@ app.get('/offices', (req, res) => {
   })
 })
 
-app.get('/getvotesbyoffice/:officeID', (req, res) => {
-  votes_model.getVotesByOffice(req.params.officeID)
+app.get('/getvotesbyoffice/:officeName', (req, res) => {
+  votes_model.getVotesByOffice(req.params.officeName)
   .then(response => {
     res.status(200).send(response);
   })
@@ -152,8 +143,8 @@ app.get('/getdomains', (req,res) => {
   })
 })
 
-app.get('/getchangelog', (req,res) => {
-  votes_model.getChangeLogs()
+app.get('/getallchangelogs', (req,res) => {
+  votes_model.getAllChangeLogs()
   .then(response => {
     res.status(200).send(response);
   })
@@ -162,28 +153,8 @@ app.get('/getchangelog', (req,res) => {
   })
 })
 
-app.get('/checkofficeloggedin/:officeid', (req, res) => {
-  voter_model.checkOfficeLoggedIn(req.params.officeid)
-  .then(response => {
-    res.status(200).send(response);
-  })
-  .catch(error => {
-    res.status(500).send(error);
-  })
-})
-
-app.get('/mintjwt/:userId', (req, res) => {
-  auth_model.mintJwt(req.params.userId)
-  .then(response => {
-    res.status(200).send(response);
-  })
-  .catch(error => {
-    res.status(500).send(error)
-  })
-})
-
-app.post('/getvoterbyname', (req, res) => {
-  voter_model.getVoterByName(req.body)
+app.get('/getchangelogbyid/:voteId', (req,res) => {
+  votes_model.getChangeLogById(req.params.voteId)
   .then(response => {
     res.status(200).send(response);
   })
@@ -204,16 +175,6 @@ app.post('/adddomain', (req, res) => {
 
 app.post('/editdomain', (req, res) => {
   projects_model.editDomain(req.body.domainId, req.body.domainName, req.body.colorHex)
-  .then(response => {
-    res.status(200).send(response);
-  })
-  .catch(error => {
-    res.status(500).send(error);
-  })
-})
-
-app.post('/deletedomain', (req, res) => {
-  projects_model.deleteDomain(req.body.domainId)
   .then(response => {
     res.status(200).send(response);
   })
@@ -243,7 +204,7 @@ app.post('/userlogin', (req, res) => {
 })
 
 app.post('/userlogout', (req, res) => {
-  voter_model.userLogout(req.body.voterId)
+  auth_model.userLogout(req.body.voterId)
   .then(response => {
     res.status(200).send(response);
   })
@@ -253,7 +214,7 @@ app.post('/userlogout', (req, res) => {
 })
 
 app.post('/register', (req, res) => {
-  voter_model.registerVoter(req.body)
+  participant_action_model.registerParticipant(req.body)
   .then(response => {
     res.status(200).send(response);
   })
@@ -262,7 +223,7 @@ app.post('/register', (req, res) => {
   })
 })
 
-app.post('/votes/submitvote', (req, res) => {
+app.post('/submitvote', (req, res) => {
   votes_model.submitVote(req.body)
   .then(response => {
     res.status(200).send(response);
@@ -288,7 +249,7 @@ app.post('/addproject', (req, res) => {
 })
 
 app.post('/addoffice', (req, res) => {
-    offices_model.addOffice(req.body.officename)
+    offices_model.addOffice(req.body)
     .then(response => {
       res.status(200).send(response);
     })
@@ -345,7 +306,17 @@ app.delete('/deleteproject', (req, res) => {
 })
 
 app.delete('/deleteoffice', (req, res) => {
-  offices_model.deleteOffice(req.body.officeID)
+  offices_model.deleteOffice(req.body)
+  .then(response => {
+    res.status(200).send(response);
+  })
+  .catch(error => {
+    res.status(500).send(error);
+  })
+})
+
+app.delete('/deletedomain', (req, res) => {
+  projects_model.deleteDomain(req.body.domainId)
   .then(response => {
     res.status(200).send(response);
   })

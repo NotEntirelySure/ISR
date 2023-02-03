@@ -9,48 +9,50 @@ CREATE USER participant_account WITH ENCRYPTED PASSWORD 'Aqrabu@m3lu';
 CREATE EXTENSION pgcrypto;
 
 CREATE TABLE projectdomains (
-	projectdomainid SERIAL PRIMARY KEY,
-	projectdomainname VARCHAR,
-	projectdomaincolorhex VARCHAR
+  projectdomainid SERIAL PRIMARY KEY,
+  projectdomainname VARCHAR,
+  projectdomaincolorhex VARCHAR
 );
 CREATE TABLE projects (
-	projectsequence INT,
-	projectid VARCHAR PRIMARY KEY UNIQUE,
-	projectdescription VARCHAR,
-	projectdomain INT REFERENCES projectdomains(projectdomainid)
+  projectsequence INT,
+  projectid VARCHAR PRIMARY KEY UNIQUE,
+  projectdescription VARCHAR,
+  projectdomain INT REFERENCES projectdomains(projectdomainid)
 );
 CREATE TABLE administrators (
-	userid SERIAL PRIMARY KEY,
-	firstname VARCHAR,
-	lastname VARCHAR,
-	username TEXT NOT NULL,
-	password TEXT NOT NULL
+  userid SERIAL PRIMARY KEY,
+  firstname VARCHAR,
+  lastname VARCHAR,
+  username TEXT NOT NULL,
+  password TEXT NOT NULL
 );
 CREATE TABLE offices (
-	officeid SERIAL PRIMARY KEY,
-	officename VARCHAR(255) UNIQUE
+  officeid SERIAL PRIMARY KEY,
+  officename VARCHAR(255) UNIQUE
 );
 CREATE TABLE participants (
-	participantid SERIAL PRIMARY KEY,
-	participanttitle VARCHAR(6),
-	participantfname VARCHAR(25),
-	participantlname VARCHAR(25),
-	participantoffice INT REFERENCES offices(officeid)
+  participantid SERIAL PRIMARY KEY,
+  participanttitle VARCHAR(6),
+  participantfname VARCHAR(25),
+  participantlname VARCHAR(25),
+  participantoffice INT REFERENCES offices(officeid)
 );
 CREATE TABLE votes (
-	voteid SERIAL PRIMARY KEY,
-	voteprojectid VARCHAR REFERENCES projects(projectid),
-	voteparticipantid INT REFERENCES participants(participantid),
-	votevalue INT
+  voteid SERIAL PRIMARY KEY,
+  voteprojectid VARCHAR REFERENCES projects(projectid),
+  voteparticipantid INT REFERENCES participants(participantid),
+  votevalue INT,
+  votetime TIMESTAMP,
+  votemodified BOOLEAN
 );
 CREATE TABLE changelog (
-	changeid SERIAL PRIMARY KEY,
-	changevoteid INT,
-	changepreviousvalue INT,
-	changenewvalue INT,
-	changetime TIMESTAMP,
-	changeaction VARCHAR,
-	changecomment TEXT
+  changeid SERIAL PRIMARY KEY,
+  changevoteid INT,
+  changepreviousvalue INT,
+  changenewvalue INT,
+  changetime TIMESTAMP,
+  changeaction VARCHAR,
+  changecomment TEXT
 );
 GRANT UPDATE,SELECT,INSERT ON votes TO participant_account;
 GRANT UPDATE,SELECT,INSERT ON participants TO participant_account;
@@ -59,16 +61,16 @@ GRANT USAGE,SELECT ON SEQUENCE votes_voteid_seq TO participant_account;
 GRANT USAGE,SELECT ON SEQUENCE participants_participantid_seq TO participant_account;
 
 INSERT INTO administrators (
-	firstname,
-	lastname,
-	username,
-	password
+  firstname,
+  lastname,
+  username,
+  password
 )
 VALUES (
-	'Cliff',
-	'Rosenberg',
-	'carosenberg',
-	crypt('Password1!', gen_salt('bf'))
+  'Cliff',
+  'Rosenberg',
+  'carosenberg',
+  crypt('Password1!', gen_salt('bf'))
 );
 
 CREATE OR REPLACE FUNCTION register_participant(title VARCHAR, fname VARCHAR, lname VARCHAR, office INT) RETURNS integer
@@ -144,4 +146,105 @@ AS $$
  	END IF;
     END IF;
   END;
+$$;
+
+CREATE OR REPLACE FUNCTION submit_vote(project VARCHAR, participant INT, vote INT, source TEXT, comment TEXT) RETURNS INT
+LANGUAGE plpgsql
+AS $$
+BEGIN 
+  PERFORM FROM votes
+  WHERE voteprojectid=project
+  AND voteparticipantid=participant;          
+  
+  IF FOUND THEN
+    IF (source = 'admin') THEN
+	INSERT INTO changelog (
+        changevoteid,
+	  changepreviousvalue,
+        changenewvalue,
+        changetime,
+        changeaction,
+        changecomment
+      )
+      VALUES (
+        (
+	    SELECT voteid 
+	    FROM votes 
+	    WHERE voteprojectid=project
+	    AND voteparticipantid=participant
+        ),
+	  (
+	    SELECT votevalue
+	    FROM votes
+	    WHERE voteprojectid=project
+	    AND voteparticipantid=participant
+        ),
+        vote,
+        (SELECT NOW()),
+        'edit',
+        comment
+      );
+     UPDATE votes
+     SET 
+       votevalue=vote,
+       votetime=(SELECT NOW()),
+	 votemodified=true
+     WHERE voteprojectid=project
+     AND voteparticipantid=participant;
+    RETURN 1;    
+    END IF;
+    IF (source = 'user') THEN
+      UPDATE votes
+      SET votevalue=vote, votetime=(SELECT NOW())
+      WHERE voteprojectid=project
+      AND voteparticipantid=participant;
+      RETURN 1;    
+    END IF;
+  END IF;
+
+  IF NOT FOUND THEN 
+    IF (source = 'user') THEN    
+      INSERT INTO votes (
+        voteprojectid,
+        voteparticipantid,
+        votevalue,
+	  votetime,
+        votemodified
+      )
+      VALUES (project, participant, vote,(SELECT NOW()),false);
+      RETURN 1;
+    END IF;
+    IF (source = 'admin') THEN
+      INSERT INTO changelog (
+        changevoteid,
+        changenewvalue,
+        changetime,
+        changeaction,
+        changecomment
+      )
+      VALUES (
+        (
+	    SELECT voteid 
+	    FROM votes 
+	    WHERE voteprojectid=project
+	    AND voteparticipantid=participant
+	  ),
+        vote,
+        (SELECT NOW()),
+        'add',
+        comment
+      );
+      INSERT INTO votes (
+        voteprojectid,
+        voteparticipantid,
+        votevalue,
+	  votetime,
+        votemodified
+      )
+      VALUES (project, participant, vote,(SELECT NOW()),true);
+      RETURN 1;
+    END IF;
+  END IF;
+  RETURN 0;
+END;
 $$;

@@ -41,7 +41,16 @@ export default function AdminOfficesPage() {
   const [displayTable, setDisplayTable] = useState('none');
   const [displaySkeleton, setDisplaySkeleton] = useState('block');
 
-  useEffect(() => {GetOffices();},[])
+  useEffect(() => GetOffices(),[]);
+  useEffect(() => {
+    if (errorInfo.heading !== '') {
+      setModalErrorOpen(true)
+      if (modalAddOpen) setModalAddOpen(false);
+      if (modalDeleteOpen) setModalDeleteOpen (false);
+      addName.current.value = "";
+      officeToDelete.current = "";
+    }
+  },[errorInfo]);
     
   function GetOffices() {
     fetch(`${process.env.REACT_APP_API_BASE_URL}/offices`, {mode:'cors'})
@@ -87,7 +96,7 @@ export default function AdminOfficesPage() {
       method:'POST',
       mode:'cors',
       headers:{'Content-Type':'application/json'},
-      body:`{"officename":"${addName.current.value}"}`   
+      body:JSON.stringify({officeName:addName.current.value,token:localStorage.getItem("adminjwt")})   
     })
 
     const addResponse = await addRequest.json();
@@ -100,16 +109,24 @@ export default function AdminOfficesPage() {
         GetOffices();
         break;
       
+      case 401:
+      case 403:
+      case 500:
+        setErrorInfo({
+          heading:"Error Adding Office",
+          message:`${addResponse.code}: ${addResponse.message}`
+        })
+        break;
+
       case 409:
         setModalAddOpen(false);
         setAddNameInvalid(false);
         setInvalidMessage("");
-        setModalErrorOpen(true);
         setErrorInfo({
           heading:"Office Already Exists",
           message:`No office was added. ${addName.current.value} already exists.`
         })
-        addName.current.value = "";
+        break;
       case 600:
         setAddNameInvalid(true);
         setInvalidMessage("The office name cannot be null");
@@ -127,9 +144,15 @@ export default function AdminOfficesPage() {
       method:'DELETE',
       mode:'cors',
       headers:{'Content-Type':'application/json'},
-      body:`{"officeID":"${officeToDelete.current.officeID}"}`    
+      body:JSON.stringify({"officeId":officeToDelete.current.officeID, token:localStorage.getItem("adminjwt")})    
     })
-    GetOffices();
+    const deleteResponse = await deleteRequest.json();
+    if (deleteResponse.code === 200) GetOffices();
+    if (deleteResponse.code !== 200) {
+      setErrorInfo({
+        heading:`Error Deleting ${officeToDelete.current.officeName}`,
+        message:`Error ${deleteResponse.code}: ${deleteResponse.message}`
+    })}
   }
 
   return (

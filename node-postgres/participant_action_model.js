@@ -1,6 +1,7 @@
 //allows access to .env file for environment variable declaration
 require('dotenv').config();
-
+const jwt = require('jsonwebtoken');
+const auth_model = require('./auth_model');
 const Pool = require('pg').Pool
 const pool = new Pool({
   user: process.env.API_BASE_PARTICIPANT_ACCOUNT,
@@ -10,121 +11,69 @@ const pool = new Pool({
   port: process.env.API_BASE_PORT_NUMBER,
 });
 
-const getOffices = () => {
-  return new Promise(function(resolve, reject) { 
-      pool.query("SELECT * FROM offices ORDER BY officename;", (error, results) => {
+//used by user registration page
+const registerParticipant = (userInfo) => {
+  return new Promise((resolve, reject) => { 
+    pool.query(
+      'SELECT register_participant($1,$2,$3,$4);',
+      [userInfo.title, userInfo.fname, userInfo.lname, userInfo.office],
+      (error, results) => {
+        if (error) reject({code:500});
+        const jwt = auth_model._mintJwt(results.rows[0].register_participant);
+        resolve({code:200,token:jwt});
+      }
+    );
+  });
+};
+
+const getParticipantInfo = (token) => {  
+  return new Promise((resolve, reject) => {
+    try{
+      const isVerified = jwt.verify(token, process.env.JWT_SECRET_KEY)
+    if (isVerified.participantid){
+      pool.query(`
+        SELECT 
+          p.participantid,
+          p.participanttitle,
+          p.participantfname,
+          p.participantlname,
+          p.participantoffice,
+          p.participantloggedin,
+          o.officename
+        FROM participants as p
+        JOIN offices AS o ON o.officeid=p.participantoffice
+        WHERE participantid=$1;`,
+        [isVerified.participantid],
+        (error, results) => {
           if (error) {reject(error)}
           resolve(results);
-      });
-  }); 
-};
-
-const registerParticipant = (userInfo) => {
-  
-  return new Promise(function(resolve, reject) { 
-    pool.query(
-      `DO $$ 
-        BEGIN 
-          PERFORM * FROM participants 
-          WHERE participanttitle='${userInfo.title}' 
-          AND participantfname='${userInfo.fname}' 
-          AND participantlname='${userInfo.lname}'
-          AND participantoffice='${userInfo.office}';
-    
-          IF NOT FOUND THEN 
-            INSERT INTO participants (
-              participanttitle,
-              participantfname,
-              participantlname,
-              participantoffice,
-              participantloggedin
-            )
-            VALUES (
-              '${userInfo.title}',
-              '${userInfo.fname}',
-              '${userInfo.lname}',
-              '${userInfo.office}',
-              'false'
-            );
-          END IF;
-        END
-      $$;
-      SELECT participantid FROM participants 
-      WHERE participanttitle='${userInfo.title}' 
-      AND participantfname='${userInfo.fname}' 
-      AND participantlname='${userInfo.lname}'
-      AND participantoffice='${userInfo.office}';`, (error, results) => {
-        if (error) {reject(error)}
-        resolve(results[1].rows[0]);
-    });
-  });
-};
-
-const checkOfficeLoggedIn = (officeId) => {
-  return new Promise((resolve, reject) => { 
-    pool.query(`SELECT participantid FROM participants WHERE participantoffice='${officeId}' AND participantloggedin='true';`, (error, results) => {
-      if (error) {reject(error)}
-      resolve(results);
-    })
-  });
-}
-
-const getVoterInfo = (voterID) => {
-  let SqlQuery;
-  if (voterID === "all"){SqlQuery = "SELECT * FROM participants ORDER BY participantid";}
-  else {SqlQuery = `SELECT * FROM participants WHERE participantid='${voterID}'`}
-  return new Promise((resolve, reject) => { 
-    pool.query(SqlQuery, (error, results) => {
-      if (error) {reject(error)}
-      resolve(results);
-    })
-  });
-}
-
-const userLogout = (voterId) => {
-  return new Promise((resolve, reject) => {
-    pool.query(`UPDATE participants SET participantloggedin='false' WHERE participantid='${voterId}'`, (error, results) => {
-      if (error) reject(error)
-      resolve(results);
-    })
-  })
-}
-
-const submitVote = (values) => {
-    return new Promise(function(resolve, reject) {
-      pool.query(`DO $$ 
-        BEGIN 
-          PERFORM * FROM votes WHERE voteprojectid='${values.projectID}' AND voteparticipantid='${values.voterID}';          
-          IF FOUND THEN UPDATE votes SET votevalue='${values.voteValue}' WHERE voteprojectid='${values.projectID}' AND voteparticipantid='${values.voterID}';
-          ELSE INSERT INTO votes (voteprojectid, voteparticipantid, voteparticipantoffice, votevalue) VALUES ('${values.projectID}', '${values.voterID}', '${values.office}', '${values.voteValue}');
-          END IF;
-        END
-      $$;`, (error, results) => {
-        if (error) {reject(error)}
-        if (values.source === "admin") {
-          if (values.comment === "") {values["comment"] = "Vote added by administrator."}
-            pool.query(`
-              INSERT INTO changelog (
-                changevoteid,
-                changenewvalue,
-                changetime,
-                changeaction,
-                changecomment
-              )
-              VALUES (
-                (SELECT voteid FROM votes WHERE voteprojectid='${values.projectID}' AND voteparticipantid='${values.voterID}'),
-                '${values.voteValue}',
-                (SELECT NOW()),
-                'add',
-                $$${values.comment}$$
-              );`, (error, results) => {
-                if (error) {reject(error)}
-                resolve(results);
-            })
-          }
-          resolve(results);
-        })
-      }) 
+      })
     }
+  }
+  catch (error) {console.log(error);}
+  });
+}
 
-module.exports = {submitVote};
+//used by user vote page
+const submitVote = (values) => {
+  return new Promise(function(resolve, reject) {
+    if (values.source === "admin" && values.comment === "") values["comment"] = "Admin created or modified this vote."
+    pool.query(
+      'SELECT submit_vote($1,$2,$3,$4,$5);',
+      [values.projectID,values.voterID,values.voteValue,values.source,values.comment],
+      (error, results) => {
+        if (error) reject({code:500});
+        if (results.rows[0].submit_vote === 0) reject({code:500, message:"An error occured submitting the vote."});
+        if (results.rows[0].submit_vote === 1) resolve({code:200});
+        reject({code:404});
+      }
+    );
+  });
+};
+
+
+module.exports = {
+  registerParticipant,
+  getParticipantInfo,
+  submitVote
+};

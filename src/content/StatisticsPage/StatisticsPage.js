@@ -148,7 +148,7 @@ class StatisticsPage extends Component {
 
   UpdateStatTable = async() => {
 
-    const votesRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/allvotes`, {mode:'cors'});
+    const votesRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getallvotes`, {mode:'cors'});
     const votesResponse = await votesRequest.json();
     //create hashmap of projects and total scores.
     let votesHashmap = {};
@@ -158,12 +158,12 @@ class StatisticsPage extends Component {
       //omit any 0 values from the calculation. This prevents abstain votes from skewing the average down.
       if(votesResponse.rows[i].votevalue !== 0){
         if (votesResponse.rows[i].voteprojectid in votesHashmap) {
-          votesHashmap[votesResponse.rows[i].voteprojectid] = votesHashmap[votesResponse.rows[i].voteprojectid] + votesResponse.rows[i].votevalue;
-          objVoteCount[votesResponse.rows[i].voteprojectid]++;
+          votesHashmap[votesResponse[i].voteprojectid] = votesHashmap[votesResponse[i].voteprojectid] + votesResponse[i].votevalue;
+          objVoteCount[votesResponse[i].voteprojectid]++;
         }
         else {
-          votesHashmap[votesResponse.rows[i].voteprojectid] = votesResponse.rows[i].votevalue;
-          objVoteCount[votesResponse.rows[i].voteprojectid] = 1;
+          votesHashmap[votesResponse[i].voteprojectid] = votesResponse.rows[i].votevalue;
+          objVoteCount[votesResponse[i].voteprojectid] = 1;
         }  
       }
     }
@@ -188,9 +188,8 @@ class StatisticsPage extends Component {
     projectList.sort((a, b) => b.averageScore - a.averageScore);
     //set rank order value based on previous sorting
     for (let i=0;i<projectList.length;i++){projectList[i].rank = i+1}
-    
+
     this.setState({projects: projectList});
-    
   }
 
   ExportData = async() => {
@@ -198,7 +197,7 @@ class StatisticsPage extends Component {
     this.setState({exportLoading:'block'});
     this.UpdateStatTable();
 
-    const participantResponse = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getvoterinfo/all`, {mode:'cors'});
+    const participantResponse = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getallvoters`, {mode:'cors'});
     const participantList = await participantResponse.json();
 
     let objParticipants = [];
@@ -208,21 +207,21 @@ class StatisticsPage extends Component {
         "Title":participantList.rows[i].participanttitle,
         "First Name":participantList.rows[i].participantfname,
         "Last Name":participantList.rows[i].participantlname,
-        "Office":participantList.rows[i].participantoffice
+        "Office":participantList.rows[i].officename
       });
     }
 
-    const voteResponse = await fetch(`${process.env.REACT_APP_API_BASE_URL}/allvotes`, {mode:'cors'})
-    const voteList = await voteResponse.json();
+    const voteRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getallvotes`, {mode:'cors'})
+    const voteResponse = await voteRequest.json();
     
     let objVotes = [];
-    for (let i=0; i<voteList.rows.length; i++){
+    for (let i=0; i<voteResponse.rows.length; i++){
       objVotes.push({
-        "Vote ID":voteList.rows[i].voteid,
-        "Project ID":voteList.rows[i].voteprojectid,
-        "Participant ID":voteList.rows[i].voteparticipantid,
-        "Participant Office":voteList.rows[i].voteparticipantoffice,
-        "Vote Value":voteList.rows[i].votevalue
+        "Vote ID":voteResponse[i].voteid,
+        "Project ID":voteResponse[i].voteprojectid,
+        "Participant ID":voteResponse[i].voteparticipantid,
+        "Participant Office":voteResponse[i].officename,
+        "Vote Value":voteResponse[i].votevalue
       });
     }
 
@@ -237,7 +236,7 @@ class StatisticsPage extends Component {
       });
     }
     
-    const logRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getchangelog`, {mode:'cors'});
+    const logRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getallchangelogs`, {mode:'cors'});
     const logResponse = await logRequest.json();
     let objLogs = [];
     for (let i=0;i<logResponse.rowCount;i++) {
@@ -255,12 +254,12 @@ class StatisticsPage extends Component {
       })
     }
 
-    console.table(objLogs);
     const fileType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8";
     const worksheetParticipants = XLSX.utils.json_to_sheet(objParticipants);
     const worksheetVotes = XLSX.utils.json_to_sheet(objVotes);
     const worksheetRankings = XLSX.utils.json_to_sheet(objRankings);
     const worksheetLogs = XLSX.utils.json_to_sheet(objLogs);
+    //sheets keys and sheet names must match exactly
     const workbook = { 
       Sheets: {
         "Rankings":worksheetRankings,
@@ -549,27 +548,25 @@ class StatisticsPage extends Component {
       const votesRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getvotesbyoffice/${office}`, {mode:'cors'})
       const votesResponse = await votesRequest.json();
       let objVotes = [];
-      if (votesResponse.rows.length === 0) {
+      if (votesResponse.length === 0) {
         objVotes.push({
           id:"0",
           projectID:"no records found",
           projectDescription:"no records found",
           participantName:"no records found",
-          //participantID:"no records found",
           office:"no records found",
           voteValue:"no records found"
         });
       }
       
-      for (let i=0; i<votesResponse.rows.length; i++) {
+      for (let i=0; i<votesResponse.length; i++) {
         objVotes.push({
           id:String(i),
-          projectID:votesResponse.rows[i].voteprojectid,
-          projectDescription:votesResponse.rows[i].projectdescription,
-          participantName:`${votesResponse.rows[i].participanttitle} ${votesResponse.rows[i].participantfname} ${votesResponse.rows[i].participantlname}`,
-          //participantID:votesResponse.rows[i].voteparticipantid,
-          office:votesResponse.rows[i].voteparticipantoffice,
-          voteValue:votesResponse.rows[i].votevalue
+          projectID:votesResponse[i].voteprojectid,
+          projectDescription:votesResponse[i].projectdescription,
+          participantName:`${votesResponse[i].participanttitle} ${votesResponse[i].participantfname} ${votesResponse[i].participantlname}`,
+          office:votesResponse[i].officename,
+          voteValue:votesResponse[i].votevalue
         });
       }
       this.setState({voteData: objVotes});
