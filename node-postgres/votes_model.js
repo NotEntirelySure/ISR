@@ -159,14 +159,42 @@ const checkVote = (voteTag) => {
   })
 }
 //used by admin vote page
-const deleteVote = (voteID) => {
-  let SqlQuery;
-  if (voteID === "all"){SqlQuery = "DELETE FROM votes";}
-  else {SqlQuery = `DELETE FROM votes WHERE voteid='${voteID}';`}
-  return new Promise(function(resolve, reject) {
-    pool.query(SqlQuery, (error, results) => {
-      if (error) {reject(error)}
-      resolve(results);
+const deleteVote = (voteId) => {
+  return new Promise((resolve, reject) => {
+    pool.query('SELECT delete_vote($1);',[voteId], (error, results) => {
+      if (error) reject({code:500, message:error});
+      switch (results.rows[0].delete_vote) {
+        case 1: 
+          resolve({code:200});
+          break;
+        case -1:
+          resolve({code:404});
+          break;
+        case 0:
+          resolve({code:500});
+          break;
+      };
+    });
+  });
+};
+
+const deleteAllVotes = () => {
+  return new Promise((resolve, reject) => {
+    pool.query(
+      `DELETE FROM votes;
+      INSERT INTO changelog (
+        changetime,
+        changeaction,
+        changecomment
+      ) 
+      VALUES (
+        (SELECT NOW()),
+        'delete',
+        'All votes deleted by admin'
+      );`,
+      (error) => {
+      if (error) reject(error);
+      resolve({code:200});
     })
   })
 }
@@ -244,6 +272,7 @@ module.exports = {
   submitVote,
   editVote,
   deleteVote,
+  deleteAllVotes,
   checkVote,
   resetVoteTable,
   resetLogTable

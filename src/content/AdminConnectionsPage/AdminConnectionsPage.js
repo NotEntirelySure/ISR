@@ -63,6 +63,7 @@ export default function AdminConnectionsPage() {
               action:<>
                 <Button 
                   hasIconOnly
+                  size="md"
                   renderIcon={TrashCan}
                   iconDescription='Remove Connecton'
                   kind="danger"

@@ -79,36 +79,40 @@ export default function AdminDomainsPage() {
         "projectdomaincolorhex":domainsResponse[i].projectdomaincolorhex,
         "action":
           <>
-            <Button
-              hasIconOnly
-              renderIcon={RequestQuote}
-              iconDescription='Edit Domain'
-              kind="primary"
-              onClick={() => {
-                setDomainToEdit({
-                  "domainId":domainsResponse[i].projectdomainid,
-                  "domainName":domainsResponse[i].projectdomainname,
-                  "colorHex":domainsResponse[i].projectdomaincolorhex,
-                });
-                document.getElementById("editName").value =  domainsResponse[i].projectdomainname;
-                document.getElementById("editColor").value = domainsResponse[i].projectdomaincolorhex; 
-                setPreviewColor(domainsResponse[i].projectdomaincolorhex);
-                setModalEditOpen(true);
-              }}
-            />
-            <Button 
-              hasIconOnly
-              renderIcon={TrashCan}
-              iconDescription='Delete Domain'
-              kind="danger"
-              onClick={() => {
-                setDomainToDelete({
-                  "domainId":domainsResponse[i].projectdomainid,
-                  "domainName":domainsResponse[i].projectdomainname
-                });
-                setModalDeleteOpen(true);
-              }}
-            />
+            <div style={{display:'flex', gap:'0.25rem'}}>
+              <Button
+                hasIconOnly
+                size="md"
+                renderIcon={RequestQuote}
+                iconDescription='Edit Domain'
+                kind="primary"
+                onClick={() => {
+                  setDomainToEdit({
+                    "domainId":domainsResponse[i].projectdomainid,
+                    "domainName":domainsResponse[i].projectdomainname,
+                    "colorHex":domainsResponse[i].projectdomaincolorhex,
+                  });
+                  document.getElementById("editName").value =  domainsResponse[i].projectdomainname;
+                  document.getElementById("editColor").value = domainsResponse[i].projectdomaincolorhex; 
+                  setPreviewColor(domainsResponse[i].projectdomaincolorhex);
+                  setModalEditOpen(true);
+                }}
+              />
+              <Button 
+                hasIconOnly
+                size="md"
+                renderIcon={TrashCan}
+                iconDescription='Delete Domain'
+                kind="danger"
+                onClick={() => {
+                  setDomainToDelete({
+                    "domainId":domainsResponse[i].projectdomainid,
+                    "domainName":domainsResponse[i].projectdomainname
+                  });
+                  setModalDeleteOpen(true);
+                }}
+              />
+            </div>
           </>
       })
     }

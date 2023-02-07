@@ -66,6 +66,7 @@ export default function AdminOfficesPage() {
             <>
               <Button 
                 hasIconOnly
+                size="md"
                 renderIcon={TrashCan}
                 iconDescription='Delete office'
                 kind="danger"

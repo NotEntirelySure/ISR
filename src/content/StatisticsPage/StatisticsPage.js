@@ -154,15 +154,15 @@ class StatisticsPage extends Component {
     let votesHashmap = {};
     let objVoteCount = {};
       
-    for (let i=0; i<votesResponse.rows.length; i++) {
+    for (let i=0; i<votesResponse.length; i++) {
       //omit any 0 values from the calculation. This prevents abstain votes from skewing the average down.
-      if(votesResponse.rows[i].votevalue !== 0){
-        if (votesResponse.rows[i].voteprojectid in votesHashmap) {
+      if(votesResponse[i].votevalue !== 0){
+        if (votesResponse[i].voteprojectid in votesHashmap) {
           votesHashmap[votesResponse[i].voteprojectid] = votesHashmap[votesResponse[i].voteprojectid] + votesResponse[i].votevalue;
           objVoteCount[votesResponse[i].voteprojectid]++;
         }
         else {
-          votesHashmap[votesResponse[i].voteprojectid] = votesResponse.rows[i].votevalue;
+          votesHashmap[votesResponse[i].voteprojectid] = votesResponse[i].votevalue;
           objVoteCount[votesResponse[i].voteprojectid] = 1;
         }  
       }
@@ -215,11 +215,11 @@ class StatisticsPage extends Component {
     const voteResponse = await voteRequest.json();
     
     let objVotes = [];
-    for (let i=0; i<voteResponse.rows.length; i++){
+    for (let i=0; i<voteResponse.length; i++){
       objVotes.push({
         "Vote ID":voteResponse[i].voteid,
         "Project ID":voteResponse[i].voteprojectid,
-        "Participant ID":voteResponse[i].voteparticipantid,
+        "Participant ID":voteResponse[i].participantid,
         "Participant Office":voteResponse[i].officename,
         "Vote Value":voteResponse[i].votevalue
       });
@@ -241,13 +241,13 @@ class StatisticsPage extends Component {
     let objLogs = [];
     for (let i=0;i<logResponse.rowCount;i++) {
       objLogs.push({
-        "Chanege ID":logResponse.rows[i].changeid,
+        "Change ID":logResponse.rows[i].changeid,
         "Vote ID":logResponse.rows[i].changevoteid,
         "Voter":`${logResponse.rows[i].participanttitle} ${logResponse.rows[i].participantfname} ${logResponse.rows[i].participantlname}`,
         "Office":logResponse.rows[i].voteparticipantoffice,
         "Idea":`${logResponse.rows[i].projectid}: ${logResponse.rows[i].projectdescription}`,
         "Previous Value":logResponse.rows[i].changepreviousvalue,
-        "Current Value":logResponse.rows[i].votevalue,
+        "New Value":logResponse.rows[i].votevalue,
         "Time of Change":logResponse.rows[i].changetime,
         "Admin Comments":logResponse.rows[i].changecomment,
         "Change Type":logResponse.rows[i].changeaction

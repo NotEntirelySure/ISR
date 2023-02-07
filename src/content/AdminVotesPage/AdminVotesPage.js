@@ -66,6 +66,7 @@ class AdminVotesPage extends Component {
       modalDeleteOpen: false,
       modalDeleteAllOpen: false,
       modalHistoryOpen:false,
+      modalErrorOpen:false,
       deleteAllDisabled: true,
       addIdInvalid:false,
       addDescriptionInvalid:false,
@@ -83,7 +84,11 @@ class AdminVotesPage extends Component {
       addValueInvalid:false,
       showHistoryContent:'none',
       showLoading:'flex',
-      currentVoteHistory:0
+      currentVoteHistory:0,
+      errorInfo:{
+        heading:'',
+        message:''
+      }
     }
   }
 
@@ -243,16 +248,41 @@ class AdminVotesPage extends Component {
     }
   }
 
-  DeleteVote = () => {
-
-    fetch(`${process.env.REACT_APP_API_BASE_URL}/votes/deletevote`, {
+  DeleteVote = async() => {
+    let fetchUrl;
+    let reqBody = {};
+    
+    if (this.state.voteToDelete.voteID === "all") {
+      fetchUrl = `${process.env.REACT_APP_API_BASE_URL}/deleteallvotes`;
+      reqBody = {
         method:'DELETE',
         mode:'cors',
         headers:{'Content-Type':'application/json'},
-        body:`{"voteID":"${this.state.voteToDelete.voteID}"}`
-    })
-      .then(response => response.json())
-      .then(() => this.GetVotes())
+        body:'{}'
+      }
+    }
+    if (this.state.voteToDelete.voteID !== "all") {
+      console.log("not all");
+      fetchUrl = `${process.env.REACT_APP_API_BASE_URL}/deletevote`;
+      reqBody = {
+        method:'DELETE',
+        mode:'cors',
+        headers:{'Content-Type':'application/json'},
+        body:`{"voteId":"${this.state.voteToDelete.voteID}"}`
+      }
+    }
+    const deleteRequest = await fetch(fetchUrl, reqBody);
+    const deleteResponse = await deleteRequest.json()
+    if (deleteResponse.code === 200) this.GetVotes();
+    if (deleteResponse.code === 404) {
+      this.setState({
+        modalErrorOpen:true,
+        errorInfo:{
+          heading:`Error Deleting Vote ${this.state.voteToDelete.voteID}`,
+          message:`An error occured while attempting to delete vote ${this.state.voteToDelete.voteID}. A vote with that ID was not found in the database.`
+        }
+      })
+    }
   }
 
   GetUsers = async() => {
@@ -492,6 +522,7 @@ class AdminVotesPage extends Component {
           }}
           onRequestSubmit={() => {
             this.setState({
+              deleteAllDisabled:true,
               modalDeleteAllOpen: false,
               voteToDelete:{
                 voteID:"all",
@@ -549,6 +580,31 @@ class AdminVotesPage extends Component {
             </div>
             <div style={{display:this.state.showHistoryContent}}>
               {this.state.voteHistory}
+            </div>
+        </Modal>
+        <Modal
+          id='modalError'
+          modalHeading={this.state.errorInfo.heading}
+          primaryButtonText="Ok"
+          onRequestClose={() => this.setState({
+              modalErrorOpen:false,
+              errorInfo:{
+                heading:"",
+                message:""
+              }
+            }
+          )}
+          onRequestSubmit={() => this.setState({
+              modalErrorOpen:false,
+              errorInfo:{
+                heading:"",
+                message:""
+              }
+            }
+          )}
+          open={this.state.modalErrorOpen}>
+            <div>
+              {this.state.errorInfo.message}
             </div>
         </Modal>
         <Content>

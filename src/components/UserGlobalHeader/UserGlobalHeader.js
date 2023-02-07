@@ -62,7 +62,7 @@ class UserGlobalHeader extends Component {
         bellEmpty:"none",
         bellNew:"block",
         bellFilled:"none",
-        notificationList:[...previousState.notificationList, this.props.notificationData]}));
+        notificationList:[...previousState.notificationList, this.props.notificationData]}),console.log(this.state.notificationList));
     }
   }
 

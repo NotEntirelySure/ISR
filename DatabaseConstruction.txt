@@ -215,6 +215,14 @@ BEGIN
       RETURN 1;
     END IF;
     IF (source = 'admin') THEN
+	INSERT INTO votes (
+        voteprojectid,
+        voteparticipantid,
+        votevalue,
+	  votetime,
+        votemodified
+      )
+      VALUES (project, participant, vote,(SELECT NOW()),true);
       INSERT INTO changelog (
         changevoteid,
         changenewvalue,
@@ -234,17 +242,41 @@ BEGIN
         'add',
         comment
       );
-      INSERT INTO votes (
-        voteprojectid,
-        voteparticipantid,
-        votevalue,
-	  votetime,
-        votemodified
-      )
-      VALUES (project, participant, vote,(SELECT NOW()),true);
       RETURN 1;
     END IF;
   END IF;
   RETURN 0;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION delete_vote(voteToDelete INT) RETURNS INT
+LANGUAGE plpgsql
+AS $$
+BEGIN 
+  PERFORM FROM votes WHERE voteid=voteToDelete;          
+    
+    IF FOUND THEN
+      INSERT INTO changelog (
+        changevoteid,
+	  changepreviousvalue,
+        changetime,
+        changeaction,
+        changecomment
+      )
+      VALUES (
+        voteToDelete,
+	  (SELECT votevalue FROM votes WHERE voteid=voteToDelete),
+        (SELECT NOW()),
+        'delete',
+        'Vote deleted by administrator'
+        );
+	DELETE FROM votes WHERE voteid=voteToDelete;
+	RETURN 1;
+    END IF;
+          
+    IF NOT FOUND THEN
+      RETURN -1;
+    END IF;
+RETURN 0;
 END;
 $$;

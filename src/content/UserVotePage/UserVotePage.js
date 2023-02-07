@@ -49,19 +49,19 @@ export default function UserVotePage() {
     lastName:"",
     office:null
   });
-  const [modalInfo, setModalOpen] = useState({
+  const [modalInfo, setModalInfo] = useState({
     open:false,
     heading:"",
     message:""
   });
   const [notificationInfo, setNotificationInfo] = useState({
-    open:true,
+    source:"",
     count:0,
     kind:"success",
     title:"",
     message:"",
-    data:{}
   });
+  const [notificationOpen, setNotificationOpen] = useState(false);
 
   useEffect(() => Login(),[]);
   useEffect(() => {if (voterInfo.office) ConnectWebSocket()},[voterInfo]);
@@ -73,7 +73,7 @@ export default function UserVotePage() {
     const token = localStorage.getItem("jwt");
 
     if (token === null) {
-      this.setState({
+      setModalInfo({
         heading:"Not Registered",
         message:<><p>You must register before you are able to vote.</p></>,
         open:true
@@ -102,16 +102,17 @@ export default function UserVotePage() {
             office:voterInfoResponse.rows[0].officename,
           });
           setIsAuth(true)
+          GetVoteHistory();
           break;
         case 401: 
-          setModalOpen({
+          setModalInfo({
             heading:"Not Registered",
             message:<><p>You must register before you are able to vote.</p></>,
             open:true
           });
           break;
         case 601:
-          setModalOpen({
+          setModalInfo({
             heading:"Other Participant Logged In",
             message:<>
               <p>You have been registered in the system, however, another participant from your office is currently logged in.</p>
@@ -128,16 +129,36 @@ export default function UserVotePage() {
           });
           break;
         case 602:
-          setModalOpen({
+          setModalInfo({
             heading:"Session Expired",
             message:<><p>Your session has expired. Please visit the registration page to reregister.</p></>,
             open:true
           });
           break;
       };
+
     };
   };
   
+  async function GetVoteHistory() {
+    const historyRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getvotehistory/${localStorage.getItem('jwt')}`, {mode:'cors'});
+    const historyResponse = await historyRequest.json();
+    if (historyResponse.code === 200) {
+      let message;
+      for(let i=0;i<historyResponse.historyData.length;i++){
+        if (historyResponse.historyData[i].votevalue === 0) message = `Your abstain vote for idea ${historyResponse.historyData[i].voteprojectid} was successfully submitted.`;
+        else {message = `Your vote of ${historyResponse.historyData[i].votevalue} for idea ${historyResponse.historyData[i].voteprojectid} was successfully submitted.`;}
+        setNotificationInfo({
+          source:"initialLoad",
+          kind:"success",
+          title:"Success!",
+          message:message,
+          timestamp: new Date(historyResponse.historyData[i].votetime).toLocaleString() 
+        });
+      };
+    };
+  }
+
   function ConnectWebSocket() {
     setConnectionInfo({
       ...connectionInfo,
@@ -234,16 +255,12 @@ export default function UserVotePage() {
           voteData.current = ({"project":"","value":null});
         
           setNotificationInfo({
+            source:"user",
             count:notificationInfo.count + 1,
             kind:"success",
             title:"Success!",
             message:message,
-            data:{
-              kind:"success",
-              title:"Success!",
-              message:message,
-              timestamp: new Date().toLocaleString()
-            }
+            timestamp: new Date().toLocaleString()
           });
           client.send(JSON.stringify({
             sender:"client",
@@ -255,16 +272,12 @@ export default function UserVotePage() {
           if (voteData.current.value === 0) {message = `There was a problem submitting your abstain vote for idea ${voteData.current.project}.`;}
           else {message = `There was a problem submitting your vote of ${voteData.current.value} for idea ${voteData.current.project}`;}
           setNotificationInfo({
+            source:"user",
             count:notificationInfo.count + 1,
             kind:"error",
             title:`Error: ${voteRequest.status}`,
             message:message,
-            data:{
-              kind:"error",
-              title:`Error: ${voteRequest.status}`,
-              message:message,
-              timestamp: new Date().toLocaleString()
-            }
+            timestamp: new Date().toLocaleString()
           });
         }
       }
@@ -273,16 +286,12 @@ export default function UserVotePage() {
         if (voteData.current.value === 0) {message = `There was a problem submitting your abstain vote for idea ${voteData.current.project}.`;}
         else {message = `There was a problem submitting your vote of ${voteData.current.value} for idea ${voteData.current.project}`;}
         setNotificationInfo({
+          source:"user",
           count:notificationInfo.count + 1,
           kind:"error",
           title:`Error: ${err.message}`,
           message:message,
-          data:{
-            kind:"error",
-            title:`Error: ${err.message}`,
-            message:message,
-            timestamp: new Date().toLocaleString()
-          }
+          timestamp: new Date().toLocaleString()
         });
       }
 
@@ -321,7 +330,7 @@ export default function UserVotePage() {
   }
 
   function ShowToast() {
-    if (notificationInfo.title !== "") {
+    if (notificationInfo.source === "user") {
       let slideout = document.getElementById('notification');
       slideout.classList.toggle('visible');
       //toggle the visibility back to hidden. If this doesn't happen, the next button click will not show the notification (it will take 2 clicks to show).
@@ -362,7 +371,7 @@ function HandleThemeChange(selectedTheme) {
         onThemeChange={theme => HandleThemeChange(theme)}
         notificationActive={isAuth}
         isAuth={isAuth}
-        notificationData={notificationInfo.data}
+        notificationData={notificationInfo}
         userInfo={{
           "voterID":voterInfo.id,
           "title":voterInfo.title,
@@ -386,7 +395,7 @@ function HandleThemeChange(selectedTheme) {
       <div id="notification" ref={notificationRef}>   
         <ToastNotification
           className='bx--toast-notification'
-          open={notificationInfo.open}
+          open={notificationOpen}
           key={notificationInfo.count}
           timeout={0}
           kind={notificationInfo.kind}
@@ -397,7 +406,7 @@ function HandleThemeChange(selectedTheme) {
           iconDescription='Icon description (iconDescription)'
           statusIconDescription='describes the status icon'
           hideCloseButton={false}
-          onCloseButtonClick={() => {console.log(notificationRef);setNotificationInfo({...notificationInfo, ["open"]:false})}}
+          onCloseButtonClick={() => setNotificationOpen(false)}
         />
       </div>
       <div style={{minHeight:"100vh"}}>

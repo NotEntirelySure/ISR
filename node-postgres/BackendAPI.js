@@ -163,6 +163,16 @@ app.get('/getchangelogbyid/:voteId', (req,res) => {
   })
 })
 
+app.get('/getvotehistory/:token', (req,res) => {
+  participant_action_model.getVoteHistory(req.params.token)
+  .then(response => {
+    res.status(200).send(response);
+  })
+  .catch(error => {
+    res.status(500).send(error);
+  })
+})
+
 app.post('/adddomain', (req, res) => {
   projects_model.addDomain(req.body.domainName, req.body.colorHex)
   .then(response => {
@@ -325,8 +335,18 @@ app.delete('/deletedomain', (req, res) => {
   })
 })
 
-app.delete('/votes/deletevote', (req, res) => {
-  votes_model.deleteVote(req.body.voteID)
+app.delete('/deletevote', (req, res) => {
+  votes_model.deleteVote(req.body.voteId)
+  .then(response => {
+    res.status(200).send(response);
+  })
+  .catch(error => {
+    res.status(500).send(error);
+  })
+})
+
+app.delete('/deleteallvotes', (req, res) => {
+  votes_model.deleteAllVotes()
   .then(response => {
     res.status(200).send(response);
   })

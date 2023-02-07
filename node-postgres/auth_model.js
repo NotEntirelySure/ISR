@@ -87,6 +87,41 @@ const verifyJwt = (token) => {
   })
 }
 
+function _verifyParticipant(token) {
+  return new Promise((resolve, reject) => {
+    try {
+      const isVerified = jwt.verify(token, process.env.JWT_SECRET_KEY);
+      if (!isVerified.participantid) resolve({code:401, message:"Unauthorized"});
+      if (isVerified.participantid) {
+        pool.query(
+          `SELECT(EXISTS(SELECT FROM participants WHERE participantid=$1));`,
+          [isVerified.participantid],
+          (error, results) => {
+            if (error) reject({code:403,message:"Unauthorized"});
+            if (results.rows[0].exists) resolve({code:200, participantId:isVerified.participantid});
+            resolve({code:403,message:"Unauthorized"});
+          }
+        );
+      };
+    }
+    catch (error) {
+      if (error.message === "jwt must be provided") {
+        resolve({code:401, message:"No authentication token was presented to the server."});
+      }
+      if (error.message.startsWith('Unexpected token') || error.message.startsWith("Unexpected end")) {
+        resolve({code:401, message:"The server was prestented with an invalid authentication token."});
+      }
+      if (error.message === "invalid signature") {
+        resolve({code:401, message:"Invalid signature in authentication token."});
+      }
+      if (error.message === "jwt expired") {
+        resolve({code:401, message:"The supplied authentication token has expired."});
+      }
+      resolve({code:500,type:error.message})
+    }
+  })
+};
+
 function _verifyAdmin(token) {
   return new Promise((resolve, reject) => {
     try {
@@ -129,5 +164,6 @@ module.exports = {
   verifyJwt,
   _verifyJwt,
   _mintJwt,
+  _verifyParticipant,
   _verifyAdmin
 };

@@ -104,47 +104,51 @@ class ManageProjectsPage extends Component {
         projectdomaincolorhex:projectsResponse.rows[i].projectdomaincolorhex,
         action:
           <>
-            <Button
-              hasIconOnly
-              renderIcon={RequestQuote}
-              iconDescription='Edit Project'
-              kind="primary"
-              onClick={async() => {
-                this.setState({editSequenceValue: projectsResponse.rows[i].projectsequence});
-                document.getElementById("editID").value = projectsResponse.rows[i].projectid;
-                document.getElementById("editDescription").value = projectsResponse.rows[i].projectdescription;
-                await this.GetDomains();
-                this.setState({
-                  projectToEdit:{
-                    "projectsequence":projectsResponse.rows[i].projectsequence,
-                    "projectid":projectsResponse.rows[i].projectid,
-                    "projectdescription":projectsResponse.rows[i].projectdescription,
-                    "projectdomain":projectsResponse.rows[i].projectdomainid
-                  },
-                  editSelectedDomain:{
-                    projectdomainid:projectsResponse.rows[i].projectdomainid,
-                    projectdomainname:projectsResponse.rows[i].projectdomainname,
-                    projectdomaincolorhex:projectsResponse.rows[i].projectdomaincolorhex
-                  },
-                  modalEditOpen: true
-                })
-              }}
-            />
-            <Button 
-              hasIconOnly
-              renderIcon={TrashCan}
-              iconDescription='Delete Project'
-              kind="danger"
-              onClick={() => {
-                this.setState({
-                  projectToDelete:{
-                    projectid:projectsResponse.rows[i].projectid,
-                    projectdescription:projectsResponse.rows[i].projectdescription,
-                  },
-                  modalDeleteOpen:true
-                })
-              }}
-            />
+            <div style={{display:'flex', gap:'0.25rem'}}>
+              <Button
+                hasIconOnly
+                size="md"
+                renderIcon={RequestQuote}
+                iconDescription='Edit Project'
+                kind="primary"
+                onClick={async() => {
+                  this.setState({editSequenceValue: projectsResponse.rows[i].projectsequence});
+                  document.getElementById("editID").value = projectsResponse.rows[i].projectid;
+                  document.getElementById("editDescription").value = projectsResponse.rows[i].projectdescription;
+                  await this.GetDomains();
+                  this.setState({
+                    projectToEdit:{
+                      "projectsequence":projectsResponse.rows[i].projectsequence,
+                      "projectid":projectsResponse.rows[i].projectid,
+                      "projectdescription":projectsResponse.rows[i].projectdescription,
+                      "projectdomain":projectsResponse.rows[i].projectdomainid
+                    },
+                    editSelectedDomain:{
+                      projectdomainid:projectsResponse.rows[i].projectdomainid,
+                      projectdomainname:projectsResponse.rows[i].projectdomainname,
+                      projectdomaincolorhex:projectsResponse.rows[i].projectdomaincolorhex
+                    },
+                    modalEditOpen: true
+                  })
+                }}
+              />
+              <Button 
+                hasIconOnly
+                size="md"
+                renderIcon={TrashCan}
+                iconDescription='Delete Project'
+                kind="danger"
+                onClick={() => {
+                  this.setState({
+                    projectToDelete:{
+                      projectid:projectsResponse.rows[i].projectid,
+                      projectdescription:projectsResponse.rows[i].projectdescription,
+                    },
+                    modalDeleteOpen:true
+                  })
+                }}
+              />
+            </div>
           </>
         }
       )

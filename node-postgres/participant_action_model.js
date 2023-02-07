@@ -54,6 +54,26 @@ const getParticipantInfo = (token) => {
   });
 }
 
+const getVoteHistory = (token) => {
+  return new Promise(async(resolve, reject) => {
+		const isAuthReqest = await auth_model._verifyParticipant(token);
+		const isAuthResponse = await isAuthReqest;
+		if (isAuthResponse.code !== 200) resolve(isAuthResponse);
+		if (isAuthResponse.code === 200) {
+			pool.query(`
+        SELECT voteprojectid, votevalue, votetime
+        FROM votes
+        WHERE voteparticipantid=$1
+        ORDER BY votetime;`,
+				[isAuthResponse.participantId],
+				(error, results) => {
+					if (error) {reject(error)}
+					resolve({code:200,historyData:results.rows});
+			});	
+		}
+	}); 
+}
+
 //used by user vote page
 const submitVote = (values) => {
   return new Promise(function(resolve, reject) {
@@ -75,5 +95,6 @@ const submitVote = (values) => {
 module.exports = {
   registerParticipant,
   getParticipantInfo,
+  getVoteHistory,
   submitVote
 };

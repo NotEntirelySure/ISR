@@ -57,9 +57,10 @@ export default function AdminUsersPage() {
           loggedin:data.rows[i].participantloggedin ? "Yes":"No",
           action:
             <>
-              <div style={{marginTop:'-1rem'}}>
+              <div style={{display:'flex', gap:'0.25rem'}}>
                 <Button 
                   hasIconOnly
+                  size="md"
                   renderIcon={TrashCan}
                   iconDescription='Delete User'
                   kind="danger"
@@ -75,6 +76,7 @@ export default function AdminUsersPage() {
                 />
                 <Button 
                   hasIconOnly
+                  size="md"
                   disabled={!data.rows[i].participantloggedin}
                   renderIcon={Logout}
                   iconDescription='Log user out'
@@ -139,7 +141,6 @@ export default function AdminUsersPage() {
         >
           <DataTable
             id="userTable"
-            stickyHeader={true}
             rows={rows}
             headers={headers}
             isSortable={true}
