@@ -67,20 +67,26 @@ const getVoteHistory = (token) => {
         ORDER BY votetime;`,
 				[isAuthResponse.participantId],
 				(error, results) => {
-					if (error) {reject(error)}
-					resolve({code:200,historyData:results.rows});
-			});	
+					if (error) reject(error);
+          resolve({code:200,historyData:results.rows});
+			});
 		}
 	}); 
 }
 
 //used by user vote page
-const submitVote = (values) => {
+const castVote = (data) => {
   return new Promise(function(resolve, reject) {
     if (values.source === "admin" && values.comment === "") values["comment"] = "Admin created or modified this vote."
     pool.query(
       'SELECT submit_vote($1,$2,$3,$4,$5);',
-      [values.projectID,values.voterID,values.voteValue,values.source,values.comment],
+      [
+        data.values.projectID,
+        data.values.voterID,
+        data.values.voteValue,
+        data.values.source,
+        data.values.comment
+      ],
       (error, results) => {
         if (error) reject({code:500});
         if (results.rows[0].submit_vote === 0) reject({code:500, message:"An error occured submitting the vote."});
@@ -96,5 +102,5 @@ module.exports = {
   registerParticipant,
   getParticipantInfo,
   getVoteHistory,
-  submitVote
+  castVote
 };

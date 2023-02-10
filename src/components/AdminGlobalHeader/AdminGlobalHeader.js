@@ -65,7 +65,10 @@ class AdminGlobalHeader extends Component {
       voteStatus:"active",
       voteDescription:"Running..."
     })
-    const deleteVotesReq = await fetch(`${process.env.REACT_APP_API_BASE_URL}/resetvotes`, {mode:'cors', method:"DELETE"});
+    const deleteVotesReq = await fetch(
+      `${process.env.REACT_APP_API_BASE_URL}/resetvotes/${localStorage.getItem('adminjwt')}`,
+      {mode:'cors', method:"DELETE"}
+    );
     const deleteVotesRes = await deleteVotesReq.json();
     switch (deleteVotesRes.result) {
       case 200:
@@ -86,7 +89,10 @@ class AdminGlobalHeader extends Component {
       ideaStatus:"active",
       ideaDescription:"Running..."
     })
-    const deleteIdeasReq = await fetch(`${process.env.REACT_APP_API_BASE_URL}/resetprojects`, {mode:'cors', method:"DELETE"});
+    const deleteIdeasReq = await fetch(
+      `${process.env.REACT_APP_API_BASE_URL}/resetprojects/${localStorage.getItem('adminjwt')}`,
+      {mode:'cors', method:"DELETE"}
+    );
     const deleteIdeasRes = await deleteIdeasReq.json();
     switch (deleteIdeasRes.result) {
       case 200:
@@ -107,7 +113,10 @@ class AdminGlobalHeader extends Component {
       userStatus:"active",
       userDescription:"Running..."
     })
-    const deleteUserReq = await fetch(`${process.env.REACT_APP_API_BASE_URL}/resetusers`, {mode:'cors', method:"DELETE"});
+    const deleteUserReq = await fetch(
+      `${process.env.REACT_APP_API_BASE_URL}/resetusers/${localStorage.getItem('adminjwt')}`,
+      {mode:'cors', method:"DELETE"}
+    );
     const deleteUserRes = await deleteUserReq.json();
     switch (deleteUserRes.result) {
       case 200:
@@ -119,7 +128,7 @@ class AdminGlobalHeader extends Component {
       case 500:
         this.setState({
           userStatus:"error",
-          userDescription:"an error was encountreded deleting users."
+          userDescription:"an error was encountreded deleting participants."
         })
         break;
     }
@@ -128,7 +137,10 @@ class AdminGlobalHeader extends Component {
       logStatus:"active",
       logDescription:"Running..."
     })
-    const deleteLogReq = await fetch(`${process.env.REACT_APP_API_BASE_URL}/resetlogs`, {mode:'cors', method:"DELETE"});
+    const deleteLogReq = await fetch(
+      `${process.env.REACT_APP_API_BASE_URL}/resetlogs/${localStorage.getItem('adminjwt')}`,
+      {mode:'cors', method:"DELETE"}
+    );
     const deleteLogRes = await deleteLogReq.json();
     switch (deleteLogRes.result) {
       case 200:
@@ -140,7 +152,7 @@ class AdminGlobalHeader extends Component {
       case 500:
         this.setState({
           logStatus:"error",
-          logDescription:"an error was encountreded clearing the change log."
+          logDescription:"an error was encountered clearing the change log."
         })
         break;
     }
@@ -179,7 +191,7 @@ class AdminGlobalHeader extends Component {
           <UnorderedList>
             <ListItem>Delete all votes</ListItem>
             <ListItem>Delete all ideas</ListItem>
-            <ListItem>Remove all users</ListItem>
+            <ListItem>Remove all participants</ListItem>
             <ListItem>Clear the change log</ListItem>
           </UnorderedList>
           </div>

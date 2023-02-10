@@ -1,25 +1,25 @@
-import React, { Component } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
-    Button,
-    ComboBox,
-    Content,
-    Checkbox,
-    DataTable,
-    DataTableSkeleton,
-    Modal,
-    NumberInput,
-    TableContainer,
-    Table,
-    TableHead,
-    TableHeader,
-    TableRow,
-    TableBody,
-    TableCell,
-    TableToolbar,
-    TableToolbarContent,
-    TableToolbarSearch,
-    TextArea,
-    Loading
+	Button,
+	ComboBox,
+	Content,
+	Checkbox,
+	DataTable,
+	DataTableSkeleton,
+	Modal,
+	NumberInput,
+	TableContainer,
+	Table,
+	TableHead,
+	TableHeader,
+	TableRow,
+	TableBody,
+	TableCell,
+	TableToolbar,
+	TableToolbarContent,
+	TableToolbarSearch,
+	TextArea,
+	Loading
 } from '@carbon/react';
 import {
   Add,
@@ -30,73 +30,73 @@ import {
 } from '@carbon/react/icons';
 
 const headers = [
-    {key:'voteID', header:'Vote ID'},
-    {key:'projectID', header:'Project Number'},
-    {key:'voter', header:'Voter'},
-    {key:'office', header:'Office'},
-    {key:'voteValue', header:'Vote Value'},
-    {key:'voteTime', header:'Time of Vote'},
-    {key:'modified', header:'Modified?'},
-    {key:'action', header:'Action'}
+	{key:'voteID', header:'Vote ID'},
+	{key:'projectID', header:'Project Number'},
+	{key:'voter', header:'Voter'},
+	{key:'office', header:'Office'},
+	{key:'voteValue', header:'Vote Value'},
+	{key:'voteTime', header:'Time of Vote'},
+	{key:'modified', header:'Modified?'},
+	{key:'action', header:'Action'}
 ];
 
+export default function AdminVotesPage() {
+	
+	const addVoteCombosRef = useRef({voterId:"",voterName:"",projectId:""});
+	const addVoteValueRef = useRef(0);
+	const addVoteCommentRef = useRef();
+	const voteToEdit = useRef({});
+	const voteToDelete = useRef({
+		voteID:"",
+		projectID:"",
+		voter:""
+	});
+	
+	const [modalExistsOpen, setModalExistsOpen] = useState(false);
+	const [modalAddOpen, setModalAddOpen] = useState(false);
+	const [modalEditOpen, setModalEditOpen] = useState(false);
+	const [modalDeleteOpen, setModalDeleteOpen] = useState(false);
+	const [modalDeleteAllOpen, setModalDeleteAllOpen] = useState(false);
+	const [modalHistoryOpen, setModalHistoryOpen] = useState(false);
+	const [modalErrorOpen, setModalErrorOpen] = useState(false);
+	const [deleteAllDisabled, setDeleteAllDisabled] = useState(true);
+	const [userComboInvalid, setUserComboInvalid] = useState(false);
+	const [projectComboInvalid, setProjectComboInvalid] = useState(false);
+	const [displayTable, setDisplayTable] = useState('none');
+	const [displaySkeleton, setDisplaySkeleton] = useState('block');
+	const [userList, setUserList] = useState([]);
+	const [projectList, setProjectList] = useState([]);
+	const [voteHistory, setVoteHistory] = useState([]);
+	const [showHistoryContent, setShowHistoryContent] = useState('none');
+	const [showLoading, setShowLoading] = useState('flex');
+	const [currentVoteHistory, setCurrentVoteHistory] = useState(0);
+	const [errorInfo, setErrorInfo] = useState({heading:'',	message:''});
+	const [addProjectComboSelection, setAddProjectComboSelection] = useState({projectid:""});
+	const [addVoteInputValue, setAddVoteInputValue] = useState(6);
+	const [addUserComboSeletion, setAddUserComboSelection] = useState({
+		fname:"",
+		lname:"",
+		office:"",
+		text:"",
+		title:"",
+		userid:""
+	});
+	const [votesList, setVotesList] = useState([{
+		id:'0',
+		voteID:'-',
+		projectID:'-',
+		voter:'-',
+		office: '-',
+		voteValue:'-',
+		action:'-'
+	}]);
 
-class AdminVotesPage extends Component {
-
-  constructor(props) {
-    super(props)
-    this.state = {
-      votesList: [{
-        id:'0',
-        voteID:'-',
-        projectID:'-',
-        voter:'-',
-        office: '-',
-        voteValue:'-',
-        action:'-'}],
-      voteToAdd:{},
-      voteToDelete: {
-        voteID:"",
-        projectID:"",
-        voter:""
-      },
-      modalExistsOpen:false,
-      modalAddOpen: false,
-      modalEditOpen:false,
-      modalDeleteOpen: false,
-      modalDeleteAllOpen: false,
-      modalHistoryOpen:false,
-      modalErrorOpen:false,
-      deleteAllDisabled: true,
-      addIdInvalid:false,
-      addDescriptionInvalid:false,
-      addUserComboValue:null,
-      addProjectComboValue:null,
-      voteToEdit:{},
-      displayTable: 'none',
-      displaySkeleton: 'block',
-      userComboInvalid:false,
-      userList:[],
-      projectList:[],
-      voteHistory:[],
-      projctComboInvalid:false,
-      selectedProject:"",
-      addValueInvalid:false,
-      showHistoryContent:'none',
-      showLoading:'flex',
-      currentVoteHistory:0,
-      errorInfo:{
-        heading:'',
-        message:''
-      }
-    }
-  }
-
-  componentDidMount() {this.GetVotes();}
-
-  GetVotes = async() => {
-    const votesRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getallvotes`, {mode:'cors'});
+  useEffect(() => GetVotes(),[])
+	
+  async function GetVotes() {
+    const votesRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getallvotes/${localStorage.getItem('adminjwt')}`, {mode:'cors'});
     const votesResponse = await votesRequest.json();
+		
     let votes = [];
     for (let i=0; i<votesResponse.length; i++){
       votes.push({
@@ -118,16 +118,14 @@ class AdminVotesPage extends Component {
                 iconDescription='Edit Vote'
                 kind="primary"
                 onClick={() => {
-                  document.getElementById("editVoteValue").value = votesResponse[i].votevalue;
-                  this.setState({
-                    voteToEdit:{
-                      "voteid":votesResponse[i].voteid,
-                      "voter":`${votesResponse[i].participanttitle} ${votesResponse[i].participantfname} ${votesResponse[i].participantlname}`,
-                      "votevalue":votesResponse[i].votevalue,
-                      "projectid":votesResponse[i].voteprojectid
-                    },
-                    modalEditOpen:true
-                  })
+                  document.getElementById("editVoteValue").value = votesResponse[i].votevalue; //this should be a useRef
+                  voteToEdit.current = {
+										"voteid":votesResponse[i].voteid,
+										"voter":`${votesResponse[i].participanttitle} ${votesResponse[i].participantfname} ${votesResponse[i].participantlname}`,
+										"votevalue":votesResponse[i].votevalue,
+										"projectid":votesResponse[i].voteprojectid
+									}
+									setModalEditOpen(true);
                 }}
               />
               <Button
@@ -137,12 +135,10 @@ class AdminVotesPage extends Component {
                 iconDescription='Vote History'
                 kind="secondary"
                 onClick={() => {
-                  this.setState({
-                    modalHistoryOpen:true,
-                    showLoading:'block',
-                    showHistoryContent:'none'
-                  });
-                  this.GetVoteHistory(votesResponse[i].voteid)
+									setModalHistoryOpen(true);
+									setShowLoading('block');
+                  setShowHistoryContent('none');
+                  GetVoteHistory(votesResponse[i].voteid)
                 }}
               />
               <Button
@@ -152,141 +148,136 @@ class AdminVotesPage extends Component {
                 iconDescription='Delete Vote'
                 kind="danger"
                 onClick={() => {
-                  this.setState({voteToDelete:{
+                  voteToDelete.current = {
                     voteID:votesResponse[i].voteid,
                     projectID:votesResponse[i].voteprojectid,
                     voter:`${votesResponse[i].participanttitle} ${votesResponse[i].participantfname} ${votesResponse[i].participantlname}`
-                  }})
-                  this.setState({modalDeleteOpen:true})
+                  };
+                  setModalDeleteOpen(true);
                 }}
               />
             </div>
           </>
       })
     }
-    this.setState({
-      votesList:votes,
-      displayTable:'block',
-      displaySkeleton:'none'
-    });
+    setVotesList(votes);
+    setDisplayTable('block');
+    setDisplaySkeleton('none');
   }
 
-  CheckVoteExists = () => {
-    if (this.state.addUserComboValue === null) {
-      this.setState({userComboInvalid:true});
+  async function CheckVoteExists() {
+		console.log(addVoteCombosRef.current)
+    if (!addVoteCombosRef.current.voterId || addVoteCombosRef.current.voterId === "") {
+      setUserComboInvalid(true);
       return;
     }
-    if (this.state.addProjectComboValue === null) {
-      this.setState({projctComboInvalid:true});
+    if (!addVoteCombosRef.current.projectId || addVoteCombosRef.current.projectId === "") {
+      setProjectComboInvalid(true);
       return;
     }
-    const voteValue = document.getElementById("addVoteValue").value;
-    if (!voteValue || voteValue < 0 || voteValue > 10) return;
-    const comment = document.getElementById("addComment").value
-    this.setState({
-      voteToAdd: {
-        "voterID":this.state.addUserComboValue.userid,
-        "voter":`${this.state.addUserComboValue.title} ${this.state.addUserComboValue.fname} ${this.state.addUserComboValue.lname}`,
-        "office":this.state.addUserComboValue.office,
-        "projectID":this.state.addProjectComboValue,
-        "voteValue":voteValue,
-        "comment":comment,
-        "source":"admin"
-      }
-    }, async() => {
-      const checkVoteReqest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/votes/checkvote/${this.state.voteToAdd.voterID}&${this.state.voteToAdd.projectID}`, {mode:'cors'});
-      const checkVoteResponse = await checkVoteReqest.json();
 
-      if (checkVoteResponse[0].exists) {this.setState({modalExistsOpen:true})}
-      if (!checkVoteResponse[0].exists) {this.AddVote()}
-    })
+    if (!addVoteValueRef.current.value || addVoteValueRef.current.value < 0 || addVoteValueRef.current.value > 10) return;
+    
+		const checkVoteReqest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/checkvote/${addVoteCombosRef.current.voterId}&${addVoteCombosRef.current.projectId}&${localStorage.getItem('adminjwt')}`, {mode:'cors'});
+		const checkVoteResponse = await checkVoteReqest.json();
 
-  }
+		if (checkVoteResponse[0].exists) setModalExistsOpen(true);
+		if (!checkVoteResponse[0].exists) AddVote();
+  };
 
-  AddVote = async() => {
+  async function AddVote() {
     const voteRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/submitvote`, {
       method:'POST',
       mode:'cors',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(this.state.voteToAdd)
-    })
-    this.setState({
-      modalAddOpen:false,
-      modalExistsOpen:false,
-      voteToAdd:{},
-      userList:[{}],
-      projectList:[{}]
-    })
-    document.getElementById("addVoteValue").value = 0;
-    document.getElementById("addComment").value = "";
-    this.GetVotes();
+      body:JSON.stringify({
+				values:{
+					"projectID":addVoteCombosRef.current.projectId,
+					"voterID":addVoteCombosRef.current.voterId,
+					"voteValue":addVoteValueRef.current.value,
+					"comment":addVoteCommentRef.current.value,
+					"source":"admin"
+				},
+				token:localStorage.getItem('adminjwt')
+			})
+    });
+
+    addVoteCombosRef.current = {voterId:"",voterName:"",projectId:""};
+		addVoteValueRef.current.value = 0;
+		addVoteCommentRef.current.value = "";
+
+    setModalExistsOpen(false);
+    setModalAddOpen(false);
+		setAddUserComboSelection(null);
+		setAddProjectComboSelection(null);
+		setAddVoteInputValue(0);
+    setUserList([]);
+    setProjectList([]);
+    GetVotes();
   }
 
-  EditVote = async() => {
+  async function EditVote() {
 
-    const newVoteValue = parseInt(document.getElementById('editVoteValue').value);
+    const newVoteValue = parseInt(document.getElementById('editVoteValue').value); //this should be a useRef. This actually won't be needed once converted to a useRef
 
-    if (newVoteValue >= 0 && newVoteValue <= 10) {
+    if (newVoteValue >= 0 && newVoteValue <= 10) { //in the comparison, reference the useRef value once it's setup as a useRef instead of the variable
 
-      this.setState({modalEditOpen: false});
+      setModalEditOpen(false);
 
       let requestData = {
-        "voteid":this.state.voteToEdit.voteid,
+        "voteid":voteToEdit.current.voteid,
         "newvalue": newVoteValue,
-        "previousvalue":this.state.voteToEdit.votevalue,
-        "comment":document.getElementById('editComment').value
+        "previousvalue":voteToEdit.current.votevalue,
+        "comment":document.getElementById('editComment').value //this should be a useRef
       };
 
-      const editRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/votes/editvote`, {
+      const editRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/editvote`, {
         method:'POST',
         mode:'cors',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify(requestData)
+        body:JSON.stringify({values:requestData,token:localStorage.getItem('adminjwt')})
       })
-      document.getElementById("editComment").value = "";
-      this.GetVotes()
+      document.getElementById("editComment").value = ""; //this should be a useRef
+      GetVotes();
     }
   }
 
-  DeleteVote = async() => {
+  async function DeleteVote() {
     let fetchUrl;
     let reqBody = {};
     
-    if (this.state.voteToDelete.voteID === "all") {
+    if (voteToDelete.current.voteID === "all") {
       fetchUrl = `${process.env.REACT_APP_API_BASE_URL}/deleteallvotes`;
       reqBody = {
         method:'DELETE',
         mode:'cors',
         headers:{'Content-Type':'application/json'},
-        body:'{}'
+        body:JSON.stringify({token:localStorage.getItem('adminjwt')})
       }
     }
-    if (this.state.voteToDelete.voteID !== "all") {
-      console.log("not all");
+    if (voteToDelete.current.voteID !== "all") {
       fetchUrl = `${process.env.REACT_APP_API_BASE_URL}/deletevote`;
       reqBody = {
         method:'DELETE',
         mode:'cors',
         headers:{'Content-Type':'application/json'},
-        body:`{"voteId":"${this.state.voteToDelete.voteID}"}`
+        body:JSON.stringify({"voteId":voteToDelete.current.voteID,token:localStorage.getItem('adminjwt')})
       }
     }
     const deleteRequest = await fetch(fetchUrl, reqBody);
     const deleteResponse = await deleteRequest.json()
-    if (deleteResponse.code === 200) this.GetVotes();
+    if (deleteResponse.code === 200) GetVotes();
     if (deleteResponse.code === 404) {
-      this.setState({
-        modalErrorOpen:true,
-        errorInfo:{
-          heading:`Error Deleting Vote ${this.state.voteToDelete.voteID}`,
-          message:`An error occured while attempting to delete vote ${this.state.voteToDelete.voteID}. A vote with that ID was not found in the database.`
-        }
-      })
+			setModalErrorOpen(true);
+			setErrorInfo({
+				heading:`Error Deleting Vote ${voteToDelete.current.voteID}`,
+				message:`An error occured while attempting to delete vote ${voteToDelete.current.voteID}. A vote with that ID was not found in the database.`
+			});
     }
   }
 
-  GetUsers = async() => {
-    const usersRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getallvoters`, {mode:'cors'})
+  async function GetUsers() {
+    const usersRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getallvoters/${localStorage.getItem('adminjwt')}`, {mode:'cors'})
     const usersResponse = await usersRequest.json();
     let users = [];
     for (let i=0; i<usersResponse.rows.length; i++){
@@ -299,11 +290,11 @@ class AdminVotesPage extends Component {
         "text":`${usersResponse.rows[i].participanttitle} ${usersResponse.rows[i].participantfname} ${usersResponse.rows[i].participantlname} (${usersResponse.rows[i].officename})`
       })
     }
-    this.setState({userList:users});
+    setUserList(users);
   }
 
-  GetProjects = async() => {
-    const projectsRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/projects`, {mode:'cors'})
+  async function GetProjects() {
+    const projectsRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/projects/${localStorage.getItem('adminjwt')}`, {mode:'cors'})
     const projectsResponse = await projectsRequest.json();
     let projects = [];
     for (let i=0; i<projectsResponse.rows.length; i++){
@@ -312,21 +303,17 @@ class AdminVotesPage extends Component {
         "text":`${projectsResponse.rows[i].projectid}: ${projectsResponse.rows[i].projectdescription}`
       })
     }
-
-    this.setState({projectList:projects});
+    setProjectList(projects);
   }
 
-  GetVoteHistory = async(voteId) => {
-    this.setState({
-      showLoading:'flex',
-      showHistoryContent:'none'
-    });
-    const historyRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getchangelogbyid/${voteId}`, {mode:'cors'});
+  async function GetVoteHistory(voteId) {
+    setShowLoading('flex');
+    setShowHistoryContent('none');
+
+    const historyRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getchangelogbyid/${voteId}&${localStorage.getItem('adminjwt')}`, {mode:'cors'});
     const historyResponse = await historyRequest.json();
     let historyList = [];
-    if (historyResponse.length <= 0) {
-      historyList.push(<><p>This vote has not been modified.</p></>);
-    }
+    if (historyResponse.length <= 0) historyList.push(<><p>This vote has not been modified.</p></>);
     if (historyResponse.length > 0) {
       for (let i=0; i<historyResponse.length;i++){
         historyList.push(
@@ -359,318 +346,325 @@ class AdminVotesPage extends Component {
                 rows={2}
                 labelText="Comment"
                 value={historyResponse[i].changecomment}
-                />
-              
+							/>
             </div>
           </>
         );
       };
     }
-
-    this.setState({
-      showLoading:'none',
-      showHistoryContent:'block',
-      currentVoteHistory:voteId,
-      voteHistory:historyList
-    })
+  	setShowLoading('none');
+    setShowHistoryContent('block');
+    setCurrentVoteHistory(voteId);
+    setVoteHistory(historyList);
   }
-  render() {
-    return (
-      <>
-        <Modal
-          danger
-          id='modalExists'
-          modalHeading='Vote Already Exists'
-          primaryButtonText="Update Vote"
-          secondaryButtonText="Cancel"
-          onRequestClose={() => {this.setState({modalExistsOpen:false})}}
-          onRequestSubmit={() => {this.AddVote()}}
-          open={this.state.modalExistsOpen}>
-            <p>A vote cast by {this.state.voteToAdd.voter} for idea {this.state.voteToAdd.projectID} has already been recorded.</p>
-            <br/>
-            <p>If you choose to continue, the existing vote will be updated with the specified value of {this.state.voteToAdd.voteValue} instead of creating a new vote entry.</p>
-        </Modal>
-        <Modal
-          id='modalAdd'
-          primaryButtonText="Add"
-          secondaryButtonText="Cancel"
-          shouldSubmitOnEnter={true}
-          modalHeading='Add Vote'
-          onRequestClose={() => {
-            this.setState({modalAddOpen: false, voteToAdd:{}})
-            document.getElementById("addComment").value = "";
-          }}
-          onRequestSubmit={() => {this.CheckVoteExists();}}
-          open={this.state.modalAddOpen}>
 
-          <ComboBox
-            onChange={(item) => {
-              if (this.state.userComboInvalid === true) this.setState({userComboInvalid:false})
-              if (item.selectedItem === null) this.setState({addUserComboValue:null})
-              if (item.selectedItem !== null) {
-                this.setState({
-                  addUserComboValue:{
-                    "userid":item.selectedItem.userid,
-                    "title":item.selectedItem.title,
-                    "fname":item.selectedItem.fname,
-                    "lname":item.selectedItem.lname,
-                    "office":item.selectedItem.office
-                  }
-                })
-              }
-            }}
-            id="addUserCombobox"
-            placeholder="Select"
-            invalid={this.state.userComboInvalid}
-            invalidText="This is a required field."
-            items={this.state.userList}
-            itemToString={(user) => (user ? `${user.userid} - ${user.text}` : '')}
-            titleText="User"
-            helperText=""
-            tabIndex={0}
-          />
-          <br/>
-          <ComboBox
-            onChange={(item) => {
-              if (this.state.projctComboInvalid === true) this.setState({projctComboInvalid:false})
-              if (item.selectedItem === null) this.setState({addProjectComboValue:null})
-              if (item.selectedItem !== null) this.setState({addProjectComboValue:item.selectedItem.projectid})
-            }}
-            id="addProjectCombobox"
-            placeholder="Select"
-            invalid={this.state.projctComboInvalid}
-            invalidText="This is a required field."
-            items={this.state.projectList}
-            itemToString={(project) => (project ? project.text: "")}
-            titleText="Idea"
-            helperText=""
-            tabIndex={0}
-          />
-          <br/>
-          <NumberInput
-            id="addVoteValue"
-            min={0}
-            max={10}
-            value={0}
-            label="Vote Value"
-            invalidText="Number is not valid. Please enter a value of 0 - 10."
-            tabIndex={0}
-          />
-          <br/>
-          <TextArea
-            id="addComment"
-            labelText="Comment"
-            helperText="Enter the reason for manually adding the vote."
-            rows={2}
-          />
-        </Modal>
-        <Modal
-          id='modalEdit'
-          primaryButtonText="Save"
-          secondaryButtonText="Cancel"
-          shouldSubmitOnEnter={true}
-          modalHeading={`Edit vote for idea ${this.state.voteToEdit.projectid}`}
-          onRequestClose={() => {
-            this.setState({modalEditOpen: false})
-            document.getElementById("editComment").value = "";
-          }}
-          onRequestSubmit={() => {this.EditVote();}}
-          open={this.state.modalEditOpen}
-        >
-          <p>Edit vote for idea {this.state.voteToEdit.projectid} cast by {this.state.voteToEdit.voter}</p>
-          <NumberInput
-            id="editVoteValue"
-            min={0}
-            max={10}
-            value={this.state.voteToEdit.votevalue}
-            label="Vote Value"
-            invalidText="Number is not valid. Please enter a value of 0 - 10."
-            tabIndex={0}
-          />
-          <br/>
-          <br/>
-          <TextArea
-            id="editComment"
-            labelText="Comment"
-            helperText="Enter the reason for editing the vote."
-            rows={2}
-          />
-        </Modal>
-        <Modal
-          danger
-          modalHeading='Confirm Delete'
-          primaryButtonText="Delete"
-          secondaryButtonText="Cancel"
-          onRequestClose={() => this.setState({modalDeleteOpen: false, voteToDelete:{voteID:""}})}
-          onRequestSubmit={() => {
-            this.setState({modalDeleteOpen: false});
-            this.DeleteVote();
-            }
-          }
-          open={this.state.modalDeleteOpen}>
-            <p>Are you sure you want to delete {this.state.voteToDelete.voter}'s vote for project {this.state.voteToDelete.projectID}?</p>
-        </Modal>
-        <Modal
-          danger
-          modalHeading='Confirm Delete All'
-          primaryButtonText="Delete"
-          primaryButtonDisabled={this.state.deleteAllDisabled}
-          secondaryButtonText="Cancel"
-          onRequestClose={() => {
-            this.setState({modalDeleteAllOpen: false, deleteAllDisabled:true});
-            document.getElementById("deleteAllAck").checked = false;
-          }}
-          onRequestSubmit={() => {
-            this.setState({
-              deleteAllDisabled:true,
-              modalDeleteAllOpen: false,
-              voteToDelete:{
-                voteID:"all",
-                projectID:"",
-                voter:""
-              }
-            })
-            document.getElementById("deleteAllAck").checked = false;
-            this.DeleteVote();
-            }
-          }
-          open={this.state.modalDeleteAllOpen}>
-            <div style={{display:'flex'}}><WarningHex size={32}/><p style={{paddingLeft:'8px'}}>Warning! This action will delete all votes from the database. Once executed, this action cannot be undone.</p></div>
-            <br/>
-            <Checkbox
-              id="deleteAllAck"
-              labelText="I understand this action cannot be undone"
-              onChange={() => {
-                let isChecked = document.getElementById("deleteAllAck").checked
-                if (isChecked === true) {
-                  this.setState({
-                    deleteAllDisabled: false,
-                    voteToDelete:{voteID:"all"}
-                  });
-                }
-                if (isChecked === false) {
-                  this.setState({
-                    deleteAllDisabled: true,
-                    voteToDelete:{voteID:""}
-                  });
-                }
-              }}
-            />
-        </Modal>
-        <Modal
-          hasScrollingContent={true}
-          id='voteHistory'
-          modalHeading={`History of Vote ID ${this.state.currentVoteHistory}`}
-          primaryButtonText="Ok"
-          onRequestClose={() => this.setState({modalHistoryOpen:false})}
-          onRequestSubmit={() => this.setState({modalHistoryOpen:false})}
-          open={this.state.modalHistoryOpen}>
-            <div
-              style={{
-                display:this.state.showLoading,
-                justifyContent:'center',
-                padding:'1rem'
-              }}
-            >
-              <Loading
-                withOverlay={false}
-                active={true}
-                description="Loading History..."
-              />
-            </div>
-            <div style={{display:this.state.showHistoryContent}}>
-              {this.state.voteHistory}
-            </div>
-        </Modal>
-        <Modal
-          id='modalError'
-          modalHeading={this.state.errorInfo.heading}
-          primaryButtonText="Ok"
-          onRequestClose={() => this.setState({
-              modalErrorOpen:false,
-              errorInfo:{
-                heading:"",
-                message:""
-              }
-            }
-          )}
-          onRequestSubmit={() => this.setState({
-              modalErrorOpen:false,
-              errorInfo:{
-                heading:"",
-                message:""
-              }
-            }
-          )}
-          open={this.state.modalErrorOpen}>
-            <div>
-              {this.state.errorInfo.message}
-            </div>
-        </Modal>
-        <Content>
-          <div style={{display:this.state.displayTable}} className="bx--grid bx--grid--full-width adminPageBody">
-            <div className="bx--row bx--offset-lg-1 ManageProjects__r1" >
-              <div className="bx--col-lg-15">
-                <DataTable
-                  stickyHeader={false}
-                  rows={this.state.votesList}
-                  headers={headers}
-                  isSortable={true}
-                  render={({
-                    rows,
-                    headers,
-                    getHeaderProps,
-                    getRowProps,
-                    getTableProps,
-                    onInputChange
-                  }) => (
-                    <TableContainer title="Votes" description="Displays list of all votes cast at the ISR">
-                      <TableToolbar>
-                          <TableToolbarContent>
-                              <TableToolbarSearch onChange={onInputChange} />
-                          </TableToolbarContent>
-                          <Button
-                            renderIcon={Add}
-                            hasIconOnly={true}
-                            size='lg'
-                            iconDescription='Add Vote'
-                            onClick={() => {
-                              this.GetUsers();
-                              this.GetProjects();
-                              this.setState({modalAddOpen:true})}
-                            }
-                          />
-                          <Button onClick={() => {this.setState({modalDeleteAllOpen:true})}} kind='danger' renderIcon={TrashCan} size='sm'>Delete All</Button>
-                      </TableToolbar>
-                      <Table {...getTableProps()}>
-                        <TableHead>
-                          <TableRow>
-                            {headers.map((header, i) => (<TableHeader key={i} {...getHeaderProps({ header })}>{header.header}</TableHeader>))}
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {rows.map((row) => (
-                            <TableRow key={row.id} {...getRowProps({ row })}>
-                              {row.cells.map((cell) => (
-                                <TableCell key={cell.id}>{cell.value}</TableCell>
-                              ))}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                      </Table>
-                    </TableContainer>
-                  )}
-                />
-              </div>
-            </div>
-          </div>
-          <div style={{display: `${this.state.displaySkeleton}`}} className="bx--offset-lg-1 bx--col-lg-13">
-            <DataTableSkeleton columnCount={5} headers={headers}/>
-          </div>
-        </Content>
-      </>
-    );
-  }
+	return (
+		<>
+			<Modal
+				danger
+				id='modalExists'
+				modalHeading='Vote Already Exists'
+				primaryButtonText="Update Vote"
+				secondaryButtonText="Cancel"
+				onRequestClose={() => setModalExistsOpen(false)}
+				onRequestSubmit={() => AddVote()}
+				open={modalExistsOpen}>
+					<p>A vote cast by {addVoteCombosRef.current.voterName} for idea {addVoteCombosRef.current.projectId} has already been recorded.</p>
+					<br/>
+					<p>If you choose to continue, the existing vote will be updated with the specified value of {addVoteValueRef.current.value} instead of creating a new vote entry.</p>
+			</Modal>
+			<Modal
+				id='modalAdd'
+				primaryButtonText="Add"
+				secondaryButtonText="Cancel"
+				shouldSubmitOnEnter={true}
+				modalHeading='Add Vote'
+				onRequestSubmit={() => CheckVoteExists()}
+				open={modalAddOpen}
+				onRequestClose={() => {
+					setModalAddOpen(false);
+					setAddUserComboSelection(null);
+					setAddProjectComboSelection(null);
+					setAddVoteInputValue(0);
+					addVoteCombosRef.current = {voterId:"",voterName:"",projectId:""};
+					addVoteValueRef.current.value = 0;
+					addVoteCommentRef.current.value = "";
+				}}
+			>
+				<ComboBox
+					id="addUserCombobox"
+					placeholder="Select"
+					invalidText="This is a required field."
+					invalid={userComboInvalid}
+					items={userList}
+					itemToString={(user) => (user ? `${user.text}` : '')}
+					titleText="User"
+					helperText=""
+					selectedItem={addUserComboSeletion}
+					tabIndex={0}
+					onChange={(item) => {
+						setAddUserComboSelection(item.selectedItem);
+						if (!item.selectedItem) addVoteCombosRef.current.voterId = "";
+						if (item.selectedItem) {
+							if (userComboInvalid) setUserComboInvalid(false);
+							addVoteCombosRef.current.voterId = item.selectedItem.userid
+							addVoteCombosRef.current.voterName = item.selectedItem.text
+						}
+					}}
+				/>
+				<br/>
+				<ComboBox
+					id="addProjectCombobox"
+					placeholder="Select"
+					invalidText="This is a required field."
+					invalid={projectComboInvalid}
+					items={projectList}
+					selectedItem={addProjectComboSelection}
+					itemToString={(project) => (project ? project.text: "")}
+					titleText="Idea"
+					helperText=""
+					tabIndex={0}
+					onChange={(item) => {
+						console.log(item.selectedItem);
+						setAddProjectComboSelection(item.selectedItem);
+						if (!item.selectedItem) addVoteCombosRef.current.projectId = "";
+						if (item.selectedItem) {
+							if (projectComboInvalid) setProjectComboInvalid(false);
+							addVoteCombosRef.current.projectId = item.selectedItem.projectid
+						}
+					}}
+				/>
+				<br/>
+				<NumberInput
+					id="addVoteValue"
+					allowEmpty={false}
+					ref={addVoteValueRef}
+					disableWheel={true}
+					min={0}
+					max={10}
+					value={addVoteInputValue}
+					label="Vote Value"
+					invalidText="Number is not valid. Please enter a value of 0 - 10."
+					tabIndex={0}
+					onChange={() => setAddVoteInputValue(addVoteValueRef.current.value)}
+				/>
+				<br/>
+				<TextArea
+					id="addComment"
+					labelText="Comment"
+					helperText="Enter the reason for manually adding the vote."
+					ref={addVoteCommentRef}
+					rows={2}
+				/>
+			</Modal>
+			<Modal
+				id='modalEdit'
+				primaryButtonText="Save"
+				secondaryButtonText="Cancel"
+				shouldSubmitOnEnter={true}
+				modalHeading={`Edit vote for idea ${voteToEdit.current.projectid}`}
+				onRequestClose={() => {
+					setModalEditOpen(false);
+					document.getElementById("editComment").value = ""; //this should be a useRef
+				}}
+				onRequestSubmit={() => EditVote()}
+				open={modalEditOpen}
+			>
+				<p>Edit vote for idea {voteToEdit.current.projectid} cast by {voteToEdit.current.voter}</p>
+				<NumberInput
+					id="editVoteValue"
+					min={0}
+					max={10}
+					value={voteToEdit.current.votevalue}
+					label="Vote Value"
+					invalidText="Number is not valid. Please enter a value of 0 - 10."
+					tabIndex={0}
+				/>
+				<br/>
+				<br/>
+				<TextArea
+					id="editComment"
+					labelText="Comment"
+					helperText="Enter the reason for editing the vote."
+					rows={2}
+				/>
+			</Modal>
+			<Modal
+				danger
+				modalHeading='Confirm Delete'
+				primaryButtonText="Delete"
+				secondaryButtonText="Cancel"
+				onRequestClose={() => {
+					setModalDeleteOpen(false);
+					voteToDelete.current = {voteID:""};
+				}}
+				onRequestSubmit={() => {
+					setModalDeleteOpen(false);
+					DeleteVote();
+				}}
+				open={modalDeleteOpen}>
+					<p>Are you sure you want to delete {voteToDelete.current.voter}'s vote for project {voteToDelete.current.projectID}?</p>
+			</Modal>
+			<Modal
+				danger
+				modalHeading='Confirm Delete All'
+				primaryButtonText="Delete"
+				primaryButtonDisabled={deleteAllDisabled}
+				secondaryButtonText="Cancel"
+				open={modalDeleteAllOpen}
+				onRequestClose={() => {
+					setModalDeleteAllOpen(false);
+					setDeleteAllDisabled(true);
+					document.getElementById("deleteAllAck").checked = false; //this should be a useRef
+				}}
+				onRequestSubmit={() => {
+					setDeleteAllDisabled(true);
+					setModalDeleteAllOpen(false);
+					voteToDelete.current = {
+						voteID:"all",
+						projectID:"",
+						voter:""
+					}
+					document.getElementById("deleteAllAck").checked = false; //this should be a useRef
+					DeleteVote();
+				}}
+			>
+				<div style={{display:'flex'}}>
+					<WarningHex size={32}/>
+					<p style={{paddingLeft:'8px'}}>Warning! This action will delete all votes from the database. Once executed, this action cannot be undone.</p>
+				</div>
+				<br/>
+				<Checkbox
+					id="deleteAllAck"
+					labelText="I understand this action cannot be undone"
+					onChange={() => {
+						let isChecked = document.getElementById("deleteAllAck").checked //this should be a useRef
+						if (isChecked === true) {
+							setDeleteAllDisabled(false);
+							voteToDelete.current = {voteID:"all"};
+						}
+						if (isChecked === false) {
+							setDeleteAllDisabled(true);
+							voteToDelete.current = {voteID:""};
+						}
+					}}
+				/>
+			</Modal>
+			<Modal
+				id='voteHistory'
+				hasScrollingContent={true}
+				modalHeading={`History of Vote ID ${currentVoteHistory}`}
+				primaryButtonText="Ok"
+				onRequestClose={() => setModalHistoryOpen(false)}
+				onRequestSubmit={() => setModalHistoryOpen(false)}
+				open={modalHistoryOpen}>
+					<div
+						style={{
+							display:showLoading,
+							justifyContent:'center',
+							padding:'1rem'
+						}}
+					>
+						<Loading
+							withOverlay={false}
+							active={true}
+							description="Loading History..."
+						/>
+					</div>
+					<div style={{display:showHistoryContent}}>
+						{voteHistory}
+					</div>
+			</Modal>
+			<Modal
+				id='modalError'
+				modalHeading={errorInfo.heading}
+				primaryButtonText="Ok"
+				onRequestClose={() => {
+					setModalErrorOpen(false);
+					setErrorInfo({
+						heading:"",
+						message:""
+					});
+				}}
+				onRequestSubmit={() => {
+					setModalErrorOpen(false);
+					setErrorInfo({
+						heading:"",
+						message:""
+					});
+				}}
+				open={modalErrorOpen}>
+					<div>
+						{errorInfo.message}
+					</div>
+			</Modal>
+			<Content>
+				<div style={{display:displayTable}} className="bx--grid bx--grid--full-width adminPageBody">
+					<div className="bx--row bx--offset-lg-1 ManageProjects__r1" >
+						<div className="bx--col-lg-15">
+							<DataTable
+								rows={votesList}
+								headers={headers}
+								isSortable={true}
+								render={({
+									rows,
+									headers,
+									getHeaderProps,
+									getRowProps,
+									getTableProps,
+									onInputChange
+								}) => (
+									<TableContainer title="Votes" description="Displays list of all votes cast at the ISR">
+										<TableToolbar>
+											<TableToolbarContent>
+												<TableToolbarSearch onChange={onInputChange} />
+											</TableToolbarContent>
+											<Button
+												renderIcon={Add}
+												hasIconOnly={true}
+												size='lg'
+												iconDescription='Add Vote'
+												onClick={() => {
+													GetUsers();
+													GetProjects();
+													setModalAddOpen(true);
+												}}
+											/>
+											<Button 
+												kind='danger'
+												renderIcon={TrashCan}
+												size='sm'
+												onClick={() => setModalDeleteAllOpen(true)}
+											>
+												Delete All
+											</Button>
+										</TableToolbar>
+										<Table {...getTableProps()}>
+											<TableHead>
+												<TableRow>
+													{headers.map((header, i) => (<TableHeader key={i} {...getHeaderProps({ header })}>{header.header}</TableHeader>))}
+												</TableRow>
+											</TableHead>
+											<TableBody>
+												{rows.map((row) => (
+													<TableRow key={row.id} {...getRowProps({ row })}>
+														{row.cells.map((cell) => (
+															<TableCell key={cell.id}>{cell.value}</TableCell>
+														))}
+										</TableRow>
+									))}
+								</TableBody>
+										</Table>
+									</TableContainer>
+								)}
+							/>
+						</div>
+					</div>
+				</div>
+				<div style={{display: `${displaySkeleton}`}} className="bx--offset-lg-1 bx--col-lg-13">
+					<DataTableSkeleton columnCount={5} headers={headers}/>
+				</div>
+			</Content>
+		</>
+	);
 }
-
-export default AdminVotesPage;

@@ -27,6 +27,7 @@ import {
 import {
   Add,
   DocumentImport,
+  Information,
   TrashCan,
   RequestQuote,
   WarningHex
@@ -252,7 +253,7 @@ class ManageProjectsPage extends Component {
         const msIterations = ["ms", "m&s","msa","modeling and simulation","modeling & simulation"];
         const itnetIterations = ["itnet","itnet","it and networks","it & networks"];
         const asIterations = ["aviation/systems","aviation and systems","aviation & systems","systems","aviation"]
-        const c5Iterations = ["c5isr","c5i"]
+        const c5Iterations = ["c5isr","c5i","c5isc"]
         
         if (ewIterations.includes(String(fileData[i][2]).toLowerCase())) refArray = [...ewIterations];
         if (msIterations.includes(String(fileData[i][2]).toLowerCase())) refArray = [...msIterations];
@@ -468,7 +469,6 @@ class ManageProjectsPage extends Component {
         </Modal>
         <Modal
           id='modalImport'
-          style={{zIndex: 1}}
           primaryButtonText="Import"
           primaryButtonDisabled={this.state.importButtonDisabled}
           secondaryButtonText="Cancel"
@@ -510,8 +510,11 @@ class ManageProjectsPage extends Component {
           <div>
             <div style={{float: 'left'}}><Checkbox id="skipHeader" labelText="Do not skip first row header" /></div>
             <div>
-            <Tooltip align="start" label="First Row Header Information">
-              <p>By default the import function skips the first row because it's assumed to be the header row. Select this option if the input file does not utilize a header on the first row.</p>
+            <Tooltip 
+              align="top"
+              label="By default the import function skips the first row because it's assumed to be the header row. Select this option if the input file does not utilize a header on the first row."
+            >
+              <Information/>
             </Tooltip>
             </div>
           </div>

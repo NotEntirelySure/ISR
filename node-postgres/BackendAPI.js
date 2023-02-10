@@ -33,8 +33,8 @@ app.get('/exportexcel/:slice', (req, res) => {
   })
 })
 
-app.get('/projects', (req, res) => {
-  projects_model.getProjects()
+app.get('/projects/:token', (req, res) => {
+  projects_model.getProjects(req.params.token)
   .then(response => {
     res.status(200).send(response);
   })
@@ -43,8 +43,8 @@ app.get('/projects', (req, res) => {
   })
 })
 
-app.get('/getallvotes', (req, res) => {
-  votes_model.getAllVotes()
+app.get('/getallvotes/:token', (req, res) => {
+  votes_model.getAllVotes(req.params.token)
   .then(response => {
     res.status(200).send(response);
   })
@@ -73,8 +73,8 @@ app.get('/getvoterinfo/:token', (req, res) => {
   })
 })
 
-app.get('/getallvoters', (req, res) => {
-  voter_model.getAllVoters()
+app.get('/getallvoters/:token', (req, res) => {
+  voter_model.getAllVoters(req.params.token)
   .then(response => {
     res.status(200).send(response);
   })
@@ -123,7 +123,7 @@ app.get('/verifyjwt/:token', (req, res) => {
   })
 })
 
-app.get('/votes/checkvote/:voteTag', (req,res) => {
+app.get('/checkvote/:voteTag', (req,res) => {
   votes_model.checkVote(req.params.voteTag)
   .then(response => {
     res.status(200).send(response);
@@ -153,8 +153,8 @@ app.get('/getallchangelogs', (req,res) => {
   })
 })
 
-app.get('/getchangelogbyid/:voteId', (req,res) => {
-  votes_model.getChangeLogById(req.params.voteId)
+app.get('/getchangelogbyid/:data', (req,res) => {
+  votes_model.getChangeLogById(req.params.data)
   .then(response => {
     res.status(200).send(response);
   })
@@ -233,6 +233,16 @@ app.post('/register', (req, res) => {
   })
 })
 
+app.post('/castvote', (req, res) => {
+  participant_action_model.castVote(req.body)
+  .then(response => {
+    res.status(200).send(response);
+  })
+  .catch(error => {
+    res.status(500).send(error);
+  })
+})
+
 app.post('/submitvote', (req, res) => {
   votes_model.submitVote(req.body)
   .then(response => {
@@ -270,13 +280,7 @@ app.post('/addoffice', (req, res) => {
 })
 
 app.post('/editproject', (req, res) => {
-  projects_model.editProject(
-    req.body.previousProjectID,
-    req.body.newProjectSequence,
-    req.body.newProjectID,
-    req.body.newProjectDescription,
-    req.body.newProjectDomain
-  )
+  projects_model.editProject(req.body)
   .then(response => {
     res.status(200).send(response);
   })
@@ -285,7 +289,7 @@ app.post('/editproject', (req, res) => {
   })
 })
 
-app.post('/votes/editvote', (req, res) => {
+app.post('/editvote', (req, res) => {
   votes_model.editVote(req.body)
   .then(response => {
     res.status(200).send(response);
@@ -336,7 +340,7 @@ app.delete('/deletedomain', (req, res) => {
 })
 
 app.delete('/deletevote', (req, res) => {
-  votes_model.deleteVote(req.body.voteId)
+  votes_model.deleteVote(req.body.voteId,req.body.token)
   .then(response => {
     res.status(200).send(response);
   })
@@ -346,7 +350,7 @@ app.delete('/deletevote', (req, res) => {
 })
 
 app.delete('/deleteallvotes', (req, res) => {
-  votes_model.deleteAllVotes()
+  votes_model.deleteAllVotes(req.body.token)
   .then(response => {
     res.status(200).send(response);
   })
@@ -355,8 +359,8 @@ app.delete('/deleteallvotes', (req, res) => {
   })
 })
 
-app.delete('/resetvotes', (req, res) => {
-  votes_model.resetVoteTable()
+app.delete('/resetvotes/:token', (req, res) => {
+  votes_model.resetVoteTable(req.params.token)
   .then(response => {
     res.status(200).send(response);
   })
@@ -365,8 +369,8 @@ app.delete('/resetvotes', (req, res) => {
   })
 })
 
-app.delete('/resetprojects', (req, res) => {
-  projects_model.resetProjectsTable()
+app.delete('/resetprojects/:token', (req, res) => {
+  projects_model.resetProjectsTable(req.params.token)
   .then(response => {
     res.status(200).send(response);
   })
@@ -375,8 +379,8 @@ app.delete('/resetprojects', (req, res) => {
   })
 })
 
-app.delete('/resetusers', (req, res) => {
-  voter_model.resetParticipantsTable()
+app.delete('/resetusers/:token', (req, res) => {
+  voter_model.resetParticipantsTable(req.params.token)
   .then(response => {
     res.status(200).send(response);
   })
@@ -385,8 +389,8 @@ app.delete('/resetusers', (req, res) => {
   })
 })
 
-app.delete('/resetlogs', (req, res) => {
-  votes_model.resetLogTable()
+app.delete('/resetlogs/:token', (req, res) => {
+  votes_model.resetLogTable(req.params.token)
   .then(response => {
     res.status(200).send(response);
   })

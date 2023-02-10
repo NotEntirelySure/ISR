@@ -7,7 +7,8 @@ import {
   Tile,
   Toggle,
   Pagination,
-  ComboBox
+  ComboBox,
+  Modal
 } from '@carbon/react';
 import { ArrowLeft, ArrowRight, Renew } from '@carbon/react/icons';
 
@@ -31,31 +32,54 @@ class VoteDashboardPage extends Component {
       reconnectButtonDisplay:"none",
       toggleChecked:false,
       nextButtonDisabled:false,
-      previousButtonDisabled:true
+      previousButtonDisabled:true,
+      modalErrorOpen:false,
+      errorInfo:{
+        heading:"",
+        message:""
+      }
     }
   }
     
   componentDidMount = async() => {
     const projectsRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/projects`, {mode:'cors'});
     const projectsResponse = await projectsRequest.json();
-
-    let objProjects = [];  
-    
-    for (var i=0; i<projectsResponse.rowCount; i++) {
-      objProjects.push({
-        "projectIndex":i,
-        "projectID":projectsResponse.rows[i].projectid,
-        "projectDescription": projectsResponse.rows[i].projectdescription,
-        "projectDomain":projectsResponse.rows[i].projectdomainname,
-        "projectDomainColor":projectsResponse.rows[i].projectdomaincolorhex
-      })
+    if (projectsResponse.rowCount === 0) {
+      this.setState({
+        projects: {
+          "projectIndex":0,
+          "projectID":'0000',
+          "projectDescription": null,
+          "projectDomain":"none",
+          "projectDomainColor":'#FFFFFF'
+        },
+        modalErrorOpen:true,
+        errorInfo:{
+          heading:"No Ideas Registered",
+          message:"There are no ideas registered in the database. At least one idea must be registered before the dashboard can be used."
+        }
+      });
     }
-    this.setState({
-      projects: objProjects,
-      totalItems:projectsResponse.rowCount,
-      currentProject: objProjects[0]
-    });
-    this.connectWebSocket();
+    if (projectsResponse.rowCount > 0) {
+
+      let objProjects = [];  
+        
+      for (var i=0; i<projectsResponse.rowCount; i++) {
+        objProjects.push({
+          "projectIndex":i,
+          "projectID":projectsResponse.rows[i].projectid,
+          "projectDescription": projectsResponse.rows[i].projectdescription,
+          "projectDomain":projectsResponse.rows[i].projectdomainname,
+          "projectDomainColor":projectsResponse.rows[i].projectdomaincolorhex
+        })
+      }
+      this.setState({
+        projects: objProjects,
+        totalItems:projectsResponse.rowCount,
+        currentProject: objProjects[0]
+      });
+      this.connectWebSocket();
+    }
   }
 
   connectWebSocket = () => {
@@ -205,6 +229,32 @@ class VoteDashboardPage extends Component {
   render() {
       return (
         <>
+          <Modal
+            id='modalError'
+            modalHeading={this.state.errorInfo.heading}
+            primaryButtonText="Ok"
+            onRequestClose={() => this.setState({
+                modalErrorOpen:false,
+                errorInfo:{
+                  heading:"",
+                  message:""
+                }
+              })
+            }
+            onRequestSubmit={() => this.setState({
+                modalErrorOpen:false,
+                errorInfo:{
+                  heading:"",
+                  message:""
+                }
+              })
+            }
+            open={this.state.modalErrorOpen}
+          >
+            <div>
+              {this.state.errorInfo.message}
+            </div>
+          </Modal>
           <Content>
             <div  className="bx--grid bx--grid--full-width adminPageBody">
               <div className='bx--row vote-dashboard-page__banner'>

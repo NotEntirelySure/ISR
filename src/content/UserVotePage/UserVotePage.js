@@ -242,11 +242,11 @@ export default function UserVotePage() {
       let message;
 
       try {
-        const voteRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/submitvote`, {
+        const voteRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/castvote`, {
           method:'POST',
           mode:'cors',
           headers:{'Content-Type':'application/json'},
-          body:JSON.stringify(requestData)
+          body:JSON.stringify({values:requestData,token:localStorage.getItem('jwt')})
         })
         if (voteRequest.status === 200) {
           if (voteData.current.value === 0) {message = `Your abstain vote for idea ${voteData.current.project} was successfully submitted.`;}

@@ -15,7 +15,7 @@ CREATE TABLE projectdomains (
 );
 CREATE TABLE projects (
   projectsequence INT,
-  projectid VARCHAR PRIMARY KEY UNIQUE,
+  projectid VARCHAR PRIMARY KEY UNIQUE NOT NULL,
   projectdescription VARCHAR,
   projectdomain INT REFERENCES projectdomains(projectdomainid)
 );

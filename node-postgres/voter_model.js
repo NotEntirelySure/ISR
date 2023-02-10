@@ -2,8 +2,7 @@
 require('dotenv').config();
 const jwt = require('jsonwebtoken');
 const auth_model = require('./auth_model');
-
-const Pool = require('pg').Pool
+const Pool = require('pg').Pool;
 const pool = new Pool({
   user: process.env.API_BASE_SUPERUSER_ACCOUNT,
   host: process.env.API_BASE_HOST_URL,
@@ -27,26 +26,31 @@ const registerVoter = (userInfo) => {
   });
 };
 
-const getAllVoters = () => {
-  return new Promise((resolve, reject) => { 
-    pool.query(`
-      SELECT 
-        p.participantid,
-        p.participanttitle,
-        p.participantfname,
-        p.participantlname,
-        p.participantoffice,
-        p.participantloggedin,
-        o.officename
-      FROM participants as p
-      JOIN offices as o on o.officeid=p.participantoffice;`, 
-      (error, results) => {
-        if (error) {reject(error)}
-        resolve(results);
-      })
+const getAllVoters = (token) => {
+  return new Promise(async(resolve, reject) => {
+    const isAuthReqest = await auth_model._verifyAdmin(token);
+		const isAuthResponse = await isAuthReqest;
+		if (isAuthResponse.code !== 200) resolve(isAuthResponse);
+		if (isAuthResponse.code === 200) { 
+      pool.query(`
+        SELECT 
+          p.participantid,
+          p.participanttitle,
+          p.participantfname,
+          p.participantlname,
+          p.participantoffice,
+          p.participantloggedin,
+          o.officename
+        FROM participants as p
+        JOIN offices as o on o.officeid=p.participantoffice;`, 
+        (error, results) => {
+          if (error) {reject(error)}
+          resolve(results);
+        }
+      );
+    };
   });
-  
-}
+};
 //used by user vote page and admin users page
 const getVoterInfo = (token) => {  
   return new Promise((resolve, reject) => {
@@ -93,22 +97,23 @@ const userLogout = (voterId) => {
   })
 }
 
-const resetParticipantsTable = () => {
-  return new Promise(function(resolve, reject) {
-    pool.query(`
-      DROP TABLE participants;
-      CREATE TABLE participants (
-        participantid SERIAL,
-        participanttitle VARCHAR(6),
-        participantfname VARCHAR(25),
-        participantlname VARCHAR(25),
-        participantoffice VARCHAR(255)
-      );`, (error, results) => {
-        if (error) {resolve({"result":500})}
-        if (results) {resolve({"result":200})}
-    })
-  })
-} 
+const resetParticipantsTable = (token) => {
+  return new Promise(async(resolve, reject) => {
+    const isAuthReqest = await auth_model._verifyAdmin(token);
+		const isAuthResponse = await isAuthReqest;
+		if (isAuthResponse.code !== 200) resolve(isAuthResponse);
+		if (isAuthResponse.code === 200) {
+      pool.query(`
+        DELETE FROM participants;
+        ALTER SEQUENCE participants_participantid_seq RESTART WITH 1;`,
+        (error, results) => {
+          if (error) {resolve({"result":500})}
+          if (results) {resolve({"result":200})}
+        }
+      );
+    };
+  });
+};
 
 module.exports = {
   registerVoter,
