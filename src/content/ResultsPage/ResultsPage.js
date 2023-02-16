@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import UserGlobalHeader from '../../components/UserGlobalHeader';
 import { w3cwebsocket } from 'websocket';
 import { InlineLoading, InlineNotification } from '@carbon/react';
@@ -20,29 +20,30 @@ export default function ResultsPage () {
     setConnectionStatus("active")
     setConnectionMessage("Connecting...");
 
-		const uniqueConnection = `resultsPage-${Date.now()}-${Math.floor(Math.random()*1000)}`
-    let client = new w3cwebsocket(`${process.env.REACT_APP_WEBSOCKET_BASE_URL}/${uniqueConnection}`);
+		if (!sessionStorage.getItem('resultsPageId')) sessionStorage.setItem('resultsPageId',`resultsPage-${Date.now()}-${Math.floor(Math.random()*1000)}`)
+		const connectionId = sessionStorage.getItem('resultsPageId');
+    let client = new w3cwebsocket(`${process.env.REACT_APP_WEBSOCKET_BASE_URL}/${connectionId}`);
 
     client.onopen = () => {
 			setConnectionStatus("finished")
     	setConnectionMessage("Connected");
-      client.send(JSON.stringify({sender:"client",id:uniqueConnection, msg:"getResults"}))
+      client.send(JSON.stringify({sender:"client",id:connectionId, msg:"getResults"}))
     };
 
     client.onmessage = (message) => {
       console.info("message received")
 			const messageData = JSON.parse(message.data);
 			//only executes if the data from the web sockets server is chart data to publish
-			if (messageData.action === "publish") {
+			if (messageData.chartData && messageData.action === "publish") {
 
 				let dataArray = [];
 				let scaleObj = {};
-				messageData.data.data.map(
+				messageData.chartData.map(
 					(idea) => {
 						let name = `${idea.rank}) ${idea.projectID}: ${idea.projectDescription}`;
 						dataArray.push({
 							"group":name,
-							"value":parseFloat(idea.averageScore)
+							"value":isNaN(idea.averageScore) ? 0:parseFloat(idea.averageScore)
 						})
 						scaleObj[name] = idea.projectdomaincolorhex
 					}
@@ -70,7 +71,10 @@ export default function ResultsPage () {
 							"option": 2
 						},
 						"scale":scaleObj
-					}
+					},
+					"legend":{"enabled":false},
+					"height":messageData.chartData.length > 25 ? "3000px":"1000px",
+					"bars":{"width":15}
 				})
 			};
 		}
@@ -87,7 +91,7 @@ export default function ResultsPage () {
     }
 
 	},[])
-
+	
 	return (
 		<>
 			<UserGlobalHeader notificationActive={false} isAuth={false}/>

@@ -23,48 +23,29 @@ import {
     TableContainer,
 } from '@carbon/react';
 import { DocumentExport, Renew, Share } from '@carbon/react/icons';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-} from 'chart.js';
-import { Bar } from 'react-chartjs-2';
+import { SimpleBarChart } from "@carbon/charts-react";
 
 const rankHeaders = [
-    {key:'rank', header:'Rank'},
-    {key:'projectID', header:'Project ID'},
-    {key:'projectDescription', header:'Project Description'},
-    {key:'totalScore', header:'Total Priority Score'},
-    {key:'averageScore', header:'Average Priority Score'}
+  {key:'rank', header:'Rank'},
+  {key:'projectID', header:'Project ID'},
+  {key:'projectDescription', header:'Project Description'},
+  {key:'totalScore', header:'Total Priority Score'},
+  {key:'averageScore', header:'Average Priority Score'}
 ];
 
 const voteHeaders = [
   {key:'projectID', header:'Project ID'},
   {key:'projectDescription', header:'Project Description'},
   {key:'participantName', header:'Participant Name'},
-  //{key:'participantID', header:'Participant ID'},
   {key:'office', header:'Office'},
   {key:'voteValue', header:'Vote Value'}
 ];
-
-const chartOptions = {
-  indexAxis: 'y',
-  elements: {bar:{borderWidth:2}},
-  responsive: true,
-  plugins: {
-    legend: {display: false, position: 'bottom'},
-    title: {display: false},
-  }
-};
 
 class StatisticsPage extends Component {
 
   constructor(props) {
     super(props)
+    this.chartDataRef = React.createRef(null)
     this.state = {
       projects:[{
         id:"0",
@@ -86,6 +67,7 @@ class StatisticsPage extends Component {
       selectedOffice:"",
       comboBoxInvalid:false,
       chartData:null,
+      chartOptions:{},
       domainList:[],
       exportButtonText:'',
       exportButtonDisplay:'none',
@@ -94,10 +76,10 @@ class StatisticsPage extends Component {
   }
 
   componentDidMount = async() => {
-    const projectsRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/projects`, {mode:'cors'});
+    const projectsRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/projects/${localStorage.getItem('adminjwt')}`, {mode:'cors'});
     const projectsResponse = await projectsRequest.json();
     let projectList = [];
-    for (var i=0; i<projectsResponse.rows.length; i++) {
+    for (let i=0; i<projectsResponse.rows.length; i++) {
       projectList.push({
         "id":String(i+1),
         "rank":0,
@@ -109,14 +91,6 @@ class StatisticsPage extends Component {
     }
     this.setState({projects: projectList}, () => this.UpdateStatTable());
 
-    ChartJS.register(
-      CategoryScale,
-      LinearScale,
-      BarElement,
-      Title,
-      Tooltip,
-      Legend
-    );
   }
 
   publishResults = () => {
@@ -148,7 +122,7 @@ class StatisticsPage extends Component {
 
   UpdateStatTable = async() => {
 
-    const votesRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getallvotes`, {mode:'cors'});
+    const votesRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getallvotes/${localStorage.getItem('adminjwt')}`, {mode:'cors'});
     const votesResponse = await votesRequest.json();
     //create hashmap of projects and total scores.
     let votesHashmap = {};
@@ -197,7 +171,7 @@ class StatisticsPage extends Component {
     this.setState({exportLoading:'block'});
     this.UpdateStatTable();
 
-    const participantResponse = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getallvoters`, {mode:'cors'});
+    const participantResponse = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getallvoters/${localStorage.getItem('adminjwt')}`, {mode:'cors'});
     const participantList = await participantResponse.json();
 
     let objParticipants = [];
@@ -211,7 +185,7 @@ class StatisticsPage extends Component {
       });
     }
 
-    const voteRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getallvotes`, {mode:'cors'})
+    const voteRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getallvotes/${localStorage.getItem('adminjwt')}`, {mode:'cors'})
     const voteResponse = await voteRequest.json();
     
     let objVotes = [];
@@ -236,7 +210,7 @@ class StatisticsPage extends Component {
       });
     }
     
-    const logRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getallchangelogs`, {mode:'cors'});
+    const logRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getallchangelogs/${localStorage.getItem('adminjwt')}`, {mode:'cors'});
     const logResponse = await logRequest.json();
     let objLogs = [];
     for (let i=0;i<logResponse.rowCount;i++) {
@@ -333,64 +307,68 @@ class StatisticsPage extends Component {
 
   }
 
-  ProcessChartData = (args) => {
-
-    let average;
-    let ideaTitle;
+  ProcessChartData = (action) => {
+    
     let chartSlice = [];
-    let labels = [];
-    let voteData = [];
-    let barColors = [];
+    if (this.chartDataRef.current.sliceValue === "all") chartSlice = this.state.projects;
+    if (this.chartDataRef.current.sliceValue !== "all") chartSlice = this.state.projects.slice(
+      this.chartDataRef.current.sliceValue[0], this.chartDataRef.current.sliceValue[1]
+    );
     
-    if (args.action === "update" && args.sliceValue === "all") chartSlice = this.state.projects;
-    if (args.action === "update" && args.sliceValue !== "all") chartSlice = this.state.projects.slice(args.sliceValue[0], args.sliceValue[1]);
-    
-    if (args.action === "publish") console.log("publish");chartSlice = this.state.projects;
+    if (action === "update") {
+      
+      let dataArray = [];
+      let scaleObj = {};
+      
+      for (let i=0;i<chartSlice.length;i++){
+        let name = `#${chartSlice[i].rank}) ${chartSlice[i].projectID}: ${chartSlice[i].projectDescription}`;
+        dataArray.push({
+          "group":name,
+          "value":isNaN(chartSlice[i].averageScore) ? 0:parseFloat(chartSlice[i].averageScore)
+        });
+        scaleObj[name] = chartSlice[i].projectdomaincolorhex;
+      }
 
-    for (let i=0;i<chartSlice.length;i++){
-      ideaTitle = `#${args.start}) ${chartSlice[i].projectID}: ${chartSlice[i].projectDescription}`
-      if (ideaTitle.length > 56) ideaTitle = ideaTitle.substring(0,55)
-      labels.push(ideaTitle);
-      if (isNaN(chartSlice[i].averageScore)) average = 0;
-      else {average = parseFloat(chartSlice[i].averageScore);}
-      voteData.push(average);
-      args.start++;
-    }
-
-    for (let i=0;i<chartSlice.length;i++) {barColors.push(chartSlice[i].projectdomaincolorhex);}
-
-    let chartData = {
-      labels,
-      datasets: [
-        {
-          label: 'Average Score',
-          data: voteData,
-          borderColor: 'rgb(22, 22, 22)',
-          backgroundColor: barColors
-        }
-      ]
-    };
-    switch (args.action) {
-      case "update": 
-        this.setState({chartData: chartData});
-        break;
-      case "publish":
-        console.log(this.state.projects);
-        let client = new w3cwebsocket(`${process.env.REACT_APP_WEBSOCKET_BASE_URL}/adminStat`);
-        client.onopen = () => {
-          client.send(
-            JSON.stringify(
-              {
-                 sender:"adminStat",
-                 action: "publishResults",
-                 data:this.state.projects,
+      this.setState({
+        chartData:dataArray.reverse(),
+        chartOptions:{
+          "title": "",
+          "axes": {
+            "left": {
+              "mapsTo": "group",
+              "scaleType": "labels",
+              "truncation": {
+                "type": "end_line",
+                "threshold": 56,
+                "numCharacter": 56
               }
-            )
-          )
-        };
-        break;
+            },
+            "bottom": {"mapsTo":"value"}
+          },
+          "color": {
+            "pairing": {"option": 2},
+            "scale":scaleObj,
+          }, 
+          "legend": {"enabled":false},
+          "height":this.chartDataRef.current.sliceValue === "all"?"3000px":"1000px",
+          "bars":{"width":this.chartDataRef.current.sliceValue === "all"? 5:15}
+        }
+      });
     }
-
+    
+    if (action === "publish") {
+      console.log("publish")
+      let client = new w3cwebsocket(`${process.env.REACT_APP_WEBSOCKET_BASE_URL}/adminStat`);
+      client.onopen = () => {
+        client.send(
+          JSON.stringify({
+            sender:"adminStat",
+            action: "publishResults",
+            chartData:chartSlice
+          })
+        )
+      };
+    }
   }
 
   SwitchTabs = (tabName) => {
@@ -424,102 +402,78 @@ class StatisticsPage extends Component {
 
     switch (this.state.selectedChart) {
       case "all":
-        this.ProcessChartData(
-          {
-            action:"update",
-            sliceValue:"all",
-            start:1,
-            title:"All Ranked Projects"
-          }
-        )
         this.setState({exportButtonText:"Export All Projects"});
+        this.chartDataRef.current = {
+          sliceValue:"all",
+          title:"All Ranked Projects"
+        }
+        this.ProcessChartData("update");
         break;
 
       case "first":
-        this.ProcessChartData(
-          {
-            action:"update",
-            sliceValue:[0,25],
-            start:1,
-            title:"Top 25 Ranked Projects"
-          }
-        )
         this.setState({exportButtonText:"Export Top 25"});
+        this.chartDataRef.current = {
+          sliceValue:[0,25],
+          title:"Top 25 Ranked Projects"
+        }
+        this.ProcessChartData("update");
         break;
 
       case "second":
-        this.ProcessChartData(
-          {
-            action:"update",
-            sliceValue:[25, 50],
-            start:26,
-            title:"#26 - #50 Ranked Projects"
-          }
-        )
         this.setState({exportButtonText:"Export Second 25"});
+        this.chartDataRef.current = {
+          sliceValue:[25, 50],
+          title:"#26 - #50 Ranked Projects"
+        }
+        this.ProcessChartData("update");
         break;
 
       case "third":
-        this.ProcessChartData(
-          {
-            action:"update",
-            sliceValue:[50,75],
-            start:51,
-            title:"#51 - #75 Ranked Projects"
-          }
-        )
         this.setState({exportButtonText:"Export Third 25"});
+        this.chartDataRef.current = {
+          sliceValue:[50,75],
+          title:"#51 - #75 Ranked Projects"
+        }
+        this.ProcessChartData("update");
         break;
 
       case "fourth":
-        this.ProcessChartData(
-          {
-            action:"update",
-            sliceValue:[75,100],
-            start:76,
-            title:"#76 - #100 Ranked Projects"
-          }
-        )
         this.setState({exportButtonText:"Export Fourth 25"})
+        this.chartDataRef.current = {
+          sliceValue:[75,100],
+          title:"#76 - #100 Ranked Projects"
+        };
+        this.ProcessChartData("update");
         break;
 
       case "fifth":
-        this.ProcessChartData(
-          {
-            action:"update",
-            sliceValue:[100, 125],
-            start:101,
-            title:"#101 - #125 Ranked Projects"
-          }
-        )
+        
         this.setState({exportButtonText:"Export Fifth 25"});
+        this.chartDataRef.current = {
+          sliceValue:[100, 125],
+          title:"#101 - #125 Ranked Projects"
+        }
+        this.ProcessChartData("update");
         break;
 
       case "sixth":
-        this.ProcessChartData(
-          {
-            action:"update",
-            sliceValue:[125, 150],
-            start:126,
-            title:"Sixth 25 Ranked (#126 - #150)"
-          }
-        )
         this.setState({exportButtonText:"Export Sixth 25"});
+        this.chartDataRef.current = {
+          sliceValue:[125, 150],
+          title:"Sixth 25 Ranked (#126 - #150)"
+        }
+        this.ProcessChartData("update");
         break;
 
       case "remainder":
-        this.ProcessChartData(
-          {
-            action:"update",
-            sliceValue:[150],
-            start:151,
-            title:"Remaining Ranked Projects (#151...)"
-          }
-        )
         this.setState({exportButtonText:"Export Remainder"})
+        this.chartDataRef.current = {
+          sliceValue:[150],
+          title:"Remaining Ranked Projects (#151...)"
+        }
+        this.ProcessChartData("update");
         break;
     }
-
   }
 
   GetOffices = () => {
@@ -682,14 +636,19 @@ class StatisticsPage extends Component {
                             renderIcon={Share}
                             description='Publishes the rusults of the ISR voting'
                             iconDescription='Publish Results'
-                            onClick={() => this.ProcessChartData({action:"publish", start:1})}
+                            onClick={() => this.ProcessChartData("publish")}
                           />
                         </div>
                     </div>
                   </div>
                 </div>
               </div>
-              <div className='statsBarChart'>{this.state.chartData ? <Bar options={chartOptions} data={this.state.chartData} />:null}</div>
+              <div className='statsBarChart'>
+                {
+					        this.state.chartData && this.state.chartOptions ?
+							      <SimpleBarChart data={this.state.chartData} options={this.state.chartOptions}/>:null
+                }
+              </div>
               
             </div>
             <div id="byoffice" style={{display:'none'}} className="bx--row bx--offset-lg-1 statistics-page__r4">

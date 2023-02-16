@@ -43,7 +43,12 @@ wsServer.on('request', function (request) {
           resultsPageClients[userId] = connection;
           console.log(`new connection: ${userId} added to results client list ${Object.getOwnPropertyNames(resultsPageClients)}`);
           //send results to client on connection if there are any results to send
-          if (resultsData !== undefined) resultsPageClients[userId].sendUTF(JSON.stringify({action:"publish",data:resultsData}));
+          if (resultsData !== undefined) resultsPageClients[userId].sendUTF(JSON.stringify(
+            {
+              action:"publish",
+              chartData:resultsData.data
+            }
+          ));
         }
         else {
           clients[userId] = connection;
@@ -52,14 +57,19 @@ wsServer.on('request', function (request) {
         }
     }
       
-    connection.on('message', function(message) {
+    connection.on('message', (message) => {
       const data = JSON.parse(message.utf8Data);
 
       if (data.sender === "adminStat") {
-        resultsData = data;
-        for(key in resultsPageClients) {
-          resultsPageClients[key].sendUTF(JSON.stringify({action:"publish",data:resultsData}));
-          console.log(`sent message to ${resultsPageClients[key]}`);
+        resultsData = {data:data.chartData};
+        for (key in resultsPageClients) {
+          resultsPageClients[key].sendUTF(
+            JSON.stringify({
+              action:"publish",
+              chartData:resultsData.data
+            })
+          );
+          console.log(`sent message to ${key}`);
         }
       }
 
@@ -75,7 +85,6 @@ wsServer.on('request', function (request) {
             adminConnections["adminConn"].sendUTF(JSON.stringify(response));
             break;
           case "removeClient":
-            console.log(data.payload);
             delete clients[data.payload];
             console.log(`Removed ${data.payload} from voting client list.`)
             adminConnections["adminConn"].sendUTF(JSON.stringify({source:"removeClient"}))
@@ -143,7 +152,6 @@ wsServer.on('request', function (request) {
         }
       }
       if (data.sender === "client") {
-
         switch (data.msg) {
           case "voted":
             let voterExists = false;
@@ -163,9 +171,8 @@ wsServer.on('request', function (request) {
             }
             break;
           case "getResults":
-            try{
-              resultsPageClients[data.id].sendUTF(JSON.stringify({action:"publish",data:resultsData}));
-            }
+            console.log(resultsPageClients)
+            try {resultsPageClients[data.id].sendUTF(JSON.stringify({action:"publish",data:resultsData}));}
             catch (error) {console.log("error sending vote results to client ",error)}
             break;
         }
