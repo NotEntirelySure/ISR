@@ -47,7 +47,7 @@ export default function StatisticsPage() {
   const chartDataRef = useRef(null);
 
   const [offices, setOffices] = useState([]);
-  const [selectedChart, setSelectedChart] = useState("start"); //this probable needs to be a ref
+  const [selectedChart, setSelectedChart] = useState("start"); //this probably needs to be a ref
   const [selectedOffice, setSelectedOffice] = useState(); //this should also be a ref
   const [comboBoxInvalid, setComboBoxInvalid] = useState(false);
   const [chartData, setChartData] = useState(null);
@@ -266,8 +266,8 @@ export default function StatisticsPage() {
   async function ExportChart() {
 
     setExportLoading('block');
-    const chartResponse = await fetch(`${process.env.REACT_APP_API_BASE_URL}/exportexcel/${selectedChart}`, {mode:'cors'});
-    const chartData = await chartResponse.arrayBuffer();
+    const chartRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/exportexcel/${selectedChart}`, {mode:'cors'});
+    const chartResponse = await chartRequest.arrayBuffer();
     
     let fileName;
     
@@ -310,7 +310,7 @@ export default function StatisticsPage() {
     }
     
     let fileType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8";
-    let data = new Blob([chartData], { type: fileType });
+    let data = new Blob([chartResponse], { type: fileType });
     FileSaver.saveAs(data, fileName);
     setExportLoading('none');
   }
@@ -336,36 +336,33 @@ export default function StatisticsPage() {
         });
         scaleObj[name] = chartSlice[i].projectdomaincolorhex;
       }
-
-      this.setState({
-        chartData:dataArray.reverse(),
-        chartOptions:{
-          "title": "",
-          "axes": {
-            "left": {
-              "mapsTo": "group",
-              "scaleType": "labels",
-              "truncation": {
-                "type": "end_line",
-                "threshold": 56,
-                "numCharacter": 56
-              }
-            },
-            "bottom": {"mapsTo":"value"}
+      
+      setChartData(dataArray.reverse());
+      setChartOptions({
+        "title": "",
+        "axes": {
+          "left": {
+            "mapsTo": "group",
+            "scaleType": "labels",
+            "truncation": {
+              "type": "end_line",
+              "threshold": 56,
+              "numCharacter": 56
+            }
           },
-          "color": {
-            "pairing": {"option": 2},
-            "scale":scaleObj,
-          }, 
-          "legend": {"enabled":false},
-          "height":chartDataRef.current.sliceValue === "all"?"3000px":"1000px",
-          "bars":{"width":chartDataRef.current.sliceValue === "all"? 5:15}
-        }
+          "bottom": {"mapsTo":"value"}
+        },
+        "color": {
+          "pairing": {"option": 2},
+          "scale":scaleObj,
+        }, 
+        "legend": {"enabled":false},
+        "height":chartDataRef.current.sliceValue === "all" ? "3000px":"1000px",
+        "bars":{"width":chartDataRef.current.sliceValue === "all" ? 5:15}
       });
     }
     
     if (action === "publish") {
-      console.log("publish")
       let client = new w3cwebsocket(`${process.env.REACT_APP_WEBSOCKET_BASE_URL}/adminStat`);
       client.onopen = () => {
         client.send(
@@ -528,7 +525,7 @@ export default function StatisticsPage() {
           voteValue:votesResponse[i].votevalue
         });
       }
-      this.setState({voteData: objVotes});
+      setVoteData(objVotes);
     }
 
   }
