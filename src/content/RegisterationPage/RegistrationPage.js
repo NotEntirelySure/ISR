@@ -76,7 +76,7 @@ export default function RegistrationPage () {
 			return;
 		}
 		
-		const registrationRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/register`, {
+		const registrationRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/participants/register`, {
 			method:'POST',
 			mode:'cors',
 			headers:{'Content-Type':'application/json'},

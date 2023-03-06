@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react'
-import { Navigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
     Button,
     Form,
@@ -13,6 +13,8 @@ import UserGlobalHeader from '../../components/UserGlobalHeader';
 
 export default function AdminLoginPage() {
   
+  const navigate = useNavigate();
+  
   const usernameRef = useRef('');
   const passwordRef = useRef('');
   const errorInfo = useRef({heading:"", message:""});
@@ -20,7 +22,6 @@ export default function AdminLoginPage() {
   const [modalErrorOpen, setModalErrorOpen] = useState(false);
   const [usernameInvalid, setUsernameInvalid] = useState(false);
   const [passwordInvalid, setPasswordInvalid] = useState(false);
-  const [redirect, setRedirect] = useState(false);
   const [notification, setNotification] = useState(0);
   
   async function Login() {
@@ -52,7 +53,7 @@ export default function AdminLoginPage() {
       switch (loginResponse.code) {
         case 200:
           localStorage.setItem("adminjwt", loginResponse.jwt);
-          setRedirect(true);
+          navigate('/adminhome');
           break;
         case 500:
           errorInfo.current = {heading:`Error ${loginResponse.code}`, message:loginResponse.message}
@@ -65,7 +66,6 @@ export default function AdminLoginPage() {
 
   return (
     <>
-      {redirect ? <Navigate to='/adminhome'/>:null}
       <Modal
         id='modalError'
         modalHeading={errorInfo.current.heading}

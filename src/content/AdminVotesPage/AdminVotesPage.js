@@ -467,7 +467,7 @@ export default function AdminVotesPage() {
 						if (!item.selectedItem) addVoteCombosRef.current.projectId = "";
 						if (item.selectedItem) {
 							if (projectComboInvalid) setProjectComboInvalid(false);
-							addVoteCombosRef.current.projectId = item.selectedItem.projectid
+							addVoteCombosRef.current.projectId = item.selectedItem.projectid;
 						}
 					}}
 				/>

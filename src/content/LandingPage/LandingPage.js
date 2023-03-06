@@ -1,6 +1,5 @@
 import React from 'react';
 import UserGlobalHeader from '../../components/UserGlobalHeader';
-import {Header, HeaderName} from '@carbon/react';
 
 export default function LandingPage() {
 

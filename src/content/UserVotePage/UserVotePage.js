@@ -88,7 +88,7 @@ export default function UserVotePage() {
 
     if (token !== null) {
 
-      const loginRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/userlogin`, {
+      const loginRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/participants/login`, {
         method:'POST',
         mode:'cors',
         headers:{'Content-Type':'application/json'},
@@ -98,7 +98,7 @@ export default function UserVotePage() {
 
       switch (loginResponse.code) {
         case 200:
-          const voterInfoRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getvoterinfo/${localStorage.getItem("jwt")}`, {mode:'cors'})
+          const voterInfoRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/participants/getinfo/${localStorage.getItem("jwt")}`, {mode:'cors'})
           const voterInfoResponse = await voterInfoRequest.json();
           setVoterInfo({
             id:voterInfoResponse.rows[0].participantid,
@@ -147,7 +147,7 @@ export default function UserVotePage() {
   };
   
   async function GetVoteHistory() {
-    const historyRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getvotehistory/${localStorage.getItem('jwt')}`, {mode:'cors'});
+    const historyRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/votes/getparticipanthistory/${localStorage.getItem('jwt')}`, {mode:'cors'});
     const historyResponse = await historyRequest.json();
     if (historyResponse.code === 200) {
       const initialHistory = historyResponse.historyData.map((item) => {
@@ -244,7 +244,7 @@ export default function UserVotePage() {
       setVoteButtonDisabled(true);
 
       try {
-        const voteRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/castvote`, {
+        const voteRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/votes/cast`, {
           method:'POST',
           mode:'cors',
           headers:{'Content-Type':'application/json'},

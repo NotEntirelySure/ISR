@@ -65,12 +65,14 @@ function getVotesByProject(projectID) {
 };
 
 //used by statistics page
-function getVotesByOffice(args) {
-  const officeName = args.split('&')[0];
-  const token = args.split('&')[1];
+function getVotesByOffice(data) {
+  
   return new Promise(async(resolve, reject) => {
+    const officeName = data.split('&')[0];
+    const token = data.split('&')[1];
     const isAuthReqest = await auth_model._verifyAdmin(token);
     const isAuthResponse = await isAuthReqest;
+    
     if (isAuthResponse.code !== 200) resolve(isAuthResponse);
     if (isAuthResponse.code === 200) { 
       pool.query(
@@ -90,8 +92,8 @@ function getVotesByOffice(args) {
         WHERE o.officename=$1;`,
         [officeName],
         (error, results) => {
-          if (error) {reject(error)}
-          resolve(results.rows);
+          if (error) resolve({code:500, message:error.detail})
+          resolve({code:200, data:results.rows});
       })
     };
   }); 
@@ -144,8 +146,8 @@ function getAllChangeLogs(token) {
         LEFT JOIN projects AS p ON p.projectid=v.voteprojectid
         LEFT JOIN participants as pa ON v.voteparticipantid=pa.participantid;`,
         (error, results) => {
-          if (error) reject(error)
-          resolve({code:200, data:results})
+          if (error) resolve({code:500, message:error.detail});
+          resolve({code:200, data:results});
         }
       );
     };

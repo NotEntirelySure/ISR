@@ -92,7 +92,7 @@ export default function StatisticsPage() {
   useEffect(() => UpdateChart(),[selectedChart]);
 
   async function GetIdeas() {
-    const ideasRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/projects/${localStorage.getItem('adminjwt')}`, {mode:'cors'});
+    const ideasRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/ideas/getall/${localStorage.getItem('adminjwt')}`, {mode:'cors'});
     const ideasResponse = await ideasRequest.json();
     if (ideasResponse.code !== 200) {
       errorInfo.current = {heading:`Error ${ideasResponse.code}`, message:ideasResponse.message}
@@ -142,7 +142,7 @@ export default function StatisticsPage() {
 
   async function UpdateStatTable() {
 
-    const votesRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getallvotes/${localStorage.getItem('adminjwt')}`, {mode:'cors'});
+    const votesRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/votes/getall/${localStorage.getItem('adminjwt')}`, {mode:'cors'});
     const votesResponse = await votesRequest.json();
     if (votesResponse.code !== 200) {
       errorInfo.current = {heading:`Error ${votesResponse.code}`, message:votesResponse.message}
@@ -191,12 +191,12 @@ export default function StatisticsPage() {
     }
   }
 
-  async function ExportData() {
+  async function ExportExcel() {
     //get most recent rankings before exporting.
     setExportLoading('block');
     UpdateStatTable();
 
-    const participantResponse = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getallvoters/${localStorage.getItem('adminjwt')}`, {mode:'cors'});
+    const participantResponse = await fetch(`${process.env.REACT_APP_API_BASE_URL}/participants/getall/${localStorage.getItem('adminjwt')}`, {mode:'cors'});
     const participantList = await participantResponse.json();
     const objParticipants = participantList.data.rows.map((participant) => {
       return {
@@ -208,7 +208,7 @@ export default function StatisticsPage() {
       }
     });
 
-    const voteRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getallvotes/${localStorage.getItem('adminjwt')}`, {mode:'cors'})
+    const voteRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/votes/getall/${localStorage.getItem('adminjwt')}`, {mode:'cors'})
     const voteResponse = await voteRequest.json();
     if (voteResponse.code !== 200) {
       errorInfo.current = {heading:`Error ${voteResponse.code}`, message:voteResponse.message}
@@ -235,7 +235,7 @@ export default function StatisticsPage() {
       }
     });
     
-    const logsRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getallchangelogs/${localStorage.getItem('adminjwt')}`, {mode:'cors'});
+    const logsRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/changelogs/getall/${localStorage.getItem('adminjwt')}`, {mode:'cors'});
     const logsResponse = await logsRequest.json();
     if (logsResponse.code !== 200) {
       errorInfo.current = {heading:`Error ${logsResponse.code}`, message:logsResponse.message}
@@ -286,7 +286,7 @@ export default function StatisticsPage() {
   async function ExportChart() {
 
     setExportLoading('block');
-    const chartRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/exportexcel/${selectedChart}`, {mode:'cors'});
+    const chartRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/export/excelchart/${selectedChart}&${localStorage.getItem('adminjwt')}`, {mode:'cors'});
     const chartResponse = await chartRequest.arrayBuffer();
     
     let fileName;
@@ -501,17 +501,22 @@ export default function StatisticsPage() {
   }
 
   async function GetOffices() {
-    const officesRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/offices`, {mode:'cors'});
+    const officesRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/offices/getall`, {mode:'cors'});
     const officesResponse = await officesRequest.json();
-    const objOffices = officesResponse.rows.map((office) => {
+    const objOffices = officesResponse.data.rows.map((office) => {
       return {id:office.officename, text:office.officename}
     });
     setOffices(objOffices);
   };
 
   async function GetDomains() {
-    const domainRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getdomains`, {mode:'cors'});
+    const domainRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/domains/getall/${localStorage.getItem('adminjwt')}`, {mode:'cors'});
     const domainResponse = await domainRequest.json();
+    if (domainResponse.code !== 200) {
+      errorInfo.current = {"heading":`Error ${domainResponse.code}`,"message":domainResponse.message};
+      setModalErrorOpen(true);
+      return;
+    }
     setDomainList(domainResponse);
   }
 
@@ -519,34 +524,39 @@ export default function StatisticsPage() {
     
     if (selectedOffice.current.value === '') setComboBoxInvalid(true);
     if (selectedOffice.current.value !== '') {
-      const votesRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getvotesbyoffice/${selectedOffice.current.value}&${localStorage.getItem('adminjwt')}`, {mode:'cors'})
+      const votesRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/votes/getbyoffice/${selectedOffice.current.value}&${localStorage.getItem('adminjwt')}`, {mode:'cors'})
       const votesResponse = await votesRequest.json();
-      let objVotes = [];
-      if (votesResponse.length === 0) {
-        objVotes.push({
-          id:"0",
-          projectID:"no records found",
-          projectDescription:"no records found",
-          participantName:"no records found",
-          office:"no records found",
-          voteValue:"no records found"
-        });
+      if (votesResponse.code !== 200) {
+        errorInfo.current = {"heading":`Error ${votesResponse.code}`,"message":votesResponse.message};
+        setModalErrorOpen(true);
       }
-      
-      for (let i=0; i<votesResponse.length; i++) {
-        objVotes.push({
-          id:String(i),
-          projectID:votesResponse[i].voteprojectid,
-          projectDescription:votesResponse[i].projectdescription,
-          participantName:`${votesResponse[i].participanttitle} ${votesResponse[i].participantfname} ${votesResponse[i].participantlname}`,
-          office:votesResponse[i].officename,
-          voteValue:votesResponse[i].votevalue
+      if (votesResponse.code === 200) {
+        if (votesResponse.data.length === 0) {
+          const votes = [{
+            id:"0",
+            projectID:"no records found",
+            projectDescription:"no records found",
+            participantName:"no records found",
+            office:"no records found",
+            voteValue:"no records found"
+          }];
+          setVoteData(votes);
+          return;
+        }
+        const votes = votesResponse.data.map((vote,index) => {
+          return {
+            id:String(index),
+            projectID:vote.voteprojectid,
+            projectDescription:vote.projectdescription,
+            participantName:`${vote.participanttitle} ${vote.participantfname} ${vote.participantlname}`,
+            office:vote.officename,
+            voteValue:vote.votevalue
+          };
         });
-      }
-      setVoteData(objVotes);
-    }
-
-  }
+        setVoteData(votes);
+      };
+    };
+  };
 
   return (
     <>
@@ -600,7 +610,7 @@ export default function StatisticsPage() {
                         kind="secondary" 
                         hasIconOnly
                         iconDescription='Export to Excel Spreadsheet'
-                        onClick={() => ExportData()}
+                        onClick={() => ExportExcel()}
                       />
                       <div style={{marginTop:'0.5%', marginLeft:'1%', display:exportLoading}}>
                         <InlineLoading description="Exporting..." status='active'></InlineLoading>
