@@ -1,6 +1,6 @@
 .adminPageBody {
-    margin-top: 1%;
-    margin-left: 3%;
+    margin-top: 1rem;
+    margin-left: 2rem;
   }
 
 @import 'carbon-components/scss/globals/scss/vendor/@carbon/type/scss/font-family.scss';
@@ -15,7 +15,7 @@
 @import './content/AdminVotesPage/admin-votes-page.scss';
 @import './content/AdminUsersPage/admin-users-page.scss';
 @import './content/StatisticsPage/statistics-page.scss';
-@import './content/ManageProjectsPage/manage-projects-page';
+@import './content/AdminIdeasPage/admin-ideas-page.scss';
 @import './content/VoteDashboardPage/vote-dashboard-page.scss';
 @import './content/TestPage/test-page.scss';
 

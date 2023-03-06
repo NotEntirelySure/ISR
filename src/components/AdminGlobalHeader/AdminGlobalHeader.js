@@ -32,7 +32,7 @@ import {
   Rocket,
   WarningHex
 } from '@carbon/react/icons';
-import { Link, UNSAFE_RouteContext } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 class AdminGlobalHeader extends Component {
   
@@ -55,8 +55,10 @@ class AdminGlobalHeader extends Component {
       }
   }
   
-  HandleLogout = () => {localStorage.removeItem("adminjwt");}
-  componentDidMount() {}
+  HandleLogout = () => {
+    localStorage.removeItem("adminjwt");
+    if (!localStorage.getItem("adminjwt")) alert("You have been successfully logged out.")
+  }
   
   initSetup = async() => {
     if (!this.state.setupCloseButton) this.setState({setupCloseButtonDisabled:true})
@@ -354,8 +356,8 @@ class AdminGlobalHeader extends Component {
                   <SideNavMenuItem element={Link} to="/domainsadmin">
                     Domain Administration
                   </SideNavMenuItem>
-                  <SideNavMenuItem element={Link} to="/manageprojects">
-                    Manage Ideas
+                  <SideNavMenuItem element={Link} to="/ideasadmin">
+                    Idea Administration
                   </SideNavMenuItem>
                   <SideNavMenuItem element={Link} to="/connections">
                     Server Connections

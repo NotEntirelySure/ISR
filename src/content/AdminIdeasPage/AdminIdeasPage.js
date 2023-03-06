@@ -43,7 +43,7 @@ const headers = [
 ];
 
 const items = ['Option 1', 'Option 2', 'Option 3']
-class ManageProjectsPage extends Component {
+class AdminIdeasPage extends Component {
   
   constructor(props) {
     super(props)
@@ -71,30 +71,32 @@ class ManageProjectsPage extends Component {
       displayTable: 'none',
       displaySkeleton: 'block',
       fileUpload:'',
-      importButtonDisabled:true
+      importButtonDisabled:true,
+      errorInfo:{heading:"", message:""},
+      modalErrorOpen:false
     }
   }
 
   componentDidMount() {this.GetProjects();}
 
   GetProjects = async() => {
-    const projectsRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/projects`, {mode:'cors'})
-    const projectsResponse = await projectsRequest.json();
-    let projects = [];
-    for (let i=0; i<projectsResponse.rows.length; i++){
-      projects.push({
-        id:String(i),
-        projectsequence:projectsResponse.rows[i].projectsequence,
-        projectid:projectsResponse.rows[i].projectid,
-        projectdescription:projectsResponse.rows[i].projectdescription,
-        projectdomainid:projectsResponse.rows[i].projectdomainid,
-        projectdomainname:projectsResponse.rows[i].projectdomainname,
+    const ideasRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/ideas/getall/${localStorage.getItem('adminjwt')}`, {mode:'cors'})
+    const ideasResponse = await ideasRequest.json();
+    if (ideasResponse.code !== 200) return;
+    const ideas = ideasResponse.data.rows.map((idea, index) => {
+      return {
+        id:String(index),
+        projectsequence:idea.projectsequence,
+        projectid:idea.projectid,
+        projectdescription:idea.projectdescription,
+        projectdomainid:idea.projectdomainid,
+        projectdomainname:idea.projectdomainname,
         projectdomaincolor:
           <>
             <div style={{display:'flex', justifyContent:'space-between'}}>
-              <div><p>{projectsResponse.rows[i].projectdomaincolorhex}</p></div>
+              <div><p>{idea.projectdomaincolorhex}</p></div>
               <div style={{
-                backgroundColor:projectsResponse.rows[i].projectdomaincolorhex,
+                backgroundColor:idea.projectdomaincolorhex,
                 width:'40%',
                 borderRadius:'5px'
               }}>
@@ -102,7 +104,7 @@ class ManageProjectsPage extends Component {
               </div>
             </div>
           </>,
-        projectdomaincolorhex:projectsResponse.rows[i].projectdomaincolorhex,
+        projectdomaincolorhex:idea.projectdomaincolorhex,
         action:
           <>
             <div style={{display:'flex', gap:'0.25rem'}}>
@@ -113,21 +115,21 @@ class ManageProjectsPage extends Component {
                 iconDescription='Edit Project'
                 kind="primary"
                 onClick={async() => {
-                  this.setState({editSequenceValue: projectsResponse.rows[i].projectsequence});
-                  document.getElementById("editID").value = projectsResponse.rows[i].projectid;
-                  document.getElementById("editDescription").value = projectsResponse.rows[i].projectdescription;
+                  this.setState({editSequenceValue:idea.projectsequence});
+                  document.getElementById("editID").value = idea.projectid; // this needs to be made into a ref
+                  document.getElementById("editDescription").value = idea.projectdescription; // this needs to be made into a ref
                   await this.GetDomains();
                   this.setState({
                     projectToEdit:{
-                      "projectsequence":projectsResponse.rows[i].projectsequence,
-                      "projectid":projectsResponse.rows[i].projectid,
-                      "projectdescription":projectsResponse.rows[i].projectdescription,
-                      "projectdomain":projectsResponse.rows[i].projectdomainid
+                      "projectsequence":idea.projectsequence,
+                      "projectid":idea.projectid,
+                      "projectdescription":idea.projectdescription,
+                      "projectdomain":idea.projectdomainid
                     },
                     editSelectedDomain:{
-                      projectdomainid:projectsResponse.rows[i].projectdomainid,
-                      projectdomainname:projectsResponse.rows[i].projectdomainname,
-                      projectdomaincolorhex:projectsResponse.rows[i].projectdomaincolorhex
+                      projectdomainid:idea.projectdomainid,
+                      projectdomainname:idea.projectdomainname,
+                      projectdomaincolorhex:idea.projectdomaincolorhex
                     },
                     modalEditOpen: true
                   })
@@ -142,8 +144,8 @@ class ManageProjectsPage extends Component {
                 onClick={() => {
                   this.setState({
                     projectToDelete:{
-                      projectid:projectsResponse.rows[i].projectid,
-                      projectdescription:projectsResponse.rows[i].projectdescription,
+                      projectid:idea.projectid,
+                      projectdescription:idea.projectdescription,
                     },
                     modalDeleteOpen:true
                   })
@@ -152,10 +154,10 @@ class ManageProjectsPage extends Component {
             </div>
           </>
         }
-      )
-    }
+    })
+    
     this.setState({
-      projectList:projects,
+      projectList:ideas,
       displayTable:'block',
       displaySkeleton:'none'
     });
@@ -201,20 +203,25 @@ class ManageProjectsPage extends Component {
     document.getElementById('addID').value = "";
     document.getElementById('addDescription').value = "";
     
-    const addRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/addproject`, {
+    const addRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/ideas/add`, {
       method:'POST',
       mode:'cors',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
-        "projectID":projectID,
-        "projectDescription":projectDescription,
-        "projectSequence":projectSequence,
-        "projectDomainId":this.state.addSelectedDomain
-      })    
-    })
+        "ideaId":projectID,
+        "ideaDescription":projectDescription,
+        "ideaSequence":projectSequence,
+        "ideaDomainId":this.state.addSelectedDomain,
+        "token":localStorage.getItem('adminjwt')
+      })
+    });
     const addResponse = await addRequest.json();
+    if (addResponse.code === 200) this.GetProjects();
+    if (addResponse.code !== 200) {
+      this.setState({errorInfo:{heading:`Error ${addResponse.code}`, message:addResponse.message}});
+      this.setState({modalErrorOpen:true});
+    }
     document.getElementById('addDomain').value = "";
-    this.GetProjects()
   }
 
   BatchAddProjects = async() => {
@@ -272,10 +279,11 @@ class ManageProjectsPage extends Component {
 
       sequenceNumber++;
       objProjectList.push({
-        "projectID":fileData[i][0],
-        "projectDescription":fileData[i][1],
-        "projectSequence":sequenceNumber,
-        "projectDomainId":domainId
+        "ideaId":fileData[i][0],
+        "ideaDescription":fileData[i][1],
+        "ideaSequence":sequenceNumber,
+        "ideaDomainId":domainId,
+        "token":localStorage.getItem('adminjwt')
       })
 
       //Reset the domain variable. The domain var will retain the value of the previous item.
@@ -284,7 +292,7 @@ class ManageProjectsPage extends Component {
     }
     //batch add
     for (let i=0; i<objProjectList.length;i++){
-      await fetch(`${process.env.REACT_APP_API_BASE_URL}/addproject`, {
+      await fetch(`${process.env.REACT_APP_API_BASE_URL}/ideas/add`, {
         method:'POST',
         mode:'cors',
         headers:{'Content-Type':'application/json'},
@@ -322,23 +330,26 @@ class ManageProjectsPage extends Component {
     }
 
     this.setState({modalEditOpen: false});
-    
-    let requestData = {
-      "previousProjectID":this.state.projectToEdit.projectid,
-      "newProjectSequence":projectSequence,
-      "newProjectID": projectID,
-      "newProjectDescription": projectDescription,
-      "newProjectDomain":this.state.editSelectedDomain.projectdomainid
-    };
 
-    const editRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/editproject`, {
+    const editRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/ideas/edit`, {
       method:'POST',
       mode:'cors',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(requestData)    
+      body:JSON.stringify({
+        "previousProjectId":this.state.projectToEdit.projectid,
+        "newProjectSequence":projectSequence,
+        "newProjectId": projectID,
+        "newProjectDescription": projectDescription,
+        "newProjectDomain":this.state.editSelectedDomain.projectdomainid,
+        "token":localStorage.getItem('adminjwt')
+      })    
     });
     const editResponse = await editRequest.json();
-    this.GetProjects()
+    if (editResponse.code === 200) this.GetProjects();
+    if (editResponse.code !== 200) {
+      this.setState({errorInfo:{heading:`Error ${editResponse.code}`, message:editResponse.message}});
+      this.setState({modalErrorOpen:true});
+    }
     this.setState({editSequenceValue:0});
     document.getElementById('editID').value = "";
     document.getElementById('editDescription').value = "";
@@ -346,15 +357,22 @@ class ManageProjectsPage extends Component {
   }
 
   DeleteProject = async() => {
-    const deleteRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/deleteproject`, {
+    const deleteRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/ideas/delete`, {
       method:'DELETE',
       mode:'cors',
       headers:{'Content-Type':'application/json'},
-      body:`{"projectID":"${this.state.projectToDelete.projectid}"}`    
-    })
+      body:JSON.stringify({
+        "ideaId":this.state.projectToDelete.projectid,
+        "token":localStorage.getItem('adminjwt')
+      })
+    });
     const deleteResponse = await deleteRequest.json();
-    this.GetProjects();
-  }
+    if (deleteResponse.code === 200) this.GetProjects();
+    if (deleteResponse.code !== 200) {
+      this.setState({errorInfo:{heading:`Error ${deleteResponse.code}`, message:deleteResponse.message}});
+      this.setState({modalErrorOpen:true});
+    };
+  };
 
   HandleFileChange = (event) => {
     this.setState({fileImportError: "this is an error."});
@@ -378,16 +396,37 @@ class ManageProjectsPage extends Component {
   }
   
   GetDomains = async() => {
-    const domainRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getdomains`, {mode:'cors'});
+    const domainRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/domains/getall/${localStorage.getItem('adminjwt')}`, {mode:'cors'});
     const domainResponse = await domainRequest.json();
-    this.setState({domainList:domainResponse});
+    if (domainResponse.code === 200) this.setState({domainList:domainResponse.data});
+    if (domainResponse.code !== 200) {
+      this.setState({errorInfo:{heading:`Error ${domainResponse.code}`, message:domainResponse.message.detail}});
+      this.setState({modalErrorOpen:true});
+    }
   }
 
   render() {
     return (
       <>
         <Modal
+          id='modalError'
+          modalHeading={this.state.errorInfo.heading}
+          primaryButtonText="Ok"
+          open={this.state.modalErrorOpen}
+          onRequestClose={() => {
+            this.setState({modalErrorOpen:false});
+            this.setState({errorInfo:{heading:"", message:""}});
+          }}
+          onRequestSubmit={() => {
+            this.setState({modalErrorOpen:false});
+            this.setState({errorInfo:{heading:"", message:""}});
+          }}
+        >
+          <div>{this.state.errorInfo.message}</div>
+        </Modal>
+        <Modal
           id='modalAdd' 
+          aria-label='Add Idea'
           primaryButtonText="Add"
           secondaryButtonText="Cancel"
           modalHeading='Add Project'
@@ -402,6 +441,7 @@ class ManageProjectsPage extends Component {
           open={this.state.modalAddOpen}
         >
           <NumberInput
+            iconDescription=''
             id="addSequence"
             min={0}
             value={this.state.addSequenceValue}
@@ -520,8 +560,8 @@ class ManageProjectsPage extends Component {
           </div>
         </Modal>
         <Modal
-          zIndex={2}
           id='modalEdit' 
+          aria-label='Edit Idea'
           primaryButtonText="Save"
           secondaryButtonText="Cancel"
           hasScrollingContent={true}
@@ -533,6 +573,7 @@ class ManageProjectsPage extends Component {
         >
           <NumberInput
             id="editSequence"
+            iconDescription=''
             min={0}
             value={this.state.editSequenceValue}
             label="Project Sequence Number"
@@ -700,4 +741,4 @@ class ManageProjectsPage extends Component {
   }
 }
 
-export default ManageProjectsPage;
+export default AdminIdeasPage;

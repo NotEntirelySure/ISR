@@ -26,7 +26,7 @@ const registerVoter = (userInfo) => {
   });
 };
 
-const getAllVoters = (token) => {
+const getAllParticipants = (token) => {
   return new Promise(async(resolve, reject) => {
     const isAuthReqest = await auth_model._verifyAdmin(token);
 		const isAuthResponse = await isAuthReqest;
@@ -44,8 +44,8 @@ const getAllVoters = (token) => {
         FROM participants as p
         JOIN offices as o on o.officeid=p.participantoffice;`, 
         (error, results) => {
-          if (error) {reject(error)}
-          resolve(results);
+          if (error) resolve({code:500,message:error.detail});
+          resolve({code:200,data:results});
         }
       );
     };
@@ -79,13 +79,21 @@ const getVoterInfo = (token) => {
 }
     
 //used by user admin page
-const deleteVoter = (voterID) => {
-  return new Promise(function(resolve, reject) { 
-    pool.query(`DELETE FROM participants WHERE participantid='${voterID}'`, (error, results) => {
-      if (error) {reject(error)}
-      resolve(results);
-    })
-  })
+const deleteParticipant = (data) => {
+  return new Promise (async(resolve, reject) => {
+		const isAuthReqest = await auth_model._verifyAdmin(data.token);
+    const isAuthResponse = await isAuthReqest;
+    if (isAuthResponse.code !== 200) resolve(isAuthResponse);
+    if (isAuthResponse.code === 200) { 
+      pool.query(
+        `DELETE FROM participants WHERE participantid=$1`,
+        [data.participantId],
+        (error, results) => {
+        if (error) resolve({code:500,message:error});
+        resolve({code:200});
+      });
+    };
+  });
 }
 
 const userLogout = (voterId) => {
@@ -118,8 +126,8 @@ const resetParticipantsTable = (token) => {
 module.exports = {
   registerVoter,
   getVoterInfo,
-  getAllVoters,
-  deleteVoter,
+  getAllParticipants,
+  deleteParticipant,
   userLogout,
   resetParticipantsTable
 }

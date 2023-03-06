@@ -23,7 +23,6 @@ wsServer.on('request', function (request) {
 
   try {
     const connection = request.accept(null, request.origin);
-    
     switch (userId) {
       case "adminDash":
         adminConnections[userId] = connection;

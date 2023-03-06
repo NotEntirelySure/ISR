@@ -57,12 +57,13 @@ class UserGlobalHeader extends Component {
 
   componentDidMount() {if (this.props.notificationActive) {this.setState({bellEmpty:"block"})}}
   componentDidUpdate(previousProps) {
-    if (previousProps.notificationData !== this.props.notificationData) {
-      this.setState(previousState => ({
+    if (this.props.notificationData && previousProps.notificationData.length !== this.props.notificationData.length) {
+      this.setState({
         bellEmpty:"none",
         bellNew:"block",
         bellFilled:"none",
-        notificationList:[...previousState.notificationList, this.props.notificationData]}),console.log(this.state.notificationList));
+        notificationList:this.props.notificationData
+      });
     }
   }
 
@@ -157,12 +158,16 @@ class UserGlobalHeader extends Component {
   }
 
   logout = async() => {
-    const logoutRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/userlogout`, {
+    const logoutRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/participants/logout`, {
       method:'POST',
       mode:'cors',
       headers:{'Content-Type':'application/json'},
-      body:`{"voterId":"${this.props.userInfo.voterID}"}`
-    })
+      body:JSON.stringify({
+        "participantId":this.props.userInfo.voterID,
+        "source":"participant",
+        "token":localStorage.getItem('jwt')
+      })
+    });
     const logoutResponse = await logoutRequest.json();
     this.setState({redirect:true});
   }
@@ -244,13 +249,14 @@ class UserGlobalHeader extends Component {
                   ref={this.notificationRef}
                   expanded={this.state.notificationPanelOpen}
                 >
-                
-                  {[...this.state.notificationList].reverse().map((item, index) => {
+                    <div style={{overflowY:'scroll'}}>
+                  {this.state.notificationList.reverse().map((item, index) => {
                     return <>
-                      <div style={{margin:'0rem 0rem 0.25rem 0rem'}}>
+                    <div style={{marginTop:'0.25rem'}}>
+
                       <ToastNotification
                         className='panelNotification'
-                        key={index}
+                        key={"notification-"+index}
                         timeout={0}
                         kind={item.kind}
                         lowContrast={false}
@@ -261,9 +267,10 @@ class UserGlobalHeader extends Component {
                         >
                         {item.timestamp}
                       </ToastNotification>
-                      </div>
+                        </div>
                     </>
                   })}
+                  </div>
                 </HeaderPanel>
             </HeaderGlobalBar>
 

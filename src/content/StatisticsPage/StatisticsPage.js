@@ -8,9 +8,10 @@ import {
   Content,
   ContentSwitcher,
   Dropdown,
-  Switch,
   DataTable,
   InlineLoading,
+  Modal,
+  Switch,
   Table,
   TableHead,
   TableHeader,
@@ -45,19 +46,24 @@ export default function StatisticsPage() {
 
   
   const chartDataRef = useRef(null);
+  const selectedOffice = useRef();
+  const errorInfo = useRef({heading:"", message:""});
 
+  const [modalErrorOpen, setModalErrorOpen] = useState(false);
+  const [showRankTable, setShowRankTable] = useState('block');
+  const [showCharts, setShowCharts] = useState('none');
+  const [showByOffice, setShowByOffice] = useState('none');
   const [offices, setOffices] = useState([]);
-  const [selectedChart, setSelectedChart] = useState("start"); //this probably needs to be a ref
-  const [selectedOffice, setSelectedOffice] = useState(); //this should also be a ref
+  const [selectedChart, setSelectedChart] = useState("start");
   const [comboBoxInvalid, setComboBoxInvalid] = useState(false);
   const [chartData, setChartData] = useState(null);
-  const [chartOptions, setChartOptions] = useState({}); //this may be unused
+  const [chartOptions, setChartOptions] = useState({});
   const [domainList, setDomainList] = useState([]);
   const [exportButtonText, setExportButtonText] = useState('');
   const [exportButtonDisplay, setExportButtonDisplay] = useState('none');
   const [exportLoading, setExportLoading] = useState('none');
-  const [ideas, setIdeas] = useState([]); //this needs to be deconflicted with "projects". I'm using two states (ideas and projects) to prevent an infinite callback loop with GetProjects() and UpdateStatTable()
-  const [projects, setProjects] = useState(
+  const [ideas, setIdeas] = useState([]);
+  const [ideaRankings, setIdeaRankings] = useState(
     [
       {
         id:"0",
@@ -68,7 +74,7 @@ export default function StatisticsPage() {
         averageScore:"-"
       }
     ]
-  )
+  );
   const [voteData, setVoteData] = useState(
     [
       {
@@ -79,28 +85,33 @@ export default function StatisticsPage() {
         voteVaue:"-"
       }
     ]
-  )
+  );
 
-
-  useEffect(() => GetProjects(),[]);
+  useEffect(() => GetIdeas(),[]);
   useEffect(() => UpdateStatTable(),[ideas]);
   useEffect(() => UpdateChart(),[selectedChart]);
 
-  async function GetProjects() {
+  async function GetIdeas() {
     const ideasRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/projects/${localStorage.getItem('adminjwt')}`, {mode:'cors'});
     const ideasResponse = await ideasRequest.json();
-    let ideaList = [];
-    for (let i=0; i<ideasResponse.rows.length; i++) {
-      ideaList.push({
-        "id":String(i+1),
-        "rank":0,
-        "projectID": ideasResponse.rows[i].projectid,
-        "projectDescription": ideasResponse.rows[i].projectdescription,
-        "projectdomaincolorhex":ideasResponse.rows[i].projectdomaincolorhex,
-        "totalScore":0
-      }); 
+    if (ideasResponse.code !== 200) {
+      errorInfo.current = {heading:`Error ${ideasResponse.code}`, message:ideasResponse.message}
+      setModalErrorOpen(true);
+      return;
     }
-    setIdeas(ideaList);
+    if (ideasResponse.code === 200) {
+      const ideaList = ideasResponse.data.rows.map((idea, index) => {
+        return {
+          "id":String(index+1),
+          "rank":0,
+          "projectID": idea.projectid,
+          "projectDescription": idea.projectdescription,
+          "projectdomaincolorhex":idea.projectdomaincolorhex,
+          "totalScore":0
+        };
+      });
+      setIdeas(ideaList);
+    }
   }
 
   function PublishResults() { //this function is unused. Consider deleting or seperating the publishing code into here.
@@ -133,46 +144,51 @@ export default function StatisticsPage() {
 
     const votesRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getallvotes/${localStorage.getItem('adminjwt')}`, {mode:'cors'});
     const votesResponse = await votesRequest.json();
-    //create hashmap of projects and total scores.
-    let votesHashmap = {};
-    let objVoteCount = {};
+    if (votesResponse.code !== 200) {
+      errorInfo.current = {heading:`Error ${votesResponse.code}`, message:votesResponse.message}
+      setModalErrorOpen(true);
+      return;
+    }
+    if (votesResponse.code === 200) {
+      //create hashmap of projects and total scores.
+      let votesHashmap = {};
+      let objVoteCount = {};
       
-    for (let i=0; i<votesResponse.length; i++) {
-      //omit any 0 values from the calculation. This prevents abstain votes from skewing the average down.
-      if(votesResponse[i].votevalue !== 0){
-        if (votesResponse[i].voteprojectid in votesHashmap) {
-          votesHashmap[votesResponse[i].voteprojectid] = votesHashmap[votesResponse[i].voteprojectid] + votesResponse[i].votevalue;
-          objVoteCount[votesResponse[i].voteprojectid]++;
+      votesResponse.data.forEach((item) => {
+        //omit any 0 values from the calculation. This prevents abstain votes from skewing the average down.
+        if(item.votevalue !== 0) {
+          if (item.voteprojectid in votesHashmap) {
+            votesHashmap[item.voteprojectid] = votesHashmap[item.voteprojectid] + item.votevalue;
+            objVoteCount[item.voteprojectid]++;
+          }
+          else {
+            votesHashmap[item.voteprojectid] = item.votevalue;
+            objVoteCount[item.voteprojectid] = 1;
+          }  
         }
-        else {
-          votesHashmap[votesResponse[i].voteprojectid] = votesResponse[i].votevalue;
-          objVoteCount[votesResponse[i].voteprojectid] = 1;
-        }  
-      }
+      });
+
+      //update state with score values of voteshashmap
+      const projectList = ideas.map((idea) => {
+        let average = (votesHashmap[idea.projectID]/objVoteCount[idea.projectID]).toFixed(2);
+        if (isNaN(average)) average = 0;
+        return {
+          "id":idea.id,
+          "rank":0,
+          "projectID":idea.projectID,
+          "projectDescription":idea.projectDescription,
+          "totalScore":votesHashmap[idea.projectID],
+          "averageScore":average,
+          "projectdomaincolorhex":idea.projectdomaincolorhex
+        }
+      });
+
+      //sort highest score to lowest
+      projectList.sort((a, b) => b.averageScore - a.averageScore);
+      //set rank order value based on previous sorting
+      for (let i=0;i<projectList.length;i++){projectList[i].rank = i+1}
+      setIdeaRankings(projectList);
     }
-    //update state with score values of voteshashmap
-    let projectList = [];
-
-    for (let i=0; i<projects.length; i++) {
-      let average = (votesHashmap[projects[i].projectID]/objVoteCount[projects[i].projectID]).toFixed(2);
-      if (isNaN(average)) {average = 0;}
-      projectList.push({
-        "id":projects[i].id,
-        "rank":0,
-        "projectID":projects[i].projectID,
-        "projectDescription":projects[i].projectDescription,
-        "totalScore":votesHashmap[projects[i].projectID],
-        "averageScore":average,
-        "projectdomaincolorhex":projects[i].projectdomaincolorhex
-      })
-    }
-
-    //sort highest score to lowest
-    projectList.sort((a, b) => b.averageScore - a.averageScore);
-    //set rank order value based on previous sorting
-    for (let i=0;i<projectList.length;i++){projectList[i].rank = i+1}
-
-    setProjects(projectList);
   }
 
   async function ExportData() {
@@ -182,60 +198,64 @@ export default function StatisticsPage() {
 
     const participantResponse = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getallvoters/${localStorage.getItem('adminjwt')}`, {mode:'cors'});
     const participantList = await participantResponse.json();
-
-    let objParticipants = [];
-    for (let i=0; i<participantList.rows.length; i++){
-      objParticipants.push({
-        "Participant ID":participantList.rows[i].participantid,
-        "Title":participantList.rows[i].participanttitle,
-        "First Name":participantList.rows[i].participantfname,
-        "Last Name":participantList.rows[i].participantlname,
-        "Office":participantList.rows[i].officename
-      });
-    }
+    const objParticipants = participantList.data.rows.map((participant) => {
+      return {
+        "Participant ID":participant.participantid,
+        "Title":participant.participanttitle,
+        "First Name":participant.participantfname,
+        "Last Name":participant.participantlname,
+        "Office":participant.officename
+      }
+    });
 
     const voteRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getallvotes/${localStorage.getItem('adminjwt')}`, {mode:'cors'})
     const voteResponse = await voteRequest.json();
+    if (voteResponse.code !== 200) {
+      errorInfo.current = {heading:`Error ${voteResponse.code}`, message:voteResponse.message}
+      setModalErrorOpen(true);
+      return;
+    };
+    const objVotes = voteResponse.data.map((vote) => {
+      return {
+        "Vote ID":vote.voteid,
+        "Project ID":vote.voteprojectid,
+        "Participant ID":vote.participantid,
+        "Participant Office":vote.officename,
+        "Vote Value":vote.votevalue
+      };
+    });
     
-    let objVotes = [];
-    for (let i=0; i<voteResponse.length; i++){
-      objVotes.push({
-        "Vote ID":voteResponse[i].voteid,
-        "Project ID":voteResponse[i].voteprojectid,
-        "Participant ID":voteResponse[i].participantid,
-        "Participant Office":voteResponse[i].officename,
-        "Vote Value":voteResponse[i].votevalue
-      });
-    }
-
-    let objRankings = [];
-    for (let i=0; i<projects.length; i++){
-      objRankings.push({
-        "Rank":projects[i].rank,
-        "Project ID":projects[i].projectID,
-        "Project Description":projects[i].projectDescription,
-        "Total Priority Score":projects[i].totalScore,
-        "Average Priority Score":projects[i].averageScore
-      });
-    }
+    const objRankings = ideaRankings.map((idea) => {
+      return {
+        "Rank":idea.rank,
+        "Project ID":idea.projectID,
+        "Project Description":idea.projectDescription,
+        "Total Priority Score":idea.totalScore,
+        "Average Priority Score":idea.averageScore
+      }
+    });
     
-    const logRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getallchangelogs/${localStorage.getItem('adminjwt')}`, {mode:'cors'});
-    const logResponse = await logRequest.json();
-    let objLogs = [];
-    for (let i=0;i<logResponse.rowCount;i++) {
-      objLogs.push({
-        "Change ID":logResponse.rows[i].changeid,
-        "Vote ID":logResponse.rows[i].changevoteid,
-        "Voter":`${logResponse.rows[i].participanttitle} ${logResponse.rows[i].participantfname} ${logResponse.rows[i].participantlname}`,
-        "Office":logResponse.rows[i].voteparticipantoffice,
-        "Idea":`${logResponse.rows[i].projectid}: ${logResponse.rows[i].projectdescription}`,
-        "Previous Value":logResponse.rows[i].changepreviousvalue,
-        "New Value":logResponse.rows[i].votevalue,
-        "Time of Change":logResponse.rows[i].changetime,
-        "Admin Comments":logResponse.rows[i].changecomment,
-        "Change Type":logResponse.rows[i].changeaction
-      })
+    const logsRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getallchangelogs/${localStorage.getItem('adminjwt')}`, {mode:'cors'});
+    const logsResponse = await logsRequest.json();
+    if (logsResponse.code !== 200) {
+      errorInfo.current = {heading:`Error ${logsResponse.code}`, message:logsResponse.message}
+      setModalErrorOpen(true);
+      return;
     }
+    const objLogs = logsResponse.data.rows.map((log) => {
+      return {
+        "Change ID":log.changeid,
+        "Vote ID":log.changevoteid,
+        "Voter":`${log.participanttitle} ${log.participantfname} ${log.participantlname}`,
+        "Office":log.voteparticipantoffice,
+        "Idea":`${log.projectid}: ${log.projectdescription}`,
+        "Previous Value":log.changepreviousvalue,
+        "New Value":log.votevalue,
+        "Time of Change":log.changetime,
+        "Admin Comments":log.changecomment,
+        "Change Type":log.changeaction
+      }
+    })
 
     const fileType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8";
     const worksheetParticipants = XLSX.utils.json_to_sheet(objParticipants);
@@ -260,7 +280,7 @@ export default function StatisticsPage() {
     const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
     const data = new Blob([excelBuffer], { type: fileType });
     FileSaver.saveAs(data, `ISR_${new Date().getFullYear()}_Vote_Results.xlsx`);
-    this.setState({exportLoading:'none'});
+    setExportLoading('none');
   }
 
   async function ExportChart() {
@@ -315,12 +335,12 @@ export default function StatisticsPage() {
     setExportLoading('none');
   }
 
-  ProcessChartData = (action) => {
+  function ProcessChartData(action) {
     
     let chartSlice = [];
-    if (chartDataRef.current.sliceValue === "all") chartSlice = projects;
+    if (chartDataRef.current.sliceValue === "all") chartSlice = ideaRankings;
     if (chartDataRef.current.sliceValue !== "all") {
-      chartSlice = projects.slice(chartDataRef.current.sliceValue[0], chartDataRef.current.sliceValue[1]);
+      chartSlice = ideaRankings.slice(chartDataRef.current.sliceValue[0], chartDataRef.current.sliceValue[1]);
     };
     
     if (action === "update") {
@@ -358,7 +378,7 @@ export default function StatisticsPage() {
         }, 
         "legend": {"enabled":false},
         "height":chartDataRef.current.sliceValue === "all" ? "3000px":"1000px",
-        "bars":{"width":chartDataRef.current.sliceValue === "all" ? 5:15}
+        "bars":{"width":15}
       });
     }
     
@@ -379,23 +399,23 @@ export default function StatisticsPage() {
   function SwitchTabs(tabName) {
     switch (tabName) {
       case "ranktable":
-        document.getElementById("charts").style.display = 'none';// these need to be refs
-        document.getElementById("byoffice").style.display = 'none'; // these need to be refs
-        document.getElementById("ranktable").style.display = 'block'; // these need to be refs
+        if (showCharts !== "none") setShowCharts("none");
+        if (showByOffice !== "none") setShowByOffice("none");
+        if (showRankTable === "none") setShowRankTable("block");
         break;
       
       case "charts":
-        this.UpdateStatTable();
-        document.getElementById("ranktable").style.display = 'none'; // these need to be refs
-        document.getElementById("byoffice").style.display = 'none'; // these need to be refs
-        document.getElementById("charts").style.display = 'block'; // these need to be refs
+        UpdateStatTable();
+        if (showCharts === "none") setShowCharts("block");
+        if (showByOffice !== "none") setShowByOffice("none");
+        if (showRankTable !== "none") setShowRankTable("none");
         break;
       
       case "byoffice":
-        this.GetOffices();
-        document.getElementById("ranktable").style.display = 'none'; // these need to be refs
-        document.getElementById("charts").style.display = 'none'; // these need to be refs
-        document.getElementById("byoffice").style.display = 'block'; // these need to be refs
+        GetOffices();
+        if (showCharts !== "none") setShowCharts("none");
+        if (showByOffice === "none") setShowByOffice("block");
+        if (showRankTable !== "none") setShowRankTable("none");
         break;
     }
   }
@@ -407,10 +427,10 @@ export default function StatisticsPage() {
 
     switch (selectedChart) {
       case "all":
-        setExportButtonText("Export All Projects");
+        setExportButtonText("Export All Ideas");
         chartDataRef.current = {
           sliceValue:"all",
-          title:"All Ranked Projects"
+          title:"All Ranked Ideas"
         }
         ProcessChartData("update");
         break;
@@ -419,7 +439,7 @@ export default function StatisticsPage() {
         setExportButtonText("Export Top 25");
         chartDataRef.current = {
           sliceValue:[0,25],
-          title:"Top 25 Ranked Projects"
+          title:"Top 25 Ranked Ideas"
         }
         ProcessChartData("update");
         break;
@@ -428,7 +448,7 @@ export default function StatisticsPage() {
         setExportButtonText("Export Second 25");
         chartDataRef.current = {
           sliceValue:[25, 50],
-          title:"#26 - #50 Ranked Projects"
+          title:"#26 - #50 Ranked Ideas"
         }
         ProcessChartData("update");
         break;
@@ -437,7 +457,7 @@ export default function StatisticsPage() {
         setExportButtonText("Export Third 25");
         chartDataRef.current = {
           sliceValue:[50,75],
-          title:"#51 - #75 Ranked Projects"
+          title:"#51 - #75 Ranked Ideas"
         }
         ProcessChartData("update");
         break;
@@ -446,7 +466,7 @@ export default function StatisticsPage() {
         setExportButtonText("Export Fourth 25");
         chartDataRef.current = {
           sliceValue:[75,100],
-          title:"#76 - #100 Ranked Projects"
+          title:"#76 - #100 Ranked Ideas"
         };
         ProcessChartData("update");
         break;
@@ -455,7 +475,7 @@ export default function StatisticsPage() {
         setExportButtonText("Export Fifth 25");
         chartDataRef.current = {
           sliceValue:[100, 125],
-          title:"#101 - #125 Ranked Projects"
+          title:"#101 - #125 Ranked Ideas"
         }
         ProcessChartData("update");
         break;
@@ -473,7 +493,7 @@ export default function StatisticsPage() {
         setExportButtonText("Export Remainder");
         chartDataRef.current = {
           sliceValue:[150],
-          title:"Remaining Ranked Projects (#151...)"
+          title:"Remaining Ranked Ideas (#151...)"
         }
         ProcessChartData("update");
         break;
@@ -483,10 +503,9 @@ export default function StatisticsPage() {
   async function GetOffices() {
     const officesRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/offices`, {mode:'cors'});
     const officesResponse = await officesRequest.json();
-    let objOffices = [];
-    for (let i=0; i<officesResponse.rows.length; i++){
-      objOffices.push({id:officesResponse.rows[i].officename, text:officesResponse.rows[i].officename});
-    };
+    const objOffices = officesResponse.rows.map((office) => {
+      return {id:office.officename, text:office.officename}
+    });
     setOffices(objOffices);
   };
 
@@ -498,10 +517,9 @@ export default function StatisticsPage() {
 
   async function GetVotesByOffice() {
     
-    let office = document.getElementById("combobox").value; //this should be a ref
-    if (office === '') setComboBoxInvalid(true);
-    if (office !== '') {
-      const votesRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getvotesbyoffice/${office}`, {mode:'cors'})
+    if (selectedOffice.current.value === '') setComboBoxInvalid(true);
+    if (selectedOffice.current.value !== '') {
+      const votesRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getvotesbyoffice/${selectedOffice.current.value}&${localStorage.getItem('adminjwt')}`, {mode:'cors'})
       const votesResponse = await votesRequest.json();
       let objVotes = [];
       if (votesResponse.length === 0) {
@@ -532,6 +550,22 @@ export default function StatisticsPage() {
 
   return (
     <>
+      <Modal
+        id='modalError'
+        modalHeading={errorInfo.current.heading}
+        primaryButtonText="Ok"
+        open={modalErrorOpen}
+        onRequestClose={() => {
+          setModalErrorOpen(false);
+          errorInfo.current = ({heading:"", message:""});
+        }}
+        onRequestSubmit={() => {
+          setModalErrorOpen(false);
+          errorInfo.current = ({heading:"", message:""});
+        }}
+      >
+        <div>{errorInfo.current.message}</div>
+      </Modal>
       <Content>
         <div className="bx--grid bx--grid--full-width adminPageBody">
           <div className="bx--row bx--offset-lg-1 statistics-page__r1" >
@@ -541,10 +575,10 @@ export default function StatisticsPage() {
               <Switch name="byoffice" text="Vote Breakdown by Office" />
             </ContentSwitcher>
           </div>
-          <div id="ranktable" className="bx--row bx--offset-lg-1 statistics-page__r2">
+          <div id="ranktable" style={{display:showRankTable}} className="bx--row bx--offset-lg-1 statistics-page__r2">
             <div className="bx--col-lg-15">
               <DataTable
-                rows={projects}
+                rows={ideaRankings}
                 headers={rankHeaders}
                 isSortable={true}
                 render={({
@@ -555,7 +589,7 @@ export default function StatisticsPage() {
                   getTableProps,
                   onInputChange
                 }) => (
-                  <TableContainer title="Project Ranks" description="Displays a rank-ordered list of projects">
+                  <TableContainer title="Project Ranks" description="Displays a rank-ordered list of ideas">
                     <TableToolbar>
                       <TableToolbarContent>
                         <TableToolbarSearch onChange={onInputChange} />
@@ -589,7 +623,7 @@ export default function StatisticsPage() {
               />
             </div>
           </div>
-          <div id="charts" style={{display:'none'}} className="bx--row bx--offset-lg-1 statistics-page__r3">
+          <div id="charts" style={{display:showCharts}} className="bx--row bx--offset-lg-1 statistics-page__r3">
             <div className='chartContainer'>
               <div id='chartOptions'>
                 <div id='chartDropdown'>
@@ -597,14 +631,14 @@ export default function StatisticsPage() {
                     id="chartDropdown"
                     label="Select rank segment"
                     items={[
-                      {id:"all", text:"All Projects"},
+                      {id:"all", text:"All Ideas"},
                       {id:"first", text:"Top 25 Ranked (#1 - #25)"},
                       {id:"second", text:"Second 25 Ranked (#26 - #50)"},
                       {id:"third", text:"Third 25 ranked (#51 - #75)"},
                       {id:"fourth", text:"Fourth 25 Ranked (#76 - #100)"},
                       {id:"fifth", text:"Fifth 25 Ranked (#101 - #125)"},
                       {id:"sixth", text:"Sixth 25 Ranked (#126 - #150)"},
-                      {id:"remainder", text:"Remaining Ranked Projects (#151...)"},
+                      {id:"remainder", text:"Remaining Ranked Ideas (#151...)"},
                     ]}
                     itemToString={(item) => (item ? item.text : '')}
                     onChange={(item) => setSelectedChart(item.selectedItem.id)}
@@ -645,24 +679,32 @@ export default function StatisticsPage() {
               </div>
             </div>
             <div className='statsBarChart'>
-              {chartData && chartOptions ? <SimpleBarChart data={this.state.chartData} options={this.state.chartOptions}/>:null}
+              {chartData && chartOptions ? <SimpleBarChart data={chartData} options={chartOptions}/>:null}
             </div>
             
           </div>
-          <div id="byoffice" style={{display:'none'}} className="bx--row bx--offset-lg-1 statistics-page__r4">
+          <div 
+            id="byoffice"
+            style={{display:showByOffice}}
+            className="bx--row bx--offset-lg-1 statistics-page__r4"
+          >
             <div id="byOfficeContainer">
               <div id="byOfficeOptions">
                 <div>
-                  {offices ? <ComboBox
-                    onChange={() => setComboBoxInvalid(false)}
-                    id="combobox"
-                    invalid={comboBoxInvalid}
-                    invalidText="This is a required field." 
-                    items={offices}
-                    itemToString={(office) => (office ? office.text : '')}
-                    titleText="Office"
-                    helperText="Select an office"
-                  />:null}</div>
+                  {
+                    offices ? <ComboBox
+                      onChange={() => {if(comboBoxInvalid) setComboBoxInvalid(false)}}
+                      id="combobox"
+                      placeholder="Select Office"
+                      invalid={comboBoxInvalid}
+                      ref={selectedOffice}
+                      invalidText="This is a required field." 
+                      items={offices}
+                      itemToString={(office) => (office ? office.text : '')}
+                      titleText="Office"
+                    />:null
+                  }
+                </div>
                 <div className="bx--col-lg-4 officeButton"><Button kind='primary' onClick={() => GetVotesByOffice()}>Get Votes</Button></div>
               </div>
               <div className="bx--row">

@@ -30,6 +30,8 @@ export default function UserVotePage() {
 
   const [isAuth, setIsAuth] = useState(false);
   const [projects, setProjects] = useState([]);
+  const [voteButtonDisabled, setVoteButtonDisabled] = useState(false);
+  const [showLoading, setShowLoading] = useState('none');
   const [currentTheme, setCurrentTheme] = useState("white");
   const [connectionAttempts, setConnectionAttempts] = useState(0);
   const [connectionInfo, setConnectionInfo] = useState({
@@ -61,11 +63,15 @@ export default function UserVotePage() {
     title:"",
     message:"",
   });
+  const [notificationList, setNotificationList] = useState([]);
   const [notificationOpen, setNotificationOpen] = useState(false);
 
   useEffect(() => Login(),[]);
   useEffect(() => {if (voterInfo.office) ConnectWebSocket()},[voterInfo]);
-  useEffect(() => ShowToast(),[notificationInfo]);
+  useEffect(() => {
+    setNotificationList(previousState => [...previousState, notificationInfo]);
+    ShowToast()
+  },[notificationInfo]); 
   useEffect(() => {if (connectionAttempts > 0) ConnectWebSocket();},[connectionAttempts])
 
   async function Login() {
@@ -144,20 +150,18 @@ export default function UserVotePage() {
     const historyRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getvotehistory/${localStorage.getItem('jwt')}`, {mode:'cors'});
     const historyResponse = await historyRequest.json();
     if (historyResponse.code === 200) {
-      let message;
-      for(let i=0;i<historyResponse.historyData.length;i++){
-        if (historyResponse.historyData[i].votevalue === 0) message = `Your abstain vote for idea ${historyResponse.historyData[i].voteprojectid} was successfully submitted.`;
-        else {message = `Your vote of ${historyResponse.historyData[i].votevalue} for idea ${historyResponse.historyData[i].voteprojectid} was successfully submitted.`;}
-        setNotificationInfo({
+      const initialHistory = historyResponse.historyData.map((item) => {
+        return {
           source:"initialLoad",
           kind:"success",
           title:"Success!",
-          message:message,
-          timestamp: new Date(historyResponse.historyData[i].votetime).toLocaleString() 
-        });
-      };
+          message:`Your ${item.votevalue === 0 ? 'abstain vote':`vote of ${item.votevalue}`} for idea ${item.voteprojectid} was successfully submitted.`,
+          timestamp: new Date(item.votetime).toLocaleString()
+        };
+      });
+      setNotificationList(initialHistory);
     };
-  }
+  };
 
   function ConnectWebSocket() {
     setConnectionInfo({
@@ -236,10 +240,8 @@ export default function UserVotePage() {
         "source":"user"
       };
 
-      let voteButton = document.getElementById(`vote-button-${voteData.current.project}`);
-      let loading = document.getElementById(`loading-${voteData.current.project}`);
-      loading.style.display = 'block';
-      let message;
+      setShowLoading('block');
+      setVoteButtonDisabled(true);
 
       try {
         const voteRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/castvote`, {
@@ -248,18 +250,25 @@ export default function UserVotePage() {
           headers:{'Content-Type':'application/json'},
           body:JSON.stringify({values:requestData,token:localStorage.getItem('jwt')})
         })
-        if (voteRequest.status === 200) {
-          if (voteData.current.value === 0) {message = `Your abstain vote for idea ${voteData.current.project} was successfully submitted.`;}
-          else {message = `Your vote of ${voteData.current.value} for idea ${voteData.current.project} was successfully submitted.`;}
-  
-          voteData.current = ({"project":"","value":null});
-        
+        const voteResponse = await voteRequest.json();
+
+        if (voteResponse.code !== 200) {
+          setNotificationInfo({
+            source:"user",
+            count:notificationInfo.count + 1,
+            kind:"error",
+            title:`Error: ${voteResponse.code}`,
+            message:`There was a problem submitting your ${voteData.current.value === 0 ? 'abstain vote':`vote of ${voteData.current.value}`} for idea ${voteData.current.project}. (${voteResponse.message})`,
+            timestamp: new Date().toLocaleString()
+          });
+        }
+        if (voteResponse.code === 200) {
           setNotificationInfo({
             source:"user",
             count:notificationInfo.count + 1,
             kind:"success",
             title:"Success!",
-            message:message,
+            message:`Your ${voteData.current.value === 0 ? 'abstain vote':`vote of ${voteData.current.value}`} for idea ${voteData.current.project} was successfully submitted.`,
             timestamp: new Date().toLocaleString()
           });
           client.send(JSON.stringify({
@@ -267,36 +276,22 @@ export default function UserVotePage() {
             office:voterInfo.office,
             msg: "voted"
           }));
-        }
-        if (voteRequest.status === 500 || voteRequest.status === 404) {
-          if (voteData.current.value === 0) {message = `There was a problem submitting your abstain vote for idea ${voteData.current.project}.`;}
-          else {message = `There was a problem submitting your vote of ${voteData.current.value} for idea ${voteData.current.project}`;}
-          setNotificationInfo({
-            source:"user",
-            count:notificationInfo.count + 1,
-            kind:"error",
-            title:`Error: ${voteRequest.status}`,
-            message:message,
-            timestamp: new Date().toLocaleString()
-          });
+          voteData.current = ({"project":"","value":null});
         }
       }
-
       catch (err) {
-        if (voteData.current.value === 0) {message = `There was a problem submitting your abstain vote for idea ${voteData.current.project}.`;}
-        else {message = `There was a problem submitting your vote of ${voteData.current.value} for idea ${voteData.current.project}`;}
-        setNotificationInfo({
+       setNotificationInfo({
           source:"user",
           count:notificationInfo.count + 1,
           kind:"error",
           title:`Error: ${err.message}`,
-          message:message,
+          message:`There was a problem submitting your ${voteData.current.value === 0 ? 'abstain vote':`vote of ${voteData.current.value}`} for idea ${voteData.current.project}.`,
           timestamp: new Date().toLocaleString()
         });
       }
 
-      voteButton.style.display = 'block';
-      loading.style.display = 'none';
+      setShowLoading('none');
+      setVoteButtonDisabled(false);
 
     }
   }
@@ -371,7 +366,7 @@ function HandleThemeChange(selectedTheme) {
         onThemeChange={theme => HandleThemeChange(theme)}
         notificationActive={isAuth}
         isAuth={isAuth}
-        notificationData={notificationInfo}
+        notificationData={notificationList}
         userInfo={{
           "voterID":voterInfo.id,
           "title":voterInfo.title,
@@ -473,7 +468,7 @@ function HandleThemeChange(selectedTheme) {
                       style={{
                         backgroundColor:themeValues.tileColor,
                         boxShadow:themeValues.shadowColor
-                        }}
+                      }}
                     >
                       <div><p>{`${projects.projectID}: ${projects.projectDescription}`}</p></div>
                       <hr/>
@@ -496,16 +491,16 @@ function HandleThemeChange(selectedTheme) {
                             label='Select'
                             items={[
                               { id: '0', value:0, text: 'Abstain' },
-                              { id: '1', value:1, text: '1 - Impact low/none' },
-                              { id: '2', value:2, text: '2 - Impact low/none' },
-                              { id: '3', value:3, text: '3 - Low impact' },
-                              { id: '4', value:4, text: '4 - Low impact' },
-                              { id: '5', value:5, text: '5 - Medium impact' },
-                              { id: '6', value:6, text: '6 - Medium impact' },
-                              { id: '7', value:7, text: '7 - Medium impact' },
-                              { id: '8', value:8, text: '8 - High impact' },
-                              { id: '9', value:9, text: '9 - High impact' },
-                              { id: '10', value:10, text: '10 - High impact' },
+                              { id: '1', value:1, text: '1 (Impact low/none)' },
+                              { id: '2', value:2, text: '2 (Impact low/none)' },
+                              { id: '3', value:3, text: '3 (Low impact)' },
+                              { id: '4', value:4, text: '4 (Low impact)' },
+                              { id: '5', value:5, text: '5 (Medium impact)' },
+                              { id: '6', value:6, text: '6 (Medium impact)' },
+                              { id: '7', value:7, text: '7 (Medium impact)' },
+                              { id: '8', value:8, text: '8 (High impact)' },
+                              { id: '9', value:9, text: '9 (High impact)' },
+                              { id: '10', value:10, text: '10 (High impact)' },
                             ]}
                             itemToString={(item) => (item ? item.text : '')}
                             onChange={(event) => voteData.current = {"project":projects.projectID,"value":event.selectedItem.value}}
@@ -514,11 +509,15 @@ function HandleThemeChange(selectedTheme) {
                       </div>
                       <div style={{display:'flex', alignItems:'center'}}>
                         <div style={{padding:'1rem'}}>
-                          <Button id={`vote-button-${projects.projectID}`} onClick={() => {SubmitVote(projects.projectID)}}>
+                          <Button 
+                            id={`vote-button-${projects.projectID}`}
+                            onClick={() => SubmitVote(projects.projectID)}
+                            disabled={voteButtonDisabled}
+                          >
                             Submit Vote
                           </Button>
                         </div>
-                        <div id={`loading-${projects.projectID}`} style={{display:'none'}}>
+                        <div id={`loading-${projects.projectID}`} style={{display:showLoading}}>
                           <InlineLoading status="active" description="Submitting vote..."/>
                         </div>
                       </div>

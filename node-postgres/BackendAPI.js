@@ -33,25 +33,17 @@ app.get('/exportexcel/:slice', (req, res) => {
   })
 })
 
-app.get('/projects/:token', (req, res) => {
+app.get('/ideas/getall/:token', (req, res) => {
   projects_model.getProjects(req.params.token)
-  .then(response => {
-    res.status(200).send(response);
-  })
-  .catch(error => {
-    res.status(500).send(error);
-  })
+  .then(response => res.status(200).send(response))
+  .catch(error => res.status(500).send(error))
 })
 
-app.get('/getallvotes/:token', (req, res) => {
+app.get('/votes/getall/:token', (req, res) => {
   votes_model.getAllVotes(req.params.token)
-  .then(response => {
-    res.status(200).send(response);
-  })
-  .catch(error => {
-    res.status(500).send(error);
-  })
-})
+  .then(response => res.status(200).send(response))
+  .catch(error => res.status(500).send(error));
+});
 
 app.get('/votes/:projectID', (req, res) => {
   votes_model.getVotesByProject(req.params.projectID)
@@ -73,8 +65,8 @@ app.get('/getvoterinfo/:token', (req, res) => {
   })
 })
 
-app.get('/getallvoters/:token', (req, res) => {
-  voter_model.getAllVoters(req.params.token)
+app.get('/participants/getall/:token', (req, res) => {
+  voter_model.getAllParticipants(req.params.token)
   .then(response => {
     res.status(200).send(response);
   })
@@ -83,18 +75,14 @@ app.get('/getallvoters/:token', (req, res) => {
   })
 })
 
-app.get('/offices', (req, res) => {
+app.get('/offices/getall', (req, res) => {
   offices_model.getOffices()
-  .then(response => {
-    res.status(200).send(response);
-  })
-  .catch(error => {
-    res.status(500).send(error);
-  })
-})
+  .then(response => res.status(200).send(response))
+  .catch(error => res.status(500).send(error));
+});
 
-app.get('/getvotesbyoffice/:officeName', (req, res) => {
-  votes_model.getVotesByOffice(req.params.officeName)
+app.get('/getvotesbyoffice/:args', (req, res) => {
+  votes_model.getVotesByOffice(req.params.args)
   .then(response => {
     res.status(200).send(response);
   })
@@ -123,8 +111,8 @@ app.get('/verifyjwt/:token', (req, res) => {
   })
 })
 
-app.get('/checkvote/:voteTag', (req,res) => {
-  votes_model.checkVote(req.params.voteTag)
+app.get('/votes/check/:data', (req,res) => {
+  votes_model.checkVote(req.params.data)
   .then(response => {
     res.status(200).send(response);
   })
@@ -133,8 +121,8 @@ app.get('/checkvote/:voteTag', (req,res) => {
   })
 })
 
-app.get('/getdomains', (req,res) => {
-  projects_model.getDomains()
+app.get('/domains/getall/:token', (req,res) => {
+  projects_model.getDomains(req.params.token)
   .then(response => {
     res.status(200).send(response);
   })
@@ -143,8 +131,8 @@ app.get('/getdomains', (req,res) => {
   })
 })
 
-app.get('/getallchangelogs', (req,res) => {
-  votes_model.getAllChangeLogs()
+app.get('/getallchangelogs/:token', (req,res) => {
+  votes_model.getAllChangeLogs(req.params.token)
   .then(response => {
     res.status(200).send(response);
   })
@@ -153,15 +141,11 @@ app.get('/getallchangelogs', (req,res) => {
   })
 })
 
-app.get('/getchangelogbyid/:data', (req,res) => {
+app.get('/changelog/getbyid/:data', (req,res) => {
   votes_model.getChangeLogById(req.params.data)
-  .then(response => {
-    res.status(200).send(response);
-  })
-  .catch(error => {
-    res.status(500).send(error);
-  })
-})
+  .then(response => res.status(200).send(response))
+  .catch(error => res.status(500).send(error));
+});
 
 app.get('/getvotehistory/:token', (req,res) => {
   participant_action_model.getVoteHistory(req.params.token)
@@ -173,35 +157,23 @@ app.get('/getvotehistory/:token', (req,res) => {
   })
 })
 
-app.post('/adddomain', (req, res) => {
-  projects_model.addDomain(req.body.domainName, req.body.colorHex)
-  .then(response => {
-    res.status(200).send(response);
-  })
-  .catch(error => {
-    res.status(500).send(error);
-  })
-})
+app.post('/domains/add', (req, res) => {
+  projects_model.addDomain(req.body)
+  .then(response => res.status(200).send(response))
+  .catch(error => res.status(500).send(error));
+});
 
-app.post('/editdomain', (req, res) => {
-  projects_model.editDomain(req.body.domainId, req.body.domainName, req.body.colorHex)
-  .then(response => {
-    res.status(200).send(response);
-  })
-  .catch(error => {
-    res.status(500).send(error);
-  })
-})
+app.post('/domains/edit', (req, res) => {
+  projects_model.editDomain(req.body)
+    .then(response => res.status(200).send(response))
+    .catch(error => res.status(500).send(error));
+});
 
-app.post('/adminlogin', (req, res) => {
-  auth_model.adminLogin(req.body.user, req.body.pass)
-  .then(response => {
-    res.status(200).send(response);
-  })
-  .catch(error => {
-    res.status(500).send(error);
-  })
-})
+app.post('/login/admin', (req, res) => {
+  auth_model.adminLogin(req.body)
+    .then(response => res.status(200).send(response))
+    .catch(error => res.status(500).send(error));
+});
 
 app.post('/userlogin', (req, res) => {
   auth_model.userLogin(req.body.jwt)
@@ -213,14 +185,14 @@ app.post('/userlogin', (req, res) => {
   })
 })
 
-app.post('/userlogout', (req, res) => {
-  auth_model.userLogout(req.body.voterId)
-  .then(response => {
-    res.status(200).send(response);
-  })
-  .catch(error => {
-    res.status(500).send(error);
-  })
+app.post('/participants/logout', (req, res) => {
+  if (req.body.source === "participant") participant_action_model.logoutParticipant(req.body)
+    .then(response => res.status(200).send(response))
+    .catch(error => res.status(500).send(error));
+
+  if (req.body.source === "admin") auth_model.participantLogout(req.body)
+    .then(response => res.status(200).send(response))
+    .catch(error => res.status(500).send(error));
 })
 
 app.post('/register', (req, res) => {
@@ -243,121 +215,71 @@ app.post('/castvote', (req, res) => {
   })
 })
 
-app.post('/submitvote', (req, res) => {
-  votes_model.submitVote(req.body)
-  .then(response => {
-    res.status(200).send(response);
-  })
-  .catch(error => {
-    res.status(500).send(error);
-  })
-})
+app.post('/votes/add', (req, res) => {
+  votes_model.addVote(req.body)
+    .then(response => res.status(200).send(response))
+    .catch(error => res.status(500).send(error))
+});
 
-app.post('/addproject', (req, res) => {
-  projects_model.addProject(
-    req.body.projectID,
-    req.body.projectDescription,
-    req.body.projectSequence,
-    req.body.projectDomainId
-  )
-  .then(response => {
-    res.status(200).send(response);
-  })
-  .catch(error => {
-    res.status(500).send(error);
-  })
-})
+app.post('/ideas/add', (req, res) => {
+  projects_model.addIdea(req.body)
+    .then(response => res.status(200).send(response))
+    .catch(error => res.status(500).send(error))
+});
 
-app.post('/addoffice', (req, res) => {
-    offices_model.addOffice(req.body)
-    .then(response => {
-      res.status(200).send(response);
-    })
-    .catch(error => {
-      res.status(500).send(error);
-    })
-  
-})
+app.post('/ideas/edit', (req, res) => {
+  projects_model.editIdea(req.body)
+    .then(response => res.status(200).send(response))
+    .catch(error => res.status(500).send(error))
+});
 
-app.post('/editproject', (req, res) => {
-  projects_model.editProject(req.body)
-  .then(response => {
-    res.status(200).send(response);
-  })
-  .catch(error => {
-    res.status(500).send(error);
-  })
-})
+app.post('/offices/add', (req, res) => {
+  offices_model.addOffice(req.body)
+    .then(response => res.status(200).send(response))
+    .catch(error => res.status(500).send(error))
+});
 
-app.post('/editvote', (req, res) => {
+app.post('/votes/edit', (req, res) => {
   votes_model.editVote(req.body)
-  .then(response => {
-    res.status(200).send(response);
-  })
-  .catch(error => {
-    res.status(500).send(error);
-  })
-})
+    .then(response => res.status(200).send(response))
+    .catch(error => res.status(500).send(error));
+});
 
-app.delete('/deletevoter', (req, res) => {
-  voter_model.deleteVoter(req.body.voterID)
-  .then(response => {
-    res.status(200).send(response);
-  })
-  .catch(error => {
-    res.status(500).send(error);
-  })
-})
+app.delete('/participants/delete', (req, res) => {
+  voter_model.deleteParticipant(req.body)
+    .then(response => res.status(200).send(response))
+    .catch(error => res.status(500).send(error));
+});
 
-app.delete('/deleteproject', (req, res) => {
-  projects_model.deleteProject(req.body.projectID)
-  .then(response => {
-    res.status(200).send(response);
-  })
-  .catch(error => {
-    res.status(500).send(error);
-  })
-})
+app.delete('/ideas/delete', (req, res) => {
+  projects_model.deleteIdea(req.body)
+    .then(response => res.status(200).send(response))
+    .catch(error => res.status(500).send(error));
+});
 
-app.delete('/deleteoffice', (req, res) => {
+app.delete('/offices/delete', (req, res) => {
   offices_model.deleteOffice(req.body)
-  .then(response => {
-    res.status(200).send(response);
-  })
-  .catch(error => {
-    res.status(500).send(error);
-  })
+    .then(response => res.status(200).send(response))
+    .catch(error => res.status(500).send(error));
+});
+
+app.delete('/domains/delete', (req, res) => {
+  projects_model.deleteDomain(req.body)
+    .then(response => res.status(200).send(response))
+    .catch(error => res.status(500).send(error));
 })
 
-app.delete('/deletedomain', (req, res) => {
-  projects_model.deleteDomain(req.body.domainId)
-  .then(response => {
-    res.status(200).send(response);
-  })
-  .catch(error => {
-    res.status(500).send(error);
-  })
-})
+app.delete('/votes/delete', (req, res) => {
+  votes_model.deleteVote(req.body)
+    .then(response => res.status(200).send(response))
+    .catch(error => res.status(500).send(error));
+});
 
-app.delete('/deletevote', (req, res) => {
-  votes_model.deleteVote(req.body.voteId,req.body.token)
-  .then(response => {
-    res.status(200).send(response);
-  })
-  .catch(error => {
-    res.status(500).send(error);
-  })
-})
-
-app.delete('/deleteallvotes', (req, res) => {
+app.delete('/votes/deleteall', (req, res) => {
   votes_model.deleteAllVotes(req.body.token)
-  .then(response => {
-    res.status(200).send(response);
-  })
-  .catch(error => {
-    res.status(500).send(error);
-  })
-})
+    .then(response => res.status(200).send(response))
+    .catch(error => res.status(500).send(error));
+});
 
 app.delete('/resetvotes/:token', (req, res) => {
   votes_model.resetVoteTable(req.params.token)

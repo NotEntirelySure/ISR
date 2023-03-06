@@ -30,97 +30,124 @@ const headers = [
 
 export default function AdminUsersPage() {
   
+  const userToDelete = useRef({voterid:"",title:"",fname:"",lname:""})
+  const errorInfo = useRef({heading:"", message:""});
+
+  const [modalErrorOpen, setModalErrorOpen] = useState(false);
   const [displaySkeleton, setDisplaySkeleton] = useState('block');
   const [displayTable, setDisplayTable] = useState('none');
-
-  const userToDelete = useRef({voterid:"",title:"",fname:"",lname:""})
-  
   const [rows, setRows] = useState([{id:'0', voterid:'-', title:'-', fname:'-', lname:'-', office: '-', action:"-"}])
   const [modalOpen, setModalOpen] = useState(false);
   
-  useEffect(() => {GetAllUsers();},[])
+  useEffect(() => GetAllParticipants(),[])
   
-  function GetAllUsers() {
-    fetch(`${process.env.REACT_APP_API_BASE_URL}/getallvoters`, {mode:'cors'})
-    .then(response => response.json())
-    .then(data => {
-  
-      let users = [];
-      for (let i=0; i<data.rows.length; i++){
-        users.push({
-          id:String(data.rows[i].participantid),
-          voterid:data.rows[i].participantid,
-          title:data.rows[i].participanttitle,
-          fname:data.rows[i].participantfname,
-          lname:data.rows[i].participantlname,
-          office:data.rows[i].officename,
-          loggedin:data.rows[i].participantloggedin ? "Yes":"No",
-          action:
-            <>
-              <div style={{display:'flex', gap:'0.25rem'}}>
-                <Button 
-                  hasIconOnly
-                  size="md"
-                  renderIcon={TrashCan}
-                  iconDescription='Delete User'
-                  kind="danger"
-                  onClick={() => {
-                    userToDelete.current = {
-                      voterid:data.rows[i].participantid,
-                      title:data.rows[i].participanttitle,
-                      fname:data.rows[i].participantfname,
-                      lname:data.rows[i].participantlname
-                    }
-                    setModalOpen(true);
-                  }}
-                />
-                <Button 
-                  hasIconOnly
-                  size="md"
-                  disabled={!data.rows[i].participantloggedin}
-                  renderIcon={Logout}
-                  iconDescription='Log user out'
-                  kind="primary"
-                  onClick={() => LogUserOut(data.rows[i].participantid)}
-                />
-              </div>
-            </>
-          }
-        )
-      }
-      setRows(users);
-      setDisplaySkeleton('none');
-      setDisplayTable('block');
-    })
+  async function GetAllParticipants() {
+    const participantsRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/participants/getall/${localStorage.getItem('adminjwt')}`, {mode:'cors'})
+    const participantsResponse = await participantsRequest.json()
+    if (participantsResponse.code !== 200) {
+      errorInfo.current = {heading:`Error ${participantsResponse.code}`, message:participantsResponse.type}
+      setModalErrorOpen(true);
+      return;
+    }
+    const participants = participantsResponse.data.rows.map((participant) => {
+      return {
+        id:String(participant.participantid),
+        voterid:participant.participantid,
+        title:participant.participanttitle,
+        fname:participant.participantfname,
+        lname:participant.participantlname,
+        office:participant.officename,
+        loggedin:participant.participantloggedin ? "Yes":"No",
+        action:
+        <>
+          <div style={{display:'flex', gap:'0.25rem'}}>
+            <Button 
+              hasIconOnly
+              size="md"
+              renderIcon={TrashCan}
+              iconDescription='Delete User'
+              kind="danger"
+              onClick={() => {
+                userToDelete.current = {
+                  voterid:participant.participantid,
+                  title:participant.participanttitle,
+                  fname:participant.participantfname,
+                  lname:participant.participantlname
+                }
+                setModalOpen(true);
+              }}
+            />
+            <Button 
+              hasIconOnly
+              size="md"
+              disabled={!participant.participantloggedin}
+              renderIcon={Logout}
+              iconDescription='Log user out'
+              kind="primary"
+              onClick={() => ParticipantLogout(participant.participantid)}
+            />
+          </div>
+        </>
+      };
+    });
+      
+    setRows(participants);
+    setDisplaySkeleton('none');
+    setDisplayTable('block');
   }
 
-  function DeleteUser() {
-    fetch(`${process.env.REACT_APP_API_BASE_URL}/deletevoter`, {
+  async function DeleteParticipant() {
+    const deleteRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/participants/delete`, {
       method:'DELETE',
       mode:'cors',
       headers:{'Content-Type':'application/json'},
-      body:`{"voterID":"${userToDelete.current.voterid}"}`    
-    })
-      .then(response => response.json())
-      .then(data => {
-        if (data.severity === 'ERROR') {alert(data.severity + ": " + data.detail)}
-        else {GetAllUsers();}
+      body:JSON.stringify({
+        "participantId":userToDelete.current.voterid,
+        "token":localStorage.getItem('adminjwt')
       })
+    });
+    const deleteResponse = await deleteRequest.json();
+    if (deleteResponse.code !== 200) {
+      errorInfo.current = {heading:`Error ${deleteResponse.code}`, message:deleteResponse.message.detail}
+      setModalErrorOpen(true);
+      return;
+    }
+    if (deleteResponse.code === 200) GetAllParticipants();
   }
 
-  async function LogUserOut(voterId) {
-    const logoutRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/userlogout`, {
+  async function ParticipantLogout(participantId) {
+    const logoutRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/participants/logout`, {
       method:'POST',
       mode:'cors',
       headers:{'Content-Type':'application/json'},
-      body:`{"voterId":"${voterId}"}`    
-    })
+      body:JSON.stringify({
+        "participantId":participantId,
+        "source":"admin",
+        "token":localStorage.getItem('adminjwt')
+      })    
+    });
     const logoutResponse = await logoutRequest.json();
-    GetAllUsers();
+    GetAllParticipants();
   }
 
   return (
-    <>  
+    <>
+      <Modal
+        id='modalError'
+        modalHeading={errorInfo.current.heading}
+        primaryButtonText="Ok"
+        open={modalErrorOpen}
+        onRequestClose={() => {
+          setModalErrorOpen(false);
+          errorInfo.current = ({heading:"", message:""});
+        }}
+        onRequestSubmit={() => {
+          setModalErrorOpen(false);
+          errorInfo.current = ({heading:"", message:""});
+        }}
+      >
+        <div>{errorInfo.current.message}</div>
+      </Modal>
       <Modal
         danger
         modalHeading='Confirm Delete'
@@ -129,7 +156,7 @@ export default function AdminUsersPage() {
         onRequestClose={() => setModalOpen(false)}
         onRequestSubmit={() => {
           setModalOpen(false);
-          DeleteUser();
+          DeleteParticipant();
         }}
         open={modalOpen}>
           <p>Are you sure you want to delete {userToDelete.current.title} {userToDelete.current.fname} {userToDelete.current.lname}?</p>
@@ -161,7 +188,7 @@ export default function AdminUsersPage() {
                   <TableToolbarContent>
                       <TableToolbarSearch onChange={onInputChange} />
                   </TableToolbarContent>
-                  <Button renderIcon={Renew} hasIconOnly iconDescription='Refresh Table' onClick={() => GetAllUsers()}/>
+                  <Button renderIcon={Renew} hasIconOnly iconDescription='Refresh Table' onClick={() => GetAllParticipants()}/>
                 </TableToolbar>
                 <Table {...getTableProps()}>
                   <TableHead>

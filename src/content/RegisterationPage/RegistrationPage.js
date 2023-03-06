@@ -29,15 +29,16 @@ export default function RegistrationPage () {
 	const [offices, setOffices] = useState([]);
 	const [modalOpen, setModalOpen] = useState(false);
 
-	useEffect(() => {
-		fetch(`${process.env.REACT_APP_API_BASE_URL}/offices`, {mode:'cors'})
-			.then(response => response.json())
-			.then(data => {
-				let objOffices = []  
-				for (let i=0; i<data.rowCount; i++) objOffices.push({id:data.rows[i].officeid, text:data.rows[i].officename})
-				setOffices(objOffices);
-		})
-	},[])
+	useEffect(() => GetOffices(),[])
+
+	async function GetOffices() {
+		const officesRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/offices/getall`, {mode:'cors'});
+		const officesResponse = await officesRequest.json();
+		const offices = officesResponse.data.rows.map((office) => {
+			return {id:office.officeid, text:office.officename};
+		});
+		setOffices(offices);
+	}
 
 	async function register() {
 

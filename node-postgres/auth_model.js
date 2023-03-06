@@ -12,28 +12,27 @@ const pool = new Pool({
 });
 
 //used by admin login page
-const adminLogin = (username, password) => {
-  const sqlQuery = `
-    SELECT (
-      EXISTS (
-        SELECT FROM administrators
-        WHERE username=$1
-        AND password=crypt($2, password)
-      )
-    );`;
-
-  const sqlValues = [username,password];
-
+const adminLogin = (data) => {
   return new Promise((resolve, reject) => {
-    pool.query(sqlQuery, sqlValues, (error, results) => {
-      if (error) reject(error);
-      if (results.rows[0].exists) {
-        const token = jwt.sign({'username':`${username}`,type:'admin'}, process.env.JWT_SECRET_KEY,{expiresIn: '1d'});
-        resolve({"result":200,"jwt":token});
+    pool.query(`
+      SELECT (
+        EXISTS (
+          SELECT FROM administrators
+          WHERE username=$1
+          AND password=crypt($2, password)
+        )
+      );`,
+      [data.user,data.pass],
+      (error, results) => {
+        if (error) resolve({code:500, message:error.detail});
+        if (results.rows[0].exists) {
+          const token = jwt.sign({'username':`${data.user}`,type:'admin'}, process.env.JWT_SECRET_KEY,{expiresIn: '1d'});
+          resolve({code:200,"jwt":token});
+        }
+        else resolve({code:401});
       }
-      else resolve({"result":401});
-    })
-  }) 
+    );
+  });
 }
 
 const userLogin = (token) => {
@@ -54,16 +53,21 @@ const userLogin = (token) => {
   });
 };
 
-const userLogout = (userId) => {
-  return new Promise((resolve, reject) => {
-    pool.query(
-      `UPDATE participants SET participantloggedin='false' WHERE participantid=$1));`,
-      [userId],
-      (error, results) => {
-        if (error) reject(error)
-        resolve({"result":200});
-      }
-    );
+const participantLogout = (data) => {
+  return new Promise (async(resolve, reject) => {
+    const isAuthReqest = await _verifyAdmin(data.token);
+    const isAuthResponse = await isAuthReqest;
+    if (isAuthResponse.code !== 200) resolve(isAuthResponse);
+    if (isAuthResponse.code === 200) {
+      pool.query(
+        `UPDATE participants SET participantloggedin='false' WHERE participantid=$1;`,
+        [data.participantId],
+        (error, results) => {
+          if (error) resolve({code:500, message:error})
+          resolve({code:200});
+        }
+      );
+    };
   });
 };
 
@@ -72,17 +76,35 @@ const _mintJwt = (userId) => {
 }
 
 const _verifyJwt = (token) => {
-  jwt.verify(token, process.env.JWT_SECRET_KEY, (err, decoded) => {
-    if (err) return({"status":401});
-    return({"status":200, data:decoded}); 
-  })
-}
+  return new Promise((resolve, reject) => {
+    try {
+      const isVerified = jwt.verify(token, process.env.JWT_SECRET_KEY);
+      if (isVerified.participantid) resolve({code:200});
+      if (!isVerified.participantid) resolve({code:401,message:"Authentication token could not be verified."});
+    }
+    catch (error) {
+      if (error.message === "jwt must be provided") {
+        resolve({code:401, message:"No authentication token was presented to the server."});
+      };
+      if (error.message.startsWith('Unexpected token') || error.message.startsWith("Unexpected end")) {
+        resolve({code:401, message:"The server was prestented with an invalid authentication token."});
+      };
+      if (error.message === "invalid signature") {
+        resolve({code:401, message:"Invalid signature in authentication token."});
+      };
+      if (error.message === "jwt expired") {
+        resolve({code:401, message:"The supplied authentication token has expired."});
+      };
+      resolve({code:500,type:error.message});
+    };
+  });
+};
 
 const verifyJwt = (token) => {
   return new Promise((resolve, reject) => {
     jwt.verify(token, process.env.JWT_SECRET_KEY, (err, decoded) => {
       if (err) resolve({"status":401});
-      if (!err) resolve({"status":200}); 
+      if (!err) resolve({"status":200});
     })
   })
 }
@@ -152,7 +174,7 @@ function _verifyAdmin(token) {
       if (error.message === "jwt expired") {
         resolve({code:401, message:"The supplied authentication token has expired."});
       }
-      resolve({code:500,type:error.message})
+      resolve({code:500,message:error.message})
     }
   })
 };
@@ -160,7 +182,7 @@ function _verifyAdmin(token) {
 module.exports = {
   adminLogin,
   userLogin,
-  userLogout,
+  participantLogout,
   verifyJwt,
   _verifyJwt,
   _mintJwt,

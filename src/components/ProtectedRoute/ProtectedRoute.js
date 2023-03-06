@@ -6,7 +6,7 @@ import UserGlobalHeader from '../UserGlobalHeader';
 import AdminHomePage from "../../content/AdminHomePage";
 import VoteDashboardPage from '../../content/VoteDashboardPage';
 import AdminUsersPage from '../../content/AdminUsersPage';
-import ManageProjectsPage from '../../content/ManageProjectsPage';
+import ManageProjectsPage from '../../content/AdminIdeasPage';
 import AdminConnectionsPage from '../../content/AdminConnectionsPage';
 import AdminVotesPage from '../../content/AdminVotesPage';
 import StatisticsPage from '../../content/StatisticsPage';
@@ -30,7 +30,7 @@ class ProtectedRoute extends Component {
             if (jwtResult.status === 200 && userType === "admin") {this.setState({isAuth:true});}
             if (jwtResult.status === 401) {this.setState({isAuth:false})}
         }
-        if (token === null) {this.setState({isAuth:true})}
+        if (token === null) this.setState({isAuth:false})
     }
     
     render() {
@@ -45,7 +45,7 @@ class ProtectedRoute extends Component {
                     case "votedashboard":
                         page = <VoteDashboardPage/>;
                         break;
-                    case "manageprojects":
+                    case "ideasadmin":
                         page = <ManageProjectsPage/>;
                         break;
                     case "useradmin":
@@ -74,17 +74,15 @@ class ProtectedRoute extends Component {
                         break;
 
                 }
-                return <><AdminGlobalHeader/><Content>{page}</Content></>
+                return <><AdminGlobalHeader/><Content children={page}/></>
             case false: 
                 return <>
                     <UserGlobalHeader/>
-                    <Content>
-                        <div id='forbidden'>
-                            <div>
-                                <img src={`${process.env.PUBLIC_URL}/403.png`} alt='Forbidden'></img>
-                            </div>
+                    <div id='forbidden'>
+                        <div>
+                            <img src={`${process.env.PUBLIC_URL}/403.png`} alt='Forbidden'></img>
                         </div>
-                    </Content>
+                    </div>
                 </>
             default: return <><div></div></>
         } 

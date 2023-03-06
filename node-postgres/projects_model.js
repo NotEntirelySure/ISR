@@ -31,7 +31,7 @@ const getProjects = (token) => {
 				ORDER BY projects.projectsequence;`, 
 				(error, results) => {
 					if (error) {reject(error)}
-					resolve(results);
+					resolve({code:200,data:results});
 				}
 			);
 		};
@@ -48,74 +48,72 @@ const getSequenceNumber = () => {
 	}); 
 };
 
-const getDomains = () => {
-	return new Promise(function(resolve, reject) { 
-		pool.query("SELECT * FROM projectdomains ORDER BY projectdomainname;", (error, results) => {
-			if (error) {reject(error)}
-			resolve(results.rows);
-		});
+const getDomains = (token) => {
+	return new Promise (async(resolve, reject) => {
+		const isAuthReqest = await auth_model._verifyAdmin(token);
+    const isAuthResponse = await isAuthReqest;
+    if (isAuthResponse.code !== 200) resolve(isAuthResponse);
+    if (isAuthResponse.code === 200) {
+			pool.query("SELECT * FROM projectdomains ORDER BY projectdomainname;", (error, results) => {
+				if (error) {resolve({code:500, message:error})}
+				resolve({code:200,data:results.rows});
+			});
+		};
 	}); 
 };
 
 //used by manage projects page
-const addProject = (projectID, projectDescription, projectSequence, projectDomain) => {
-	let query = `
-		INSERT INTO projects (
-			projectid,
-			projectdescription,
-			projectsequence,
-			projectdomain
-		)
-		VALUES (
-				'${projectID}',
-				$$${projectDescription}$$,
-				'${projectSequence}',
-				'${projectDomain}'
-		);`;
-	//accounts for situations where the domain is not specified.
-	if (projectDomain === undefined || projectDomain === '' || isNaN(projectDomain)) {
-		query = `
-			INSERT INTO projects (
-				projectid,
-				projectdescription,
-				projectsequence
-			) 
-			VALUES (
-				'${projectID}',
-				$$${projectDescription}$$,
-				'${projectSequence}'
-			);`
-	}
-	return new Promise(function(resolve, reject) {
-		pool.query(query, (error, results) => {
-			if (error) {reject(error)}
-			resolve(results);
-		});
+const addIdea = (data) => {
+	return new Promise(async(resolve, reject) => {
+		const isAuthReqest = await auth_model._verifyAdmin(data.token);
+    const isAuthResponse = await isAuthReqest;
+    if (isAuthResponse.code !== 200) resolve(isAuthResponse);
+    if (isAuthResponse.code === 200) {
+			let query = 'INSERT INTO projects (projectid,	projectdescription,	projectsequence, projectdomain)	VALUES ($1,$2,$3,$4);';
+			//accounts for situations where the domain is not specified.
+			if (data.ideaDomainId === undefined || data.ideaDomainId === '' || isNaN(data.ideaDomainId)) {
+				query = 'INSERT INTO projects (projectid, projectdescription,	projectsequence) VALUES ($1,$2,$3);'
+			}
+			pool.query(
+				query,
+				[data.ideaId, data.ideaDescription, data.ideaSequence, data.ideaDomainId],
+				(error, results) => {
+				if (error) resolve({code:500, message:error});
+				resolve({code:200});
+			});
+		};
 	});
 };
 
-const addDomain = (name, color) => {
-	return new Promise((resolve, reject) => {
-		pool.query(`
-			INSERT INTO projectdomains (
-				projectdomainname,
-				projectdomaincolorhex
-			)
-			VALUES (
-				$$${name}$$,
-				'${color}'
-			)`, 
-			(error, results) => {
-				if (error) {reject(error)}
-				resolve(results);
-			}
-		);
+const addDomain = (data) => {
+	return new Promise (async(resolve, reject) => {
+		const isAuthReqest = await auth_model._verifyAdmin(data.token);
+    const isAuthResponse = await isAuthReqest;
+    if (isAuthResponse.code !== 200) resolve(isAuthResponse);
+    if (isAuthResponse.code === 200) {
+			pool.query(`
+				INSERT INTO projectdomains (
+					projectdomainname,
+					projectdomaincolorhex
+				)
+				VALUES ($1,$2)`, 
+				[data.domainName,data.colorHex],
+				(error, results) => {
+					if (error) resolve({code:500,message:error.detail})
+					resolve({code:200, data:results});
+				}
+			);
+		};
 	});
 };
 
 //used by manage projects page
-const editProject = (data) => {
-	return new Promise(function(resolve, reject) { 
+const editIdea = (data) => {
+	return new Promise(async(resolve, reject) => {
+		const isAuthReqest = await auth_model._verifyAdmin(data.token);
+    const isAuthResponse = await isAuthReqest;
+    if (isAuthResponse.code !== 200) resolve(isAuthResponse);
+    if (isAuthResponse.code === 200) { 
 			pool.query(`
 				UPDATE projects
 				SET 
@@ -125,54 +123,79 @@ const editProject = (data) => {
 					projectdomain=$4
 				WHERE projectid=$5;`,
 				[
-					data.previousProjectID,
+					data.newProjectId,
 					data.newProjectDescription, 
 					data.newProjectSequence, 
 					data.newProjectDomain,
-					data.newProjectID
+					data.previousProjectId
 				],
 				(error, results) => {
-					if (error) {reject(error)}
-					resolve(results);
+					if (error) resolve({code:500, message:error.detail});
+					resolve({code:200});
 			});
+		};
 	});
 };
 
-const editDomain = (id, name, color) => {
-	return new Promise ((resolve, reject) => {
-		pool.query(`
-			UPDATE projectdomains
-			SET projectdomainname=$1, projectdomaincolorhex=$2
-			WHERE projectdomainid=$3;`,
-			[name, color, id],
-			(error, results) => {
-				if (error) {reject(error)}
-				resolve(results);
-		})
+const editDomain = (data) => {
+	return new Promise (async(resolve, reject) => {
+		const isAuthReqest = await auth_model._verifyAdmin(data.token);
+    const isAuthResponse = await isAuthReqest;
+    if (isAuthResponse.code !== 200) resolve(isAuthResponse);
+    if (isAuthResponse.code === 200) {
+			pool.query(`
+				UPDATE projectdomains
+				SET projectdomainname=$1, projectdomaincolorhex=$2
+				WHERE projectdomainid=$3;`,
+				[data.domainName, data.colorHex, data.domainId],
+				(error, results) => {
+					if (error) resolve({code:500, message:error});
+					resolve({code:200, data:results});
+			});
+		};
 	});
 };
 //used by manage projects page
-const deleteProject = (projectID) => {
-	let SqlQuery;
-	if (projectID === "all") {SqlQuery = 'DELETE FROM projects;';}
-	else {SqlQuery = `DELETE FROM projects WHERE projectid='${projectID}';`;}
-	return new Promise((resolve, reject) => { 
-		pool.query(SqlQuery, (error, results) => {
-			if (error) {reject(error);}
-			resolve(results);
-		});
+const deleteIdea = (data) => {
+	return new Promise(async(resolve, reject) => { 
+		const isAuthReqest = await auth_model._verifyAdmin(data.token);
+    const isAuthResponse = await isAuthReqest;
+    if (isAuthResponse.code !== 200) resolve(isAuthResponse);
+    if (isAuthResponse.code === 200) {
+			if (data.ideaId === "all") {
+				pool.query('DELETE FROM projects;', (error, results) => {
+					if (error) resolve({code:500, message:error.detail});
+					resolve({code:200});
+				});
+			}
+			else {	
+				pool.query(
+					'DELETE FROM projects WHERE projectid=$1;', 
+					[data.ideaId],
+					(error, results) => {
+						if (error) resolve({code:500, message:error.detail});
+						resolve({code:200});
+					}
+				);
+			};
+		};
 	});
 };
 
-const deleteDomain = (id) => {
-	return new Promise((resolve, reject) => { 
-		pool.query(
-			`DELETE FROM projectdomains WHERE projectdomainid=$1;`,
-			[id],
-			(error, results) => {
-			if (error) {reject(error);}
-			resolve(results);
-		});
+const deleteDomain = (data) => {
+	return new Promise (async(resolve, reject) => {
+		const isAuthReqest = await auth_model._verifyAdmin(data.token);
+    const isAuthResponse = await isAuthReqest;
+    if (isAuthResponse.code !== 200) resolve(isAuthResponse);
+    if (isAuthResponse.code === 200) { 
+			pool.query(
+				`DELETE FROM projectdomains WHERE projectdomainid=$1;`,
+				[data.domainId],
+				(error, results) => {
+				if (error) resolve({code:500, message:error});
+				resolve({code:200, data:results});
+			});
+		};
 	});
 };
 
@@ -194,11 +217,11 @@ module.exports = {
 	getProjects,
 	getSequenceNumber,
 	getDomains,
-	addProject,
+	addIdea,
 	addDomain,
-	editProject,
+	editIdea,
 	editDomain,
-	deleteProject,
+	deleteIdea,
 	deleteDomain,
 	resetProjectsTable
 }

@@ -1,4 +1,4 @@
-import React, { Component } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { w3cwebsocket } from "websocket";
 import {
   Button,
@@ -14,116 +14,110 @@ import { ArrowLeft, ArrowRight, Renew } from '@carbon/react/icons';
 
 var client;
 
-class VoteDashboardPage extends Component {
-  
-  constructor(props) {
-    super(props)
-    this.state = {
-      connectionMessage:"",
-      connectionStatus:"inactive",
-      projects:[],
-      graphData: [],
-      remainingVoters:[],
-      voteData:[],
-      totalItems:0,
-      currentProject: {},
-      votingEnabledProjects: [],
-      reconnectAttempts:0,
-      reconnectButtonDisplay:"none",
-      toggleChecked:false,
-      nextButtonDisabled:false,
-      previousButtonDisabled:true,
-      modalErrorOpen:false,
-      errorInfo:{
-        heading:"",
-        message:""
-      }
-    }
-  }
-    
-  componentDidMount = async() => {
-    const projectsRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/projects`, {mode:'cors'});
+export default function VoteDashboardPage() {
+
+  const [connectionMessage, setConnectionMessage] = useState("");
+  const [connectionStatus, setConnectionStatus] = useState("inactive");
+  const [projects, setProjects] = useState([]);
+  const [remainingVoters, setRemainingVoters] = useState([]);
+  const [totalItems, setTotalItems] = useState(0); // this is likely unneeded. I can probable just use projects.length instead of using a state for this.
+  const [currentProject, setCurrentProject] = useState({});
+  const [votingEnabledProjects, setVotingEnabledProjects] = useState([]);
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const [reconnectButtonDisplay, setReconnectButtonDisplay] = useState("none"); //this likely needs to be changed to control through the style prop
+  const [toggleChecked, setToggleChecked] = useState(false); // this could probably be a ref. Its used to check if the toggle is check. Could use toggleRef.current.value maybe.
+  const [nextButtonDisabled, setNextButtonDisabled] = useState(false);
+  const [previousButtonDisabled, setPreviousButtonDisabled] = useState(true);
+  const [modalErrorOpen, setModalErrorOpen] = useState(false);
+  const [errorInfo, setErrorInfo] = useState({heading:"", message:""});
+
+  useEffect(() => GetIdeas(),[])
+
+  async function GetIdeas() {
+    const projectsRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/projects/${localStorage.getItem('adminjwt')}`, {mode:'cors'});
     const projectsResponse = await projectsRequest.json();
-    if (projectsResponse.rowCount === 0) {
-      this.setState({
-        projects: {
+    if (projectsResponse.code !== 200) {
+      setErrorInfo({heading:`Error ${projectsResponse.code}`, message:projectsResponse.message});
+      setModalErrorOpen(true);
+      return;
+    }
+    if (projectsResponse.data.rowCount === 0) {
+      setProjects(
+        {
           "projectIndex":0,
           "projectID":'0000',
           "projectDescription": null,
           "projectDomain":"none",
           "projectDomainColor":'#FFFFFF'
-        },
-        modalErrorOpen:true,
-        errorInfo:{
+        }
+      );
+      setModalErrorOpen(true);
+      setErrorInfo(
+        {
           heading:"No Ideas Registered",
           message:"There are no ideas registered in the database. At least one idea must be registered before the dashboard can be used."
         }
-      });
+      );
     }
-    if (projectsResponse.rowCount > 0) {
+    if (projectsResponse.data.rowCount > 0) {
 
-      let objProjects = [];  
-        
-      for (var i=0; i<projectsResponse.rowCount; i++) {
-        objProjects.push({
-          "projectIndex":i,
-          "projectID":projectsResponse.rows[i].projectid,
-          "projectDescription": projectsResponse.rows[i].projectdescription,
-          "projectDomain":projectsResponse.rows[i].projectdomainname,
-          "projectDomainColor":projectsResponse.rows[i].projectdomaincolorhex
-        })
-      }
-      this.setState({
-        projects: objProjects,
-        totalItems:projectsResponse.rowCount,
-        currentProject: objProjects[0]
-      });
-      this.connectWebSocket();
+      const objProjects = projectsResponse.data.rows.map((idea, index) => {
+        return {
+          "projectIndex":index,
+          "projectID":idea.projectid,
+          "projectDescription":idea.projectdescription,
+          "projectDomain":idea.projectdomainname,
+          "projectDomainColor":idea.projectdomaincolorhex
+        }
+      })
+      setProjects(objProjects);
+      setTotalItems(projectsResponse.rowCount);
+      setCurrentProject(objProjects[0]);
+      ConnectWebSocket();
     }
   }
 
-  connectWebSocket = () => {
-    this.setState({
-      connectionStatus:"active",
-      connectionMessage:"Connecting...",
-      reconnectButtonDisplay:"none"
-    });
+  function ConnectWebSocket() {
+    
+    setConnectionStatus("active");
+    setConnectionMessage("Connecting...");
+    setReconnectButtonDisplay("none");
     
     client = new w3cwebsocket(`${process.env.REACT_APP_WEBSOCKET_BASE_URL}/adminDash`);
 
     client.onopen = () => {
-      this.setState({
-        connectionStatus:"finished",
-        connectionMessage:"Connected to server",
-        reconnectAttempts:0
-      })
+      setConnectionStatus("finished");
+      setConnectionMessage("Connected to server");
+      setReconnectAttempts(0);
 
-      client.send(JSON.stringify({
-        sender:"adminDash",
-        action: "getVotingEnabledProjects",
-      }))
+      client.send(
+        JSON.stringify({
+          sender:"adminDash",
+          action: "getVotingEnabledProjects",
+        })
+      )
     };
     
     client.onmessage = (message) => {
       const messageData = JSON.parse(message.data);
       let payload;
       let votingProjects = [];
-      switch (messageData.source) {
 
+      switch (messageData.source) {
         case "getVotingEnabledProjects":
           payload = JSON.parse(messageData.payload);
           for (let i=0; i<payload.length;i++) {votingProjects.push({projectID:payload[i].id})}
-          this.setState({votingEnabledProjects: votingProjects});
+          setVotingEnabledProjects(votingProjects);
           break;
         
         case "getRemainingVoters":
           payload = JSON.parse(messageData.payload);
-          if (payload.length > 0) this.setState({remainingVoters: JSON.parse(messageData.payload)});
+          if (payload.length > 0) setRemainingVoters(JSON.parse(messageData.payload));
           break;
         
         case "addProject":
           payload = JSON.parse(messageData.payload);
-          if (payload.length > 0) this.setState({remainingVoters: JSON.parse(messageData.payload)});
+          if (payload.length > 0) setRemainingVoters(JSON.parse(messageData.payload));
           break;
 
         case "removeProject":
@@ -131,240 +125,235 @@ class VoteDashboardPage extends Component {
           if (payload.length > 0) {
             payload = JSON.parse(messageData.payload);
             for (let i=0; i<payload.length;i++) {votingProjects.push({projectID:payload[i].id})}
-            this.setState({votingEnabledProjects: votingProjects});
+            setVotingEnabledProjects(votingProjects);
           }
           break;
 
         case "clientVoted":
-          this.setState({remainingVoters: JSON.parse(messageData.payload)})
+          setRemainingVoters(JSON.parse(messageData.payload));
           break;
       }
     };
     
     client.onclose = () => {
-      this.setState({
-        connectionStatus:"error",
-        connectionMessage:"Disconnected from server"
-      })
-      if (this.state.reconnectAttempts <= 2) {
-        this.setState({reconnectAttempts: this.state.reconnectAttempts + 1}, () => {
-          console.log("attempt:",this.state.reconnectAttempts)
-          setTimeout(() => {this.connectWebSocket()}, 1500);
-        })
+      
+      setConnectionStatus("error");
+      setConnectionMessage("Disconnected from server");
+
+      if (reconnectAttempts <= 2) {
+        setReconnectAttempts(reconnectAttempts + 1);
+        console.log("connection attempt:",reconnectAttempts)
+        setTimeout(() => {this.connectWebSocket()}, 1500);
       }
-      if (this.state.reconnectAttempts >= 3) {
-        this.setState({
-          connectionStatus:"error",
-          connectionMessage:"Failed to connect to server",
-          reconnectButtonDisplay:"block"
-        })
+
+      if (reconnectAttempts >= 3) {
+        setConnectionStatus("error");
+        setConnectionMessage("Failed to connect to server");
+        setReconnectButtonDisplay("block");
       }
     }
 
     client.onerror = (event) => {
       console.log(event);
-      this.setState({
-        connectionStatus:"error",
-        connectionMessage:"Failed to connect to server"
-      },console.log("the websocket server is down"))
+      setConnectionStatus("error");
+      setConnectionMessage("Failed to connect to server");
+      console.log("the websocket server is down");
     }
   }
 
-  HandlePageChange = (changeSource, comboboxValue) => {
+  function HandlePageChange(changeSource, comboboxValue) {
     
-    if (this.state.toggleChecked) {
-      this.setState({toggleChecked:false})
-      client.send(JSON.stringify({
-        sender:"adminDash",
-        source:"dashboard",
-        action: "removeProject",
-        payload: `{"id":"${this.state.currentProject.projectID}","description":"${this.state.currentProject.projectDescription}"}`
-      }));
+    if (toggleChecked) {
+      setToggleChecked(false);
+      client.send(
+        JSON.stringify({
+          sender:"adminDash",
+          source:"dashboard",
+          action:"removeProject",
+          payload:`{"id":"${currentProject.projectID}","description":"${currentProject.projectDescription}"}`
+        })
+      );
     }
 
     switch (changeSource) {
       case "previousButton":
-        let prevIndex = this.state.currentProject.projectIndex - 1;
-        if (prevIndex <= 0) {this.setState({previousButtonDisabled:true})}
-        if (this.state.currentProject.projectIndex > 0) {
-          this.setState({
-            nextButtonDisabled:false,
-            remainingVoters:[],
-            currentProject:this.state.projects[prevIndex]
-          })
+        let prevIndex = currentProject.projectIndex - 1;
+        if (prevIndex <= 0) setPreviousButtonDisabled(true);
+        if (currentProject.projectIndex > 0) {
+          setNextButtonDisabled(false);
+          setRemainingVoters([]);
+          setCurrentProject(projects[prevIndex])
         }
         break;
       case "nextButton":
-        let nextIndex = this.state.currentProject.projectIndex + 1
-        if (nextIndex >= this.state.totalItems - 1) this.setState({nextButtonDisabled:true})
-        if (nextIndex <= this.state.totalItems - 1) {
-        this.setState({
-          remainingVoters:[],
-          previousButtonDisabled:false,
-          currentProject:this.state.projects[nextIndex]
-        })
+        let nextIndex = currentProject.projectIndex + 1
+        
+        if (nextIndex >= projects.length - 1) setNextButtonDisabled(true);
+        if (nextIndex <= projects.length - 1) {
+          console.log("in if");
+          setRemainingVoters([]);
+          setPreviousButtonDisabled(false);
+          setCurrentProject(projects[nextIndex]);
         }
         break;
       case "combobox":
-        if (comboboxValue === this.state.totalItems - 1) this.setState({nextButtonDisabled:true})
-        else if (this.state.nextButtonDisabled) this.setState({nextButtonDisabled:false})
-        if (comboboxValue === 0 ) this.setState({previousButtonDisabled:true})
-        else if (this.state.previousButtonDisabled) this.setState({previousButtonDisabled:false})
-        this.setState({
-          remainingVoters:[],
-          currentProject:this.state.projects[comboboxValue]
-        })
+        if (comboboxValue === totalItems - 1) setNextButtonDisabled(true);
+        else if (nextButtonDisabled) setNextButtonDisabled(false);
+        if (comboboxValue === 0 ) setPreviousButtonDisabled(true);
+        else if (previousButtonDisabled) setPreviousButtonDisabled(false);
+        setRemainingVoters([]);
+        setCurrentProject(projects[comboboxValue]);
     }
 
-    for (let i=0;i<this.state.votingEnabledProjects.length; i++){
-      if (this.state.votingEnabledProjects[i].projectID === this.state.currentProject.projectID) {
-        client.send(JSON.stringify({
-          sender:"adminDash",
-          action: "getRemainingVoters"
-        }))
+    for (let i=0;i<votingEnabledProjects.length; i++){
+      if (votingEnabledProjects[i].projectID === currentProject.projectID) {
+        client.send(
+          JSON.stringify({
+            sender:"adminDash",
+            action: "getRemainingVoters"
+          })
+        )
       }
     }
   }
 
-  render() {
-      return (
-        <>
-          <Modal
-            id='modalError'
-            modalHeading={this.state.errorInfo.heading}
-            primaryButtonText="Ok"
-            onRequestClose={() => this.setState({
-                modalErrorOpen:false,
-                errorInfo:{
-                  heading:"",
-                  message:""
-                }
-              })
-            }
-            onRequestSubmit={() => this.setState({
-                modalErrorOpen:false,
-                errorInfo:{
-                  heading:"",
-                  message:""
-                }
-              })
-            }
-            open={this.state.modalErrorOpen}
-          >
+  return (
+    <>
+      <Modal
+        id='modalError'
+        modalHeading={errorInfo.heading}
+        primaryButtonText="Ok"
+        onRequestClose={() => {
+          setModalErrorOpen(false);
+          setErrorInfo({heading:"", message:""});
+          }
+        }
+        onRequestSubmit={() => {
+          setModalErrorOpen(false);
+          setErrorInfo({heading:"", message:""});
+        }}
+        open={modalErrorOpen}
+      >
+        <div>
+          {errorInfo.message}
+        </div>
+      </Modal>
+      <Content>
+        <div  className="bx--grid bx--grid--full-width adminPageBody">
+          <div className='bx--row vote-dashboard-page__banner'>
+            <div><h1 className="vote-dashboard-page__heading">Voting Dashboard</h1></div>
             <div>
-              {this.state.errorInfo.message}
-            </div>
-          </Modal>
-          <Content>
-            <div  className="bx--grid bx--grid--full-width adminPageBody">
-              <div className='bx--row vote-dashboard-page__banner'>
-                <div><h1 className="vote-dashboard-page__heading">Voting Dashboard</h1></div>
-                <div>
-                  <div>
-                    <InlineLoading
-                    style={{ marginLeft: '1rem'}}
-                    description={this.state.connectionMessage}
-                    status={this.state.connectionStatus}
-                  />
-                  </div>
-                  <div>
-                    <button style={{display:this.state.reconnectButtonDisplay}} className='reconnectButton' onClick={() => this.connectWebSocket()}><Renew size={20}/></button>
-                  </div>
-                </div>
+              <div>
+                <InlineLoading
+                style={{ marginLeft: '1rem'}}
+                description={connectionMessage}
+                status={connectionStatus}
+              />
               </div>
-              <div className='bx--row' style={{backgroundColor:this.state.currentProject.projectDomainColor, textAlign:'center'}}>
-                <div className='bx--col'>
-                  <p style={{fontWeight:'bold'}}>{this.state.currentProject.projectDomain}</p>
-                </div>
-              </div>
-              <div className='bx--row bx--offset-lg-1 vote-dashboard-page__r1'>
-                <div className="bx--col ideaNameAndToggle">
-                  <div>
-                    <h1 style={{fontWeight:'bold', paddingLeft:'1rem'}}>{`${this.state.currentProject.projectID}: ${this.state.currentProject.projectDescription}`}</h1>
-                  </div>
-                  <div style={{paddingRight:"10%"}}>
-                    <Toggle
-                      id='voteControlToggle'
-                      labelText="Idea Voting"
-                      size="sm"
-                      labelA="Disabled"
-                      labelB="Enabled"
-                      toggled={this.state.toggleChecked}
-                      onToggle={(state) => {
-                        this.setState({toggleChecked:state})
-                        client.send(JSON.stringify({
-                          sender:"adminDash",
-                          source:"dashboard",
-                          action: state ? "addProject":"removeProject",
-                          payload: `{"id":"${this.state.currentProject.projectID}","description":"${this.state.currentProject.projectDescription}"}`
-                        }));
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className='bx--row bx--offset-lg-1 vote-dashboard-page__r2'>
-                <div className="vote-dashboard-page-voter-list">
-                  {this.state.remainingVoters.map(office => {
-                    return <div key={office}>
-                      <Tile>
-                        <div className='officeTile'>
-                          <div id='office-icon-div'>
-                            <img
-                              className='office-icon'
-                              src={`${process.env.PUBLIC_URL}/office_symbols/${office}.png`}
-                              onError={(err) => err.currentTarget.src = `${process.env.PUBLIC_URL}/office_symbols/USCG.png`}
-                              alt=''
-                            />
-                          </div>
-                          <br/>
-                          <div id='office-name-div'>{office}</div>
-                        </div>
-                      </Tile>
-                    </div>
-                  })}
-                </div>
-                <div style={{zIndex:'2'}}>
-                  {this.state.remainingVoters.length > 0 ? <p>Remaining Voters: {this.state.remainingVoters.length}</p>:null}
-                </div>
-              </div>
-            <div className='vote-dashboard-page__r4'>
-              <div className='navControls'>
-                <div style={{marginRight:'auto'}}>
-                  <Button
-                    iconDescription="Previous Idea"
-                    disabled={this.state.previousButtonDisabled}
-                    hasIconOnly={true}
-                    renderIcon={ArrowLeft}
-                    onClick={() => this.HandlePageChange("previousButton")}
-                  />
-                </div>
-                <div style={{maxWidth:'75%',minWidth:'50%'}}>
-                  <ComboBox
-                    id="navigationCombo"
-                    items={this.state.projects}
-                    itemToString={(item) => item ? `${item.projectID}: ${item.projectDescription}` : ''}
-                    onChange={(event) => {event.selectedItem && this.HandlePageChange("combobox",event.selectedItem.projectIndex)}}
-                    direction="top"
-                    selectedItem={this.state.currentProject}
-                    helperText={`Idea ${this.state.currentProject.projectIndex + 1} of ${this.state.totalItems}`}
-                    />
-                </div>
-                <div style={{marginLeft:'auto'}}>
-                  <Button
-                    iconDescription="Next Idea"
-                    disabled={this.state.nextButtonDisabled}
-                    hasIconOnly={true}
-                    renderIcon={ArrowRight}
-                    onClick={() => this.HandlePageChange("nextButton")}
-                  />
-                </div>
+              <div>
+                <button
+                  style={{display:reconnectButtonDisplay}}
+                  className='reconnectButton'
+                  onClick={() => ConnectWebSocket()}
+                >
+                  <Renew size={20}/>
+                </button>
               </div>
             </div>
           </div>
-          </Content>
-        </>
-      )
-  }
+          <div className='bx--row' style={{backgroundColor:currentProject.projectDomainColor, textAlign:'center'}}>
+            <div className='bx--col'>
+              <p style={{fontWeight:'bold'}}>{currentProject.projectDomain}</p>
+            </div>
+          </div>
+          <div className='bx--row bx--offset-lg-1 vote-dashboard-page__r1'>
+            <div className="bx--col ideaNameAndToggle">
+              <div>
+                <h1 style={{fontWeight:'bold', paddingLeft:'1rem'}}>{`${currentProject.projectID}: ${currentProject.projectDescription}`}</h1>
+              </div>
+              <div style={{paddingRight:"10%"}}>
+                <Toggle
+                  id='voteControlToggle'
+                  labelText="Idea Voting"
+                  size="sm"
+                  labelA="Disabled"
+                  labelB="Enabled"
+                  toggled={toggleChecked}
+                  onToggle={(state) => {
+                    setToggleChecked(state);
+                    client.send(
+                      JSON.stringify({
+                        sender:"adminDash",
+                        source:"dashboard",
+                        action: state ? "addProject":"removeProject",
+                        payload: `{"id":"${currentProject.projectID}","description":"${currentProject.projectDescription}"}`
+                      })
+                    );
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+          <div className='bx--row bx--offset-lg-1 vote-dashboard-page__r2'>
+            <div className="vote-dashboard-page-voter-list">
+              {remainingVoters.map(office => {
+                return <div key={office}>
+                  <Tile>
+                    <div className='officeTile'>
+                      <div id='office-icon-div'>
+                        <img
+                          className='office-icon'
+                          src={`${process.env.PUBLIC_URL}/office_symbols/${office}.png`}
+                          onError={(err) => err.currentTarget.src = `${process.env.PUBLIC_URL}/office_symbols/USCG.png`}
+                          alt=''
+                        />
+                      </div>
+                      <br/>
+                      <div id='office-name-div'>{office}</div>
+                    </div>
+                  </Tile>
+                </div>
+              })}
+            </div>
+            <div style={{zIndex:'2'}}>
+              {remainingVoters.length > 0 ? <p>Remaining Voters: {remainingVoters.length}</p>:null}
+            </div>
+          </div>
+        <div className='vote-dashboard-page__r4'>
+          <div className='navControls'>
+            <div style={{marginRight:'auto'}}>
+              <Button
+                iconDescription="Previous Idea"
+                disabled={previousButtonDisabled}
+                hasIconOnly={true}
+                renderIcon={ArrowLeft}
+                onClick={() => HandlePageChange("previousButton")}
+              />
+            </div>
+            <div style={{maxWidth:'75%',minWidth:'50%'}}>
+              <ComboBox
+                id="navigationCombo"
+                items={projects}
+                itemToString={(item) => item ? `${item.projectID}: ${item.projectDescription}` : ''}
+                onChange={(event) => {event.selectedItem && HandlePageChange("combobox",event.selectedItem.projectIndex)}}
+                direction="top"
+                selectedItem={currentProject}
+                helperText={`Idea ${currentProject.projectIndex + 1} of ${projects.length}`}
+              />
+            </div>
+            <div style={{marginLeft:'auto'}}>
+              <Button
+                iconDescription="Next Idea"
+                disabled={nextButtonDisabled}
+                hasIconOnly={true}
+                renderIcon={ArrowRight}
+                onClick={() => HandlePageChange("nextButton")}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+      </Content>
+    </>
+  )
 }
-export default VoteDashboardPage;

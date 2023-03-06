@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { 
-    Button, 
+import {
+    Button,
     Content,
     DataTable,
     DataTableSkeleton,
@@ -20,51 +20,45 @@ import {
 import { Add, TrashCan } from '@carbon/react/icons';
 
 const headers = [
-  {key:'officeID', header:'Office ID'},
+  {key:'officeId', header:'Office ID'},
   {key:'officeName', header:'Office Name'},
   {key:'action', header:'Action'}
 ];
 
 export default function AdminOfficesPage() {
-  
-  
+
+
   const officeToDelete = useRef({officeName:""});
   const addName = useRef();
+  const errorInfo = useRef({heading:"", message:""});
 
-  const [rows, setRows] = useState([{id:'0',officeID:'-',officeName:'-',action: '-'}]);
+  const [modalErrorOpen, setModalErrorOpen] = useState(false);
+  const [rows, setRows] = useState([{id:'0',officeId:'-',officeName:'-',action: '-'}]);
   const [modalAddOpen, setModalAddOpen] = useState(false);
   const [modalDeleteOpen, setModalDeleteOpen] = useState(false);
-  const [modalErrorOpen, setModalErrorOpen] = useState(false);
-  const [errorInfo, setErrorInfo] = useState({heading:'',message:''});
   const [addNameInvalid, setAddNameInvalid] = useState(false);
   const [invalidMessage, setInvalidMessage] = useState("");
   const [displayTable, setDisplayTable] = useState('none');
   const [displaySkeleton, setDisplaySkeleton] = useState('block');
 
   useEffect(() => GetOffices(),[]);
-  useEffect(() => {
-    if (errorInfo.heading !== '') {
-      setModalErrorOpen(true)
-      if (modalAddOpen) setModalAddOpen(false);
-      if (modalDeleteOpen) setModalDeleteOpen (false);
-      addName.current.value = "";
-      officeToDelete.current = "";
-    }
-  },[errorInfo]);
-    
-  function GetOffices() {
-    fetch(`${process.env.REACT_APP_API_BASE_URL}/offices`, {mode:'cors'})
-    .then(response => response.json())
-    .then(data => {
-      let offices = [];
-      for (let i=0; i<data.rows.length; i++){
-        offices.push({
-          id:String(i),
-          officeID:data.rows[i].officeid,
-          officeName:data.rows[i].officename,
+
+  async function GetOffices() {
+    const officesRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/offices/getall`, {mode:'cors'})
+    const officesResponse = await officesRequest.json();
+    if (officesResponse.code !== 200) {
+      errorInfo.current = {heading:`Error ${officesResponse.code}`, message:officesResponse.message};
+      setModalErrorOpen(true);
+    };
+    if (officesResponse.code === 200) {
+      const offices = officesResponse.data.rows.map((office, index) => {
+        return {
+          id:String(index),
+          officeId:office.officeid,
+          officeName:office.officename,
           action:
             <>
-              <Button 
+              <Button
                 hasIconOnly
                 size="md"
                 renderIcon={TrashCan}
@@ -72,94 +66,94 @@ export default function AdminOfficesPage() {
                 kind="danger"
                 onClick={() => {
                   officeToDelete.current = {
-                    officeID:data.rows[i].officeid,
-                    officeName:data.rows[i].officename
+                    officeId:office.officeid,
+                    officeName:office.officename
                   };
                   setModalDeleteOpen(true);
                 }}
               />
             </>
-        })
-      }
+        };
+      });
+
       setDisplayTable('block');
       setDisplaySkeleton('none');
       setRows(offices);
-
-    })
-  }
+    };
+  };
 
   async function AddOffice() {
-    
+
     setAddNameInvalid(false);
     setInvalidMessage("");
 
-    const addRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/addoffice`, {
+    const addRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/offices/add`, {
       method:'POST',
       mode:'cors',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({officeName:addName.current.value,token:localStorage.getItem("adminjwt")})   
-    })
+      body:JSON.stringify({
+        "officeName":addName.current.value,
+        "token":localStorage.getItem("adminjwt")
+      })
+    });
 
     const addResponse = await addRequest.json();
+
     switch (addResponse.code) {
-      case 201:
+      case 200:
         setModalAddOpen(false);
         setAddNameInvalid(false);
         setInvalidMessage("");
         addName.current.value = "";
         GetOffices();
         break;
-      
+
       case 401:
       case 403:
+      case 409:
       case 500:
-        setErrorInfo({
+        errorInfo.current = {
           heading:"Error Adding Office",
           message:`${addResponse.code}: ${addResponse.message}`
-        })
+        };
+        setModalAddOpen(false);
+        setModalErrorOpen(true);
         break;
 
-      case 409:
-        setModalAddOpen(false);
-        setAddNameInvalid(false);
-        setInvalidMessage("");
-        setErrorInfo({
-          heading:"Office Already Exists",
-          message:`No office was added. ${addName.current.value} already exists.`
-        })
-        break;
       case 600:
-        setAddNameInvalid(true);
-        setInvalidMessage("The office name cannot be null");
-        break;
-      
       case 601:
         setAddNameInvalid(true);
-        setInvalidMessage("The office name cannot contain any spaces");
+        setInvalidMessage(addResponse.message);
         break;
     }
   }
 
   async function DeleteOffice() {
-    const deleteRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/deleteoffice`, {
+    const deleteRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/offices/delete`, {
       method:'DELETE',
       mode:'cors',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({"officeId":officeToDelete.current.officeID, token:localStorage.getItem("adminjwt")})    
-    })
+      body:JSON.stringify({
+        "officeId":officeToDelete.current.officeId,
+        "token":localStorage.getItem("adminjwt")
+      })
+    });
     const deleteResponse = await deleteRequest.json();
     if (deleteResponse.code === 200) GetOffices();
     if (deleteResponse.code !== 200) {
-      setErrorInfo({
+      errorInfo.current = {
         heading:`Error Deleting ${officeToDelete.current.officeName}`,
         message:`Error ${deleteResponse.code}: ${deleteResponse.message}`
-    })}
+      };
+      setModalDeleteOpen(false);
+      setModalErrorOpen(true);
+    }
   }
 
   return (
     <>
       <Modal
-        id='modalAdd' 
+        id='modalAdd'
         primaryButtonText="Add"
         secondaryButtonText="Cancel"
         shouldSubmitOnEnter={true}
@@ -170,9 +164,9 @@ export default function AdminOfficesPage() {
           setInvalidMessage("");
           addName.current.value = "";
         }}
-        onRequestSubmit={() => AddOffice()} 
+        onRequestSubmit={() => AddOffice()}
         open={modalAddOpen}>
-        
+
         <TextInput
           style={{ marginBottom: '1rem'}}
           labelText="Office Name"
@@ -202,13 +196,13 @@ export default function AdminOfficesPage() {
       <Modal
         id="modalError"
         open={modalErrorOpen}
-        modalHeading={errorInfo.heading}
+        modalHeading={errorInfo.current.heading}
         primaryButtonText="Ok"
         onRequestSubmit={() => setModalErrorOpen(false)}
         onRequestClose={() => setModalErrorOpen(false)}
         shouldSubmitOnEnter={true}
       >
-        {errorInfo.message}
+        {errorInfo.current.message}
       </Modal>
       <Content>
         <div style={{display: `${displayTable}`}} className="bx--grid bx--grid--full-width adminPageBody">
@@ -226,8 +220,8 @@ export default function AdminOfficesPage() {
                   getTableProps,
                   onInputChange
                 }) => (
-                  <TableContainer 
-                    title="Offices" 
+                  <TableContainer
+                    title="Offices"
                     description="Displays list of all office names that participants can choose from when registering."
                     >
                     <TableToolbar>

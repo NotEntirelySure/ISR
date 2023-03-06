@@ -1,9 +1,10 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { Navigate } from 'react-router-dom';
 import {
     Button,
     Form,
     InlineNotification,
+    Modal,
     PasswordInput,
     Stack,
     TextInput
@@ -12,68 +13,83 @@ import UserGlobalHeader from '../../components/UserGlobalHeader';
 
 export default function AdminLoginPage() {
   
+  const usernameRef = useRef('');
+  const passwordRef = useRef('');
+  const errorInfo = useRef({heading:"", message:""});
+
+  const [modalErrorOpen, setModalErrorOpen] = useState(false);
   const [usernameInvalid, setUsernameInvalid] = useState(false);
   const [passwordInvalid, setPasswordInvalid] = useState(false);
   const [redirect, setRedirect] = useState(false);
   const [notification, setNotification] = useState(0);
   
   async function Login() {
-
-    let username = document.getElementById("username").value;
-    let password = document.getElementById("password").value;
     
     setUsernameInvalid(false);
     setPasswordInvalid(false);
 
-    if (username === "") {
+    if (usernameRef.current.value === "") {
       setUsernameInvalid(true);
       return;
     };
     
-    if (password === "") {
+    if (passwordRef.current.value === "") {
       setPasswordInvalid(true);
       return;
     };
 
-    if (username !== "" && password !== "") {
+    if (usernameRef.current.value !== "" && passwordRef.current.value !== "") {
         
-      const loginRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/adminlogin`, {
+      const loginRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/login/admin`, {
         method:'POST',
         mode:'cors',
         headers:{'Content-Type':'application/json'},
-        body:`{"user":"${username}","pass":"${password}"}`
+        body:`{"user":"${usernameRef.current.value}","pass":"${passwordRef.current.value}"}`
       });
 
-      const loginResult = await loginRequest.json();
+      const loginResponse = await loginRequest.json();
       
-      switch (loginResult.result) {
+      switch (loginResponse.code) {
         case 200:
-          localStorage.setItem("adminjwt", loginResult.jwt);
+          localStorage.setItem("adminjwt", loginResponse.jwt);
           setRedirect(true);
           break;
-
-        case 401:
-          setNotification(notification + 1);
+        case 500:
+          errorInfo.current = {heading:`Error ${loginResponse.code}`, message:loginResponse.message}
+          setModalErrorOpen(true);
           break;
-            
-        default:
-          setNotification(notification + 1);
-          break;
+        default: setNotification(notification + 1);
       };
     }
   }
 
   return (
     <>
-      <UserGlobalHeader/>
       {redirect ? <Navigate to='/adminhome'/>:null}
+      <Modal
+        id='modalError'
+        modalHeading={errorInfo.current.heading}
+        primaryButtonText="Ok"
+        open={modalErrorOpen}
+        onRequestClose={() => {
+          setModalErrorOpen(false);
+          errorInfo.current = ({heading:"", message:""});
+        }}
+        onRequestSubmit={() => {
+          setModalErrorOpen(false);
+          errorInfo.current = ({heading:"", message:""});
+        }}
+      >
+        <div>{errorInfo.current.message}</div>
+      </Modal>
+      <UserGlobalHeader/>
       <div id='loginBody'>
         <div id="loginContent">
           <Form>
             <Stack gap={7}>
               <TextInput
                 labelText="Username"
-                helperText=""
+                ref={usernameRef}
                 id="username"
                 invalid={usernameInvalid}
                 invalidText="This is a required field."
@@ -81,7 +97,7 @@ export default function AdminLoginPage() {
                 />
               <PasswordInput
                 labelText="Password"
-                helperText=""
+                ref={passwordRef}
                 id="password"
                 invalid={passwordInvalid}
                 invalidText="This is a required field."

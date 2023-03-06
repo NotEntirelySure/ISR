@@ -35,7 +35,7 @@ function getAllVotes(token) {
         ORDER BY v.voteid;`,
         (error, results) => {
           if (error) {reject(error)}
-          resolve(results.rows);
+          resolve({code:200,data:results.rows});
         }
       );
     };
@@ -65,7 +65,9 @@ function getVotesByProject(projectID) {
 };
 
 //used by statistics page
-function getVotesByOffice(officeName) {
+function getVotesByOffice(args) {
+  const officeName = args.split('&')[0];
+  const token = args.split('&')[1];
   return new Promise(async(resolve, reject) => {
     const isAuthReqest = await auth_model._verifyAdmin(token);
     const isAuthResponse = await isAuthReqest;
@@ -105,15 +107,15 @@ function getChangeLogById(data) {
         `SELECT * FROM changelog WHERE changevoteid=$1;`,
         [data.split('&')[0]],
         (error, results) => {
-          if (error) reject(error)
-          resolve(results.rows)
+          if (error) resolve({code:500,message:error.detail});
+          resolve({code:200, data:results.rows});
         }
       );
     };
   });
 };
 
-function getAllChangeLogs() {
+function getAllChangeLogs(token) {
   return new Promise(async(resolve, reject) => {
     const isAuthReqest = await auth_model._verifyAdmin(token);
     const isAuthResponse = await isAuthReqest;
@@ -143,7 +145,7 @@ function getAllChangeLogs() {
         LEFT JOIN participants as pa ON v.voteparticipantid=pa.participantid;`,
         (error, results) => {
           if (error) reject(error)
-          resolve(results)
+          resolve({code:200, data:results})
         }
       );
     };
@@ -151,13 +153,13 @@ function getAllChangeLogs() {
 };
 
 //used by admin vote page
-function submitVote(data) {
+function addVote(data) {
   return new Promise(async(resolve, reject) => {
     const isAuthReqest = await auth_model._verifyAdmin(data.token);
     const isAuthResponse = await isAuthReqest;
     if (isAuthResponse.code !== 200) resolve(isAuthResponse);
     if (isAuthResponse.code === 200) {
-      if (data.values.source === "admin" && data.values.comment === "") data.values["comment"] = "Admin created this vote."
+      if (data.values.source === "admin" && data.values.comment === "") data.values["comment"] = "Admin created/edited this vote."
       pool.query(
         'SELECT submit_vote($1,$2,$3,$4,$5);',
         [
@@ -168,10 +170,10 @@ function submitVote(data) {
           data.values.comment
         ],
         (error, results) => {
-          if (error) reject({code:500});
+          if (error) resolve({code:500,message:error.detail});
           if (results.rows[0].submit_vote === 0) reject({code:500, message:"An error occured submitting the vote."});
           if (results.rows[0].submit_vote === 1) resolve({code:200});
-          reject({code:404});
+          resolve({code:404,message:"An unknown error occured while attempting to submit vote."});
         }
       );
     };
@@ -179,9 +181,9 @@ function submitVote(data) {
 };
 
 //used by admin vote page to check if vote exists before manually adding a vote.
-function checkVote(voteTag) {
+function checkVote(data) {
   return new Promise(async(resolve, reject) => {
-    const isAuthReqest = await auth_model._verifyAdmin(voteTag.split('&')[2]);
+    const isAuthReqest = await auth_model._verifyAdmin(data.split('&')[2]);
     const isAuthResponse = await isAuthReqest;
     if (isAuthResponse.code !== 200) resolve(isAuthResponse);
     if (isAuthResponse.code === 200) {
@@ -193,33 +195,34 @@ function checkVote(voteTag) {
             AND voteprojectid=$2
           )
         );`,
-        [voteTag.split('&')[0], voteTag.split('&')[1]],
+        [data.split('&')[0], data.split('&')[1]],
         (error, results) => {
-        if (error) reject({code:500,message:error});
-        resolve(results.rows);
+        if (error) resolve({code:500,message:error.detail});
+        resolve({code:200, data:results.rows});
       });
     };
   });
 };
 //used by admin vote page
-function deleteVote(voteId, token) {
+function deleteVote(data) {
   return new Promise(async(resolve, reject) => {
-    const isAuthReqest = await auth_model._verifyAdmin(token);
+    const isAuthReqest = await auth_model._verifyAdmin(data.token);
     const isAuthResponse = await isAuthReqest;
     if (isAuthResponse.code !== 200) resolve(isAuthResponse);
     if (isAuthResponse.code === 200) {
-      pool.query('SELECT delete_vote($1);',[voteId], (error, results) => {
-        if (error) reject({code:500, message:error});
+      pool.query('SELECT delete_vote($1);',[data.voteId], (error, results) => {
+        if (error) reject({code:500, message:error.detail});
         switch (results.rows[0].delete_vote) {
-          case 1: 
+          case 1:
             resolve({code:200});
             break;
-          case -1:
-            resolve({code:404});
-            break;
           case 0:
-            resolve({code:500});
+            resolve({code:500, message: `An error occured while attempting to delete vote ${data.voteId}`});
             break;
+          case -1:
+            resolve({code:404, message:`An error occured while attempting to delete vote ID ${data.voteId}. A vote with that ID was not found in the database.`});
+            break;
+          default: resolve({code:500, message: `An unknown error occured while attempting to delete vote ${data.voteId}`});
         };
       });
     };
@@ -259,12 +262,12 @@ function editVote(data) {
     const isAuthResponse = await isAuthReqest;
     if (isAuthResponse.code !== 200) resolve(isAuthResponse);
     if (isAuthResponse.code === 200) {
-      if (data.values.comment === "") data.values["comment"] = 'Vote value modified by administrator';
+      if (data.comment === "") data["comment"] = 'Vote value modified by administrator';
       pool.query(
         `UPDATE votes SET votevalue=$2 WHERE voteid=$1;`,
-        [data.values.voteid, data.values.newvalue],
+        [data.voteid, data.newvalue],
         (error) => {
-          if (error) reject(error);
+          if (error) resolve({code:500, message:error.detail});
           pool.query(
             `INSERT INTO changelog (
               changevoteid,
@@ -276,13 +279,13 @@ function editVote(data) {
             )
             VALUES ($1,$2,$3,(SELECT NOW()),$4,'edit');`,
             [
-              data.values.voteid,
-              data.values.previousvalue,
-              data.values.newvalue,
-              data.values.comment
+              data.voteid,
+              data.previousvalue,
+              data.newvalue,
+              data.comment
             ],
             (error) => {
-              if (error) reject(error)
+              if (error) resolve({code:500, message:error.detail})
               resolve({code:200})
             }
           );
@@ -305,7 +308,7 @@ function resetVoteTable(token) {
           if (error) {resolve({"result":500,"message":error})}
           if (results) {resolve({"result":200})}
         }
-      )
+      );
     }
   })
 }
@@ -334,7 +337,7 @@ module.exports = {
   getVotesByOffice,
   getChangeLogById,
   getAllChangeLogs,
-  submitVote,
+  addVote,
   editVote,
   deleteVote,
   deleteAllVotes,

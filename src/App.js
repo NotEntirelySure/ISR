@@ -23,7 +23,7 @@ export default function App() {
         <Route path="/admin" element={<AdminLoginPage />} />
         <Route path="/adminhome" element={<ProtectedRoute page="adminhome"/>}/>
         <Route path="/votedashboard" element={<ProtectedRoute page="votedashboard"/>}/>
-        <Route path="/manageprojects" element={<ProtectedRoute page="manageprojects"/>}/>
+        <Route path="/ideasadmin" element={<ProtectedRoute page="ideasadmin"/>}/>
         <Route path="/useradmin" element={<ProtectedRoute page="useradmin"/>}/>
         <Route path="/connections" element={<ProtectedRoute page="connections"/>}/>
         <Route path="/votesadmin" element={<ProtectedRoute page="votesadmin"/>}/>

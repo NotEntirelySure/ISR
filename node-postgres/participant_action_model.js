@@ -26,31 +26,57 @@ const registerParticipant = (userInfo) => {
   });
 };
 
+const logoutParticipant = (data) => {
+  return new Promise (async(resolve, reject) => {
+    const isAuthReqest = await auth_model._verifyParticipant(data.token);
+    const isAuthResponse = await isAuthReqest;
+    if (isAuthResponse.code !== 200) resolve(isAuthResponse);
+    if (isAuthResponse.code === 200) {
+      if (isAuthResponse.participantId !== data.participantId) resolve({code:401,message:"Requested participant logout does not match provided token."})
+      if (isAuthResponse.participantId === data.participantId) {
+        pool.query(
+          `UPDATE participants SET participantloggedin='false' WHERE participantid=$1;`,
+          [data.participantId],
+          (error, results) => {
+            if (error) resolve({code:500, message:error});
+            resolve({code:200});
+          }
+        );
+      };
+    };
+  });
+};
+
 const getParticipantInfo = (token) => {  
   return new Promise((resolve, reject) => {
-    try{
+    try {
       const isVerified = jwt.verify(token, process.env.JWT_SECRET_KEY)
-    if (isVerified.participantid){
-      pool.query(`
-        SELECT 
-          p.participantid,
-          p.participanttitle,
-          p.participantfname,
-          p.participantlname,
-          p.participantoffice,
-          p.participantloggedin,
-          o.officename
-        FROM participants as p
-        JOIN offices AS o ON o.officeid=p.participantoffice
-        WHERE participantid=$1;`,
-        [isVerified.participantid],
-        (error, results) => {
-          if (error) {reject(error)}
-          resolve(results);
-      })
+      if (isVerified.participantid){
+        pool.query(`
+          SELECT 
+            p.participantid,
+            p.participanttitle,
+            p.participantfname,
+            p.participantlname,
+            p.participantoffice,
+            p.participantloggedin,
+            o.officename
+          FROM participants as p
+          JOIN offices AS o ON o.officeid=p.participantoffice
+          WHERE participantid=$1;`,
+          [isVerified.participantid],
+          (error, results) => {
+            if (error) {reject(error)}
+            resolve(results);
+        })
+      }
     }
-  }
-  catch (error) {console.log(error);}
+    catch (error) {
+      resolve({
+        code:500,
+        message:error
+      })
+    };
   });
 }
 
@@ -76,29 +102,37 @@ const getVoteHistory = (token) => {
 
 //used by user vote page
 const castVote = (data) => {
-  return new Promise(function(resolve, reject) {
-    if (values.source === "admin" && values.comment === "") values["comment"] = "Admin created or modified this vote."
-    pool.query(
-      'SELECT submit_vote($1,$2,$3,$4,$5);',
-      [
-        data.values.projectID,
-        data.values.voterID,
-        data.values.voteValue,
-        data.values.source,
-        data.values.comment
-      ],
-      (error, results) => {
-        if (error) reject({code:500});
-        if (results.rows[0].submit_vote === 0) reject({code:500, message:"An error occured submitting the vote."});
-        if (results.rows[0].submit_vote === 1) resolve({code:200});
-        reject({code:404});
-      }
-    );
+  return new Promise(async(resolve, reject) => {
+    try {
+      const isAuthReqest = await auth_model._verifyJwt(data.token);
+      const isAuthResponse = await isAuthReqest;
+      if (isAuthResponse.code !== 200) resolve(isAuthResponse);
+      if (isAuthResponse.code === 200) {
+        pool.query(
+        'SELECT submit_vote($1,$2,$3,$4,$5);',
+        [
+          data.values.projectID,
+          data.values.voterID,
+          data.values.voteValue,
+          data.values.source,
+          data.values.comment
+        ],
+        (error, results) => {
+          if (error) resolve({code:500, message:error.message});
+          if (results.rows[0].submit_vote === 0) resolve({code:500, message:"An error occured submitting the vote."});
+          if (results.rows[0].submit_vote === 1) resolve({code:200});
+          resolve({code:404});
+        }
+        );
+      };
+    }
+    catch (catchError) {resolve({code:500, message:catchError.message})}
   });
 };
 
 
 module.exports = {
+  logoutParticipant,
   registerParticipant,
   getParticipantInfo,
   getVoteHistory,

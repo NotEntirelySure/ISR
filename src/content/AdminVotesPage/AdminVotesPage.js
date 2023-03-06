@@ -31,7 +31,7 @@ import {
 
 const headers = [
 	{key:'voteID', header:'Vote ID'},
-	{key:'projectID', header:'Project Number'},
+	{key:'projectID', header:'Idea Number'},
 	{key:'voter', header:'Voter'},
 	{key:'office', header:'Office'},
 	{key:'voteValue', header:'Vote Value'},
@@ -42,10 +42,13 @@ const headers = [
 
 export default function AdminVotesPage() {
 	
+	const errorInfo = useRef({heading:'', message:''});
 	const addVoteCombosRef = useRef({voterId:"",voterName:"",projectId:""});
 	const addVoteValueRef = useRef(0);
 	const addVoteCommentRef = useRef();
-	const voteToEdit = useRef({});
+	const editVoteValueRef = useRef();
+	const voteToEditRef = useRef({});
+	const editVoteCommentRef = useRef();
 	const voteToDelete = useRef({
 		voteID:"",
 		projectID:"",
@@ -70,9 +73,8 @@ export default function AdminVotesPage() {
 	const [showHistoryContent, setShowHistoryContent] = useState('none');
 	const [showLoading, setShowLoading] = useState('flex');
 	const [currentVoteHistory, setCurrentVoteHistory] = useState(0);
-	const [errorInfo, setErrorInfo] = useState({heading:'',	message:''});
 	const [addProjectComboSelection, setAddProjectComboSelection] = useState({projectid:""});
-	const [addVoteInputValue, setAddVoteInputValue] = useState(6);
+	const [addVoteInputValue, setAddVoteInputValue] = useState(0);
 	const [addUserComboSeletion, setAddUserComboSelection] = useState({
 		fname:"",
 		lname:"",
@@ -94,22 +96,26 @@ export default function AdminVotesPage() {
   useEffect(() => GetVotes(),[])
 	
   async function GetVotes() {
-    const votesRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getallvotes/${localStorage.getItem('adminjwt')}`, {mode:'cors'});
+    const votesRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/votes/getall/${localStorage.getItem('adminjwt')}`, {mode:'cors'});
     const votesResponse = await votesRequest.json();
-		
-    let votes = [];
-    for (let i=0; i<votesResponse.length; i++){
-      votes.push({
-        "id":String(i),
-        "voteID":votesResponse[i].voteid,
-        "projectID":votesResponse[i].voteprojectid,
-        "voter":`${votesResponse[i].participanttitle} ${votesResponse[i].participantfname} ${votesResponse[i].participantlname}`,
-        "office":votesResponse[i].officename,
-        "voteValue":votesResponse[i].votevalue,
-        "voteTime":votesResponse[i].votetime ? `${new Date(votesResponse[i].votetime).toUTCString()}`:"",
-        "modified":votesResponse[i].votemodified ? "yes":"no",
-        "action":
-          <>
+		if (votesResponse.code !== 200) {
+			errorInfo.current = {heading:`Error ${votesResponse.code}`, message:votesResponse.message};
+			setModalErrorOpen(true);
+			return;
+		};
+		if (votesResponse.code === 200) {
+			const votes = votesResponse.data.map((item,index) => {
+				return {
+					"id":String(index),
+					"voteID":item.voteid,
+					"projectID":item.voteprojectid,
+					"voter":`${item.participanttitle} ${item.participantfname} ${item.participantlname}`,
+					"office":item.officename,
+					"voteValue":item.votevalue,
+					"voteTime":item.votetime ? `${new Date(item.votetime).toUTCString()}`:"",
+					"modified":item.votemodified ? "yes":"no",
+					"action":
+					<>
             <div style={{display:'flex', gap:'0.25rem'}}>
               <Button
                 hasIconOnly
@@ -118,16 +124,16 @@ export default function AdminVotesPage() {
                 iconDescription='Edit Vote'
                 kind="primary"
                 onClick={() => {
-                  document.getElementById("editVoteValue").value = votesResponse[i].votevalue; //this should be a useRef
-                  voteToEdit.current = {
-										"voteid":votesResponse[i].voteid,
-										"voter":`${votesResponse[i].participanttitle} ${votesResponse[i].participantfname} ${votesResponse[i].participantlname}`,
-										"votevalue":votesResponse[i].votevalue,
-										"projectid":votesResponse[i].voteprojectid
+									editVoteValueRef.current.value = item.votevalue;
+                  voteToEditRef.current = {
+										"voteid":item.voteid,
+										"voter":`${item.participanttitle} ${item.participantfname} ${item.participantlname}`,
+										"votevalue":item.votevalue,
+										"projectid":item.voteprojectid
 									}
 									setModalEditOpen(true);
                 }}
-              />
+								/>
               <Button
                 hasIconOnly
                 size='md'
@@ -138,35 +144,35 @@ export default function AdminVotesPage() {
 									setModalHistoryOpen(true);
 									setShowLoading('block');
                   setShowHistoryContent('none');
-                  GetVoteHistory(votesResponse[i].voteid)
+                  GetVoteHistory(item.voteid)
                 }}
-              />
+								/>
               <Button
                 hasIconOnly
                 size='md'
                 renderIcon={TrashCan}
                 iconDescription='Delete Vote'
-                kind="danger"
+                kind='danger'
                 onClick={() => {
-                  voteToDelete.current = {
-                    voteID:votesResponse[i].voteid,
-                    projectID:votesResponse[i].voteprojectid,
-                    voter:`${votesResponse[i].participanttitle} ${votesResponse[i].participantfname} ${votesResponse[i].participantlname}`
+									voteToDelete.current = {
+										voteID:item.voteid,
+                    projectID:item.voteprojectid,
+                    voter:`${item.participanttitle} ${item.participantfname} ${item.participantlname}`
                   };
                   setModalDeleteOpen(true);
                 }}
-              />
+								/>
             </div>
           </>
-      })
-    }
-    setVotesList(votes);
-    setDisplayTable('block');
-    setDisplaySkeleton('none');
-  }
+				};
+			});
+			setVotesList(votes);
+			setDisplayTable('block');
+			setDisplaySkeleton('none');
+    };
+  };
 
   async function CheckVoteExists() {
-		console.log(addVoteCombosRef.current)
     if (!addVoteCombosRef.current.voterId || addVoteCombosRef.current.voterId === "") {
       setUserComboInvalid(true);
       return;
@@ -178,15 +184,20 @@ export default function AdminVotesPage() {
 
     if (!addVoteValueRef.current.value || addVoteValueRef.current.value < 0 || addVoteValueRef.current.value > 10) return;
     
-		const checkVoteReqest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/checkvote/${addVoteCombosRef.current.voterId}&${addVoteCombosRef.current.projectId}&${localStorage.getItem('adminjwt')}`, {mode:'cors'});
+		const checkVoteReqest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/votes/check/${addVoteCombosRef.current.voterId}&${addVoteCombosRef.current.projectId}&${localStorage.getItem('adminjwt')}`, {mode:'cors'});
 		const checkVoteResponse = await checkVoteReqest.json();
-
-		if (checkVoteResponse[0].exists) setModalExistsOpen(true);
-		if (!checkVoteResponse[0].exists) AddVote();
+		if (checkVoteResponse.code !== 200) {
+			errorInfo.current = {heading:`Error ${checkVoteResponse.code}`, message:checkVoteResponse.message}
+			setModalErrorOpen(true);
+		};
+		if (checkVoteResponse.code === 200) {
+			if (checkVoteResponse.data[0].exists) setModalExistsOpen(true);
+			if (!checkVoteResponse.data[0].exists) AddVote();
+		};
   };
 
   async function AddVote() {
-    const voteRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/submitvote`, {
+    const voteRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/votes/add`, {
       method:'POST',
       mode:'cors',
       headers:{'Content-Type':'application/json'},
@@ -201,44 +212,50 @@ export default function AdminVotesPage() {
 				token:localStorage.getItem('adminjwt')
 			})
     });
+    const voteResponse = await voteRequest.json();
+		if (voteResponse.code !== 200) {
+			errorInfo.current = {heading:`Error: ${voteResponse.code}`, message:voteResponse.message};
+			setModalErrorOpen(true);
+		}
+		if (voteResponse.code === 200) GetVotes();
 
     addVoteCombosRef.current = {voterId:"",voterName:"",projectId:""};
 		addVoteValueRef.current.value = 0;
 		addVoteCommentRef.current.value = "";
 
-    setModalExistsOpen(false);
+    if(modalExistsOpen) setModalExistsOpen(false);
     setModalAddOpen(false);
 		setAddUserComboSelection(null);
 		setAddProjectComboSelection(null);
 		setAddVoteInputValue(0);
     setUserList([]);
     setProjectList([]);
-    GetVotes();
   }
 
   async function EditVote() {
-
-    const newVoteValue = parseInt(document.getElementById('editVoteValue').value); //this should be a useRef. This actually won't be needed once converted to a useRef
-
-    if (newVoteValue >= 0 && newVoteValue <= 10) { //in the comparison, reference the useRef value once it's setup as a useRef instead of the variable
-
+    
+		if (parseInt(editVoteValueRef.current.value)>= 0 && parseInt(editVoteValueRef.current.value) <= 10) {
       setModalEditOpen(false);
-
-      let requestData = {
-        "voteid":voteToEdit.current.voteid,
-        "newvalue": newVoteValue,
-        "previousvalue":voteToEdit.current.votevalue,
-        "comment":document.getElementById('editComment').value //this should be a useRef
-      };
-
-      const editRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/editvote`, {
+      const editRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/votes/edit`, {
         method:'POST',
         mode:'cors',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({values:requestData,token:localStorage.getItem('adminjwt')})
-      })
-      document.getElementById("editComment").value = ""; //this should be a useRef
-      GetVotes();
+        body:JSON.stringify({
+					"voteid":voteToEditRef.current.voteid,
+					"newvalue": editVoteValueRef.current.value,
+					"previousvalue":voteToEditRef.current.votevalue,
+					"comment":editVoteCommentRef.current.value,
+					"token":localStorage.getItem('adminjwt')
+				})
+      });
+			const editResponse = await editRequest.json();
+			editVoteCommentRef.current.value = "";
+			if (editResponse.code !== 200) {
+				errorInfo.current = {heading:`Error ${editResponse.code}`, message:editResponse.message}
+				setModalErrorOpen(true);
+				return;
+			}
+			if (editResponse.code === 200) GetVotes();
     }
   }
 
@@ -247,115 +264,136 @@ export default function AdminVotesPage() {
     let reqBody = {};
     
     if (voteToDelete.current.voteID === "all") {
-      fetchUrl = `${process.env.REACT_APP_API_BASE_URL}/deleteallvotes`;
+      fetchUrl = `${process.env.REACT_APP_API_BASE_URL}/votes/deleteall`;
       reqBody = {
         method:'DELETE',
         mode:'cors',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({token:localStorage.getItem('adminjwt')})
+        body:JSON.stringify({"token":localStorage.getItem('adminjwt')})
       }
     }
     if (voteToDelete.current.voteID !== "all") {
-      fetchUrl = `${process.env.REACT_APP_API_BASE_URL}/deletevote`;
+      fetchUrl = `${process.env.REACT_APP_API_BASE_URL}/votes/delete`;
       reqBody = {
         method:'DELETE',
         mode:'cors',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({"voteId":voteToDelete.current.voteID,token:localStorage.getItem('adminjwt')})
-      }
-    }
+        body:JSON.stringify({
+					"voteId":voteToDelete.current.voteID,
+					"token":localStorage.getItem('adminjwt')
+				})
+      };
+    };
+
     const deleteRequest = await fetch(fetchUrl, reqBody);
     const deleteResponse = await deleteRequest.json()
     if (deleteResponse.code === 200) GetVotes();
-    if (deleteResponse.code === 404) {
-			setModalErrorOpen(true);
-			setErrorInfo({
+    if (deleteResponse.code !== 200) {
+			errorInfo.current = {
 				heading:`Error Deleting Vote ${voteToDelete.current.voteID}`,
-				message:`An error occured while attempting to delete vote ${voteToDelete.current.voteID}. A vote with that ID was not found in the database.`
-			});
-    }
-  }
+				message:deleteResponse.message
+			};
+			setModalErrorOpen(true);
+    };
+  };
 
   async function GetUsers() {
-    const usersRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getallvoters/${localStorage.getItem('adminjwt')}`, {mode:'cors'})
-    const usersResponse = await usersRequest.json();
-    let users = [];
-    for (let i=0; i<usersResponse.rows.length; i++){
-      users.push({
-        "userid":usersResponse.rows[i].participantid,
-        "title":usersResponse.rows[i].participanttitle,
-        "fname":usersResponse.rows[i].participantfname,
-        "lname":usersResponse.rows[i].participantlname,
-        "office":usersResponse.rows[i].participantoffice,
-        "text":`${usersResponse.rows[i].participanttitle} ${usersResponse.rows[i].participantfname} ${usersResponse.rows[i].participantlname} (${usersResponse.rows[i].officename})`
-      })
-    }
-    setUserList(users);
+    const participantsRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/participants/getall/${localStorage.getItem('adminjwt')}`, {mode:'cors'})
+    const participantsResponse = await participantsRequest.json();
+		if (participantsResponse.code !== 200) {
+			errorInfo.current = {heading:`Error: ${participantsResponse.code}`, message:participantsResponse.message};
+			setModalErrorOpen(true);
+		}
+		if (participantsResponse.code === 200) {
+			const participants = participantsResponse.data.rows.map((participant) => {
+				return {
+					"userid":participant.participantid,
+					"title":participant.participanttitle,
+					"fname":participant.participantfname,
+					"lname":participant.participantlname,
+					"office":participant.participantoffice,
+					"text":`${participant.participanttitle} ${participant.participantfname} ${participant.participantlname} (${participant.officename})`
+				};
+			});
+			setUserList(participants);
+		}
   }
 
   async function GetProjects() {
-    const projectsRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/projects/${localStorage.getItem('adminjwt')}`, {mode:'cors'})
-    const projectsResponse = await projectsRequest.json();
-    let projects = [];
-    for (let i=0; i<projectsResponse.rows.length; i++){
-      projects.push({
-        "projectid":projectsResponse.rows[i].projectid,
-        "text":`${projectsResponse.rows[i].projectid}: ${projectsResponse.rows[i].projectdescription}`
-      })
-    }
-    setProjectList(projects);
+    const ideasRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/ideas/getall/${localStorage.getItem('adminjwt')}`, {mode:'cors'})
+    const ideasResponse = await ideasRequest.json();
+		if (ideasResponse.code !== 200) {
+			errorInfo.current = {heading:`Error: ${ideasResponse.code}`, message:ideasResponse.message};
+			setModalErrorOpen(true);
+			return;
+		}
+		if (ideasResponse.code === 200) {
+			const ideas = ideasResponse.data.rows.map((idea) => {
+				return {
+					"projectid":idea.projectid,
+					"text":`${idea.projectid}: ${idea.projectdescription}`
+				};
+			});
+			setProjectList(ideas);
+		}
   }
 
   async function GetVoteHistory(voteId) {
     setShowLoading('flex');
     setShowHistoryContent('none');
 
-    const historyRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getchangelogbyid/${voteId}&${localStorage.getItem('adminjwt')}`, {mode:'cors'});
+    const historyRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/changelog/getbyid/${voteId}&${localStorage.getItem('adminjwt')}`, {mode:'cors'});
     const historyResponse = await historyRequest.json();
-    let historyList = [];
-    if (historyResponse.length <= 0) historyList.push(<><p>This vote has not been modified.</p></>);
-    if (historyResponse.length > 0) {
-      for (let i=0; i<historyResponse.length;i++){
-        historyList.push(
-          <>
-            <div 
-              style={{
-                margin:'0.5rem',
-                padding:'0.5rem',
-                backgroundColor:'#dedede',
-                borderRadius:'10px'
-              }}>
-              <h6>Modification type: {historyResponse[i].changeaction}</h6>
-              <h6>Time of modification: {historyResponse[i].changetime}</h6>
-              {
-                historyResponse[i].changeaction==="add" ? 
-                  <>
-                    <h6>Initial Value: {historyResponse[i].changenewvalue}</h6>
-                  </>
-                  :null
-              }
-              {
-                historyResponse[i].changeaction==="edit" ? 
-                  <>
-                    <h6>Previous Value: {historyResponse[i].changepreviousvalue}</h6>
-                   <h6>New Value: {historyResponse[i].changenewvalue}</h6>
-                  </>
-                  :null
-              }
-              <TextArea
-                rows={2}
-                labelText="Comment"
-                value={historyResponse[i].changecomment}
-							/>
-            </div>
-          </>
-        );
-      };
-    }
+    if (historyResponse.code !== 200){
+			errorInfo.current = {heading:`Error: ${historyResponse.code}`, message:historyResponse.message};
+			setModalErrorOpen(true);
+			return;
+		}
+		if (historyResponse.code === 200) {
+    	if (historyResponse.data.length <= 0) setVoteHistory([<><p>This vote has not been modified.</p></>]);
+    	if (historyResponse.data.length > 0) {
+				const history = historyResponse.data.map((item) => {
+					return ( 
+						<>
+							<div 
+								style={{
+									margin:'0.5rem',
+									padding:'0.5rem',
+									backgroundColor:'#dedede',
+									borderRadius:'10px'
+								}}>
+								<h6>Modification type: {item.changeaction}</h6>
+								<h6>Time of modification: {item.changetime}</h6>
+								{
+									item.changeaction==="add" ? 
+										<>
+											<h6>Initial Value: {item.changenewvalue}</h6>
+										</>
+										:null
+								}
+								{
+									item.changeaction==="edit" ? 
+										<>
+											<h6>Previous Value: {item.changepreviousvalue}</h6>
+										<h6>New Value: {item.changenewvalue}</h6>
+										</>
+										:null
+								}
+								<TextArea
+									rows={2}
+									labelText="Comment"
+									value={item.changecomment}
+								/>
+							</div>
+						</>
+					);
+				});
+				setVoteHistory(history);
+			};
+			setCurrentVoteHistory(voteId);
+    };
   	setShowLoading('none');
     setShowHistoryContent('block');
-    setCurrentVoteHistory(voteId);
-    setVoteHistory(historyList);
   }
 
 	return (
@@ -425,7 +463,6 @@ export default function AdminVotesPage() {
 					helperText=""
 					tabIndex={0}
 					onChange={(item) => {
-						console.log(item.selectedItem);
 						setAddProjectComboSelection(item.selectedItem);
 						if (!item.selectedItem) addVoteCombosRef.current.projectId = "";
 						if (item.selectedItem) {
@@ -438,6 +475,7 @@ export default function AdminVotesPage() {
 				<NumberInput
 					id="addVoteValue"
 					allowEmpty={false}
+					iconDescription="Add Vote Value"
 					ref={addVoteValueRef}
 					disableWheel={true}
 					min={0}
@@ -462,7 +500,7 @@ export default function AdminVotesPage() {
 				primaryButtonText="Save"
 				secondaryButtonText="Cancel"
 				shouldSubmitOnEnter={true}
-				modalHeading={`Edit vote for idea ${voteToEdit.current.projectid}`}
+				modalHeading={`Edit vote for idea ${voteToEditRef.current.projectid}`}
 				onRequestClose={() => {
 					setModalEditOpen(false);
 					document.getElementById("editComment").value = ""; //this should be a useRef
@@ -470,12 +508,13 @@ export default function AdminVotesPage() {
 				onRequestSubmit={() => EditVote()}
 				open={modalEditOpen}
 			>
-				<p>Edit vote for idea {voteToEdit.current.projectid} cast by {voteToEdit.current.voter}</p>
+				<p>Edit vote for idea {voteToEditRef.current.projectid} cast by {voteToEditRef.current.voter}</p>
 				<NumberInput
 					id="editVoteValue"
+					ref={editVoteValueRef}
 					min={0}
 					max={10}
-					value={voteToEdit.current.votevalue}
+					value={voteToEditRef.current.votevalue}
 					label="Vote Value"
 					invalidText="Number is not valid. Please enter a value of 0 - 10."
 					tabIndex={0}
@@ -484,6 +523,7 @@ export default function AdminVotesPage() {
 				<br/>
 				<TextArea
 					id="editComment"
+					ref={editVoteCommentRef}
 					labelText="Comment"
 					helperText="Enter the reason for editing the vote."
 					rows={2}
@@ -552,6 +592,7 @@ export default function AdminVotesPage() {
 			</Modal>
 			<Modal
 				id='voteHistory'
+				aria-label='Vote History'
 				hasScrollingContent={true}
 				modalHeading={`History of Vote ID ${currentVoteHistory}`}
 				primaryButtonText="Ok"
@@ -577,25 +618,25 @@ export default function AdminVotesPage() {
 			</Modal>
 			<Modal
 				id='modalError'
-				modalHeading={errorInfo.heading}
+				modalHeading={errorInfo.current.heading}
 				primaryButtonText="Ok"
 				onRequestClose={() => {
 					setModalErrorOpen(false);
-					setErrorInfo({
+					errorInfo.current = {
 						heading:"",
 						message:""
-					});
+					};
 				}}
 				onRequestSubmit={() => {
 					setModalErrorOpen(false);
-					setErrorInfo({
+					errorInfo.current = {
 						heading:"",
 						message:""
-					});
+					};
 				}}
 				open={modalErrorOpen}>
 					<div>
-						{errorInfo.message}
+						{errorInfo.current.message}
 					</div>
 			</Modal>
 			<Content>

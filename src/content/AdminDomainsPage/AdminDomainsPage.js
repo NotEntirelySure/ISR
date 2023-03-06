@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { 
     Button, 
     Content,
@@ -33,42 +33,49 @@ const headers = [
   
 export default function AdminDomainsPage() {
 
+  const addNameRef = useRef();
+  const addColorRef = useRef();
+  const editNameRef = useRef();
+  const editColorRef = useRef();
+  const errorInfo = useRef({heading:"", message:""});
+
+  const [modalErrorOpen, setModalErrorOpen] = useState(false);
   const [displaySkeleton, setDisplaySkeleton] = useState('block');
   const [displayTable, setDisplayTable] = useState('none');
-
   const [domainsList, setDomainsList] = useState([]);
   const [domainToEdit, setDomainToEdit] = useState({"domainId":"", "domainName":"","colorHex":""});
   const [domainToDelete, setDomainToDelete] = useState({"domainId":"", "domainName":""});
-  
   const [modalAddOpen, setModalAddOpen] = useState();
   const [modalEditOpen, setModalEditOpen] = useState();
   const [modalDeleteOpen, setModalDeleteOpen] = useState();
-
   const [addNameInvalid, setAddNameInvalid] = useState(false);
   const [addColorInvalid, setAddColorInvalid] = useState(false);
   const [editNameInvalid, setEditNameInvalid] = useState(false);
   const [editColorInvalid, setEditColorInvalid] = useState(false);
-
   const [colorInvalidMessage, setColorInvalidMessage] = useState('');
   const [previewColor, setPreviewColor] = useState('');
 
-  useEffect(() => {getDomains();}, []);
+  useEffect(() => GetDomains(), []);
 
-  const getDomains = async() => {
-    const domainsRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/getdomains`, {mode:'cors'})
+  async function GetDomains() {
+    const domainsRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/domains/getall/${localStorage.getItem('adminjwt')}`, {mode:'cors'})
     const domainsResponse = await domainsRequest.json();
-    
-    let domains = [];
-    for (let i=0;i<domainsResponse.length;i++) {
-      domains.push({
-        id:String(domainsResponse[i].projectdomainid),
-        "projectdomainid":domainsResponse[i].projectdomainid,
-        "projectdomainname":domainsResponse[i].projectdomainname,
+    if (domainsResponse.code !== 200) {
+      errorInfo.current = {heading:`Error ${domainsResponse.code}`, message:domainsResponse.message}
+      setModalErrorOpen(true);
+      return;
+    }
+    if (domainsResponse.code === 200) {
+    const domains = domainsResponse.data.map((domain) => {
+      return {
+        id:String(domain.projectdomainid),
+        "projectdomainid":domain.projectdomainid,
+        "projectdomainname":domain.projectdomainname,
         "projectdomaincolor":
           <>
             <div 
               style={{
-                backgroundColor:domainsResponse[i].projectdomaincolorhex,
+                backgroundColor:domain.projectdomaincolorhex,
                 width:'40%',
                 borderRadius:'5px'
               }}
@@ -76,7 +83,7 @@ export default function AdminDomainsPage() {
               <p>&nbsp;</p>
             </div>
           </>,
-        "projectdomaincolorhex":domainsResponse[i].projectdomaincolorhex,
+        "projectdomaincolorhex":domain.projectdomaincolorhex,
         "action":
           <>
             <div style={{display:'flex', gap:'0.25rem'}}>
@@ -88,13 +95,13 @@ export default function AdminDomainsPage() {
                 kind="primary"
                 onClick={() => {
                   setDomainToEdit({
-                    "domainId":domainsResponse[i].projectdomainid,
-                    "domainName":domainsResponse[i].projectdomainname,
-                    "colorHex":domainsResponse[i].projectdomaincolorhex,
+                    "domainId":domain.projectdomainid,
+                    "domainName":domain.projectdomainname,
+                    "colorHex":domain.projectdomaincolorhex,
                   });
-                  document.getElementById("editName").value =  domainsResponse[i].projectdomainname;
-                  document.getElementById("editColor").value = domainsResponse[i].projectdomaincolorhex; 
-                  setPreviewColor(domainsResponse[i].projectdomaincolorhex);
+                  editNameRef.current.value = domain.projectdomainname;
+                  editColorRef.current.value = domain.projectdomaincolorhex; 
+                  setPreviewColor(domain.projectdomaincolorhex);
                   setModalEditOpen(true);
                 }}
               />
@@ -106,101 +113,126 @@ export default function AdminDomainsPage() {
                 kind="danger"
                 onClick={() => {
                   setDomainToDelete({
-                    "domainId":domainsResponse[i].projectdomainid,
-                    "domainName":domainsResponse[i].projectdomainname
+                    "domainId":domain.projectdomainid,
+                    "domainName":domain.projectdomainname
                   });
                   setModalDeleteOpen(true);
                 }}
               />
             </div>
           </>
-      })
-    }
-    setDomainsList(domains);
-    setDisplaySkeleton('none');
-    setDisplayTable('block');
+        };
+      });
+      setDomainsList(domains);
+      setDisplaySkeleton('none');
+      setDisplayTable('block');
+    };
   }
 
   const addDomain = async() => {
-    let name = document.getElementById("addName");
-    let color = document.getElementById("addColor");
     
-    if (name.value === "" || name.value === null || name.value === undefined) {
+    if (addNameRef.current.value === "" || addNameRef.current.value === null || addNameRef.current.value === undefined) {
       setAddNameInvalid(true);
       return;
     }
-    if (color.value.indexOf("#") <= -1 || color.value.indexOf("#") > 0) {
+    if (addColorRef.current.value.indexOf("#") <= -1 || addColorRef.current.value.indexOf("#") > 0) {
       setColorInvalidMessage("The hexadecimal color value must start with an octothorpe (#)");
       setAddColorInvalid(true);
       return;
     }
-    if (color.value.length < 7 || color.value.length > 7) {
+    if (addColorRef.current.value.length < 7 || addColorRef.current.value.length > 7) {
       setColorInvalidMessage("The hexadecimal color value must be exactly 7 characters; including the octothorpe (#)");
       setAddColorInvalid(true);
       return;
     }
     setModalAddOpen(false);
-    const addRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/adddomain`, {
+    const addRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/domains/add`, {
       method:'POST',
       mode:'cors',
       headers:{'Content-Type':'application/json'},
-      body:`{"domainName":"${name.value}","colorHex":"${color.value}"}`    
-    })
+      body:JSON.stringify({
+        "domainName":addNameRef.current.value,
+        "colorHex":addColorRef.current.value,
+        "token":localStorage.getItem('adminjwt')
+      })
+    });
     const addResponse = await addRequest.json();
-    getDomains();
+    GetDomains();
 
     setPreviewColor('');
-    name.value = '';
-    color.value = '';
+    addNameRef.current.value = '';
+    addColorRef.current.value = '';
   }
 
   const editDomain = async() => {
-    let name = document.getElementById("editName");
-    let color = document.getElementById("editColor");
     
-    if (name.value === "" || name.value === null || name.value === undefined) {
+    if (editNameRef.current.value === "" || editNameRef.current.value === null || editNameRef.current.value === undefined) {
       setEditNameInvalid(true);
       return;
     }
-    if (color.value.indexOf("#") <= -1 || color.value.indexOf("#") > 0) {
+    if (editColorRef.current.value.indexOf("#") <= -1 || editColorRef.current.value.indexOf("#") > 0) {
       setColorInvalidMessage("The hexadecimal color value must start with an octothorpe (#)");
       setEditColorInvalid(true);
       return;
     }
-    if (color.value.length < 7 || color.value.length > 7) {
+    if (editColorRef.current.value.length < 7 || editColorRef.current.value.length > 7) {
       setColorInvalidMessage("The hexadecimal color value must be exactly 7 characters; including the octothorpe (#)");
       setEditColorInvalid(true);
       return;
     }
     setModalEditOpen(false);
-    const editRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/editdomain`, {
+    const editRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/domains/edit`, {
       method:'POST',
       mode:'cors',
       headers:{'Content-Type':'application/json'},
-      body:`{"domainId":"${domainToEdit.domainId}","domainName":"${name.value}","colorHex":"${color.value}"}`    
-    })
+      body:JSON.stringify({
+        "domainId":domainToEdit.domainId,
+        "domainName":editNameRef.current.value,
+        "colorHex":editColorRef.current.value,
+        "token":localStorage.getItem('adminjwt')
+      })
+    });
     const editResponse = await editRequest.json();
-    getDomains();
+    GetDomains();
 
     setPreviewColor('');
-    name.value = '';
-    color.value = '';
+    editNameRef.current.value = '';
+    editColorRef.current.value = '';
   }
 
   const deleteDomain = async() => {
     setModalDeleteOpen(false);
-    const deleteRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/deletedomain`, {
-      method:'POST',
+    const deleteRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/domains/delete`, {
+      method:'DELETE',
       mode:'cors',
       headers:{'Content-Type':'application/json'},
-      body:`{"domainId":"${domainToDelete.domainId}"}`    
+      body:JSON.stringify({
+        "domainId":domainToDelete.domainId,
+        "token":localStorage.getItem('adminjwt')
+      })    
     });
     const deleteResponse = await deleteRequest.json();
-    getDomains();
+    GetDomains();
   }
 
   return (
     <Content>
+      <Modal
+        id='modalError'
+        modalHeading={errorInfo.current.heading}
+        primaryButtonText="Ok"
+        open={modalErrorOpen}
+        onRequestClose={() => {
+          setModalErrorOpen(false);
+          errorInfo.current = ({heading:"", message:""});
+        }}
+        onRequestSubmit={() => {
+          setModalErrorOpen(false);
+          errorInfo.current = ({heading:"", message:""});
+        }}
+      >
+        <div>{errorInfo.current.message}</div>
+      </Modal>
       <Modal
         id='modalAdd' 
         primaryButtonText="Add"
@@ -211,15 +243,15 @@ export default function AdminDomainsPage() {
           setAddNameInvalid(false);
           setAddColorInvalid(false);
           setPreviewColor('');
-          document.getElementById("addName").value = "";
-          document.getElementById("addColor").value = "";
+          addNameRef.current.value = "";
+          addColorRef.current.value = "";
         }}
         onRequestSubmit={() => addDomain()}
         open={modalAddOpen}>
         <TextInput
           labelText="Domain Name"
           placeholder="Enter domain name"
-          helperText=""
+          ref={addNameRef}
           id="addName"
           invalid={addNameInvalid}
           invalidText="This is a required field."
@@ -236,21 +268,22 @@ export default function AdminDomainsPage() {
           labelText="Domain Color Hex Value"
           placeholder="Enter the color's hex value"
           helperText="Example: #78277E"
+          ref={addColorRef}
           id="addColor"
           invalid={addColorInvalid}
           invalidText={colorInvalidMessage}
           tabIndex={0}
           onPaste={() => {
-            if (document.getElementById("addColor").value.indexOf("#") === 0 && document.getElementById("addColor").value.length === 7) {
-              setPreviewColor(document.getElementById("addColor").value)
+            if (addColorRef.current.value.indexOf("#") === 0 && addColorRef.current.value.length === 7) {
+              setPreviewColor(addColorRef.current.value)
             }
           }}
           onKeyUp={(event) => {
             if (addColorInvalid) setAddColorInvalid(false);
-            if (document.getElementById("addColor").value.indexOf("#") === 0 && document.getElementById("addColor").value.length === 7) {
-              setPreviewColor(document.getElementById("addColor").value)
+            if (addColorRef.current.value.indexOf("#") === 0 && addColorRef.current.value.length === 7) {
+              setPreviewColor(addColorRef.current.value)
             }
-            if (document.getElementById("addColor").value.indexOf("#") !== 0 || document.getElementById("addColor").value.length !== 7) {
+            if (addColorRef.current.value.indexOf("#") !== 0 || addColorRef.current.value.length !== 7) {
               setPreviewColor("")
             }
             if (event.key === 'Enter') addDomain();
@@ -270,14 +303,14 @@ export default function AdminDomainsPage() {
           setEditNameInvalid(false);
           setEditColorInvalid(false);
           setPreviewColor('');
-          document.getElementById("editName").value = "";
-          document.getElementById("editColor").value = "";
+          addNameRef.current.value = "";
+          addColorRef.current.value = "";
         }}
         onRequestSubmit={() => editDomain()}
         open={modalEditOpen}>
         <TextInput
           labelText="Domain Name"
-          helperText=""
+          ref={editNameRef}
           id="editName"
           invalid={editNameInvalid}
           invalidText="This is a required field."
@@ -294,22 +327,23 @@ export default function AdminDomainsPage() {
         <TextInput
           labelText="Domain Color Hex Value"
           helperText="Example: #78277E"
+          ref={editColorRef}
           id="editColor"
           invalid={editColorInvalid}
           invalidText={colorInvalidMessage}
           placeholder="Enter the color's hex value"
           tabIndex={0}
           onPaste={() => {
-            if (document.getElementById("editColor").value.indexOf("#") === 0 && document.getElementById("editColor").value.length === 7) {
-              setPreviewColor(document.getElementById("editColor").value)
+            if (editColorRef.current.value.indexOf("#") === 0 && editColorRef.current.value.length === 7) {
+              setPreviewColor(editColorRef.current.value)
             }
           }}
           onKeyUp={(event) => {
             if (editColorInvalid) setEditColorInvalid(false);
-            if (document.getElementById("editColor").value.indexOf("#") === 0 && document.getElementById("editColor").value.length === 7) {
-              setPreviewColor(document.getElementById("editColor").value)
+            if (editColorRef.current.value.indexOf("#") === 0 && editColorRef.current.value.length === 7) {
+              setPreviewColor(editColorRef.current.value)
             }
-            if (document.getElementById("editColor").value.indexOf("#") !== 0 || document.getElementById("editColor").value.length !== 7) {
+            if (editColorRef.current.value.indexOf("#") !== 0 || editColorRef.current.value.length !== 7) {
               setPreviewColor("")
             }
             if (event.key === 'Enter') addDomain();
@@ -385,6 +419,6 @@ export default function AdminDomainsPage() {
           </div>
         </div>
       </div>
-      </Content>
-    )
+    </Content>
+  )
 }
