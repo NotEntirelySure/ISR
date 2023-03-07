@@ -375,11 +375,19 @@ class AdminIdeasPage extends Component {
   };
 
   HandleFileChange = (event) => {
-    this.setState({fileImportError: "this is an error."});
-    let file = event.target.files[0];
+    
+    if (event === "removeFile") {
+      this.setState({
+        uploadFile:null,
+        importButtonDisabled:true
+      });
+      return;
+    };
+
+    const file = event.target.files[0];
     if (
       file.type === "text/csv" ||
-      file.type ==="application/vnd.ms-excel" ||  
+      file.type === "application/vnd.ms-excel" ||  
       file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     ) {
       let fileReader = new FileReader();
@@ -528,10 +536,12 @@ class AdminIdeasPage extends Component {
           <p>In order to simplify the data entry process, the import function allows you to specify a file containing a list of ideas with corresponding descriptions</p>  
           </Tile>
           <Tile className='file-import-warining-tile'>
-            <div id="warningIcon"><WarningHex size={24}/></div>
-            <div><p>Important: the file must be formatted as shown below, or the import will fail.</p></div>
+            <div style={{display:'flex',gap:'1rem',alignItems:'center'}}>
+              <div id="warningIcon"><WarningHex size={32} fill="orange"/></div>
+              <div><p>Important: the file must be formatted as shown below, or the import will fail.</p></div>
+            </div>
             <br/>
-            <div><img id='exampleImport' src={`${process.env.PUBLIC_URL}/import_example.png`} alt='Example Import Format'></img></div>
+            <div style={{paddingLeft:'2rem'}}><img id='exampleImport' src={`${process.env.PUBLIC_URL}/import_example.png`} alt='Example Import Format'></img></div>
           </Tile>
           <hr/>
           <div className="cds--file__container">
@@ -544,7 +554,8 @@ class AdminIdeasPage extends Component {
               iconDescription="Clear file"
               labelDescription="This import function accepts three file types: .csv, .xls, and .xlsx."
               labelTitle="Upload"
-              onChange={(event) => {this.HandleFileChange(event);}}
+              onChange={(event) => this.HandleFileChange(event)}
+              onDelete={() => this.HandleFileChange("removeFile")}
             />
           </div>
           <div>
@@ -694,7 +705,7 @@ class AdminIdeasPage extends Component {
                             })
                           }}
                           />
-                        <Button renderIcon={DocumentImport} hasIconOnly iconDescription='Import Project List' kind='secondary' onClick={() => this.setState({modalImportOpen:true})}></Button>
+                        <Button renderIcon={DocumentImport} hasIconOnly iconDescription='Import Ideas List' kind='secondary' onClick={() => this.setState({modalImportOpen:true})}></Button>
                         <Button
                           kind='danger'
                           renderIcon={TrashCan}

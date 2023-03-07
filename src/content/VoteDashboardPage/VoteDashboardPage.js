@@ -16,41 +16,38 @@ var client;
 
 export default function VoteDashboardPage() {
 
+  const toggleCheckedRef = useRef(false);
+
   const [connectionMessage, setConnectionMessage] = useState("");
   const [connectionStatus, setConnectionStatus] = useState("inactive");
-  const [projects, setProjects] = useState([]);
   const [remainingVoters, setRemainingVoters] = useState([]);
-  const [totalItems, setTotalItems] = useState(0); // this is likely unneeded. I can probable just use projects.length instead of using a state for this.
   const [currentProject, setCurrentProject] = useState({});
   const [votingEnabledProjects, setVotingEnabledProjects] = useState([]);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
-  const [reconnectButtonDisplay, setReconnectButtonDisplay] = useState("none"); //this likely needs to be changed to control through the style prop
-  const [toggleChecked, setToggleChecked] = useState(false); // this could probably be a ref. Its used to check if the toggle is check. Could use toggleRef.current.value maybe.
+  const [reconnectButtonDisplay, setReconnectButtonDisplay] = useState("none");
   const [nextButtonDisabled, setNextButtonDisabled] = useState(false);
   const [previousButtonDisabled, setPreviousButtonDisabled] = useState(true);
   const [modalErrorOpen, setModalErrorOpen] = useState(false);
   const [errorInfo, setErrorInfo] = useState({heading:"", message:""});
-
+  const [projects, setProjects] = useState([{
+    "projectIndex":0,
+    "projectID":'0000',
+    "projectDescription": null,
+    "projectDomain":"none",
+    "projectDomainColor":'#FFFFFF'
+  }]);
+  
   useEffect(() => GetIdeas(),[])
 
   async function GetIdeas() {
-    const projectsRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/projects/${localStorage.getItem('adminjwt')}`, {mode:'cors'});
-    const projectsResponse = await projectsRequest.json();
-    if (projectsResponse.code !== 200) {
-      setErrorInfo({heading:`Error ${projectsResponse.code}`, message:projectsResponse.message});
+    const ideasRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/ideas/getall/${localStorage.getItem('adminjwt')}`, {mode:'cors'});
+    const ideasResponse = await ideasRequest.json();
+    if (ideasResponse.code !== 200) {
+      setErrorInfo({heading:`Error ${ideasResponse.code}`, message:ideasResponse.message});
       setModalErrorOpen(true);
       return;
     }
-    if (projectsResponse.data.rowCount === 0) {
-      setProjects(
-        {
-          "projectIndex":0,
-          "projectID":'0000',
-          "projectDescription": null,
-          "projectDomain":"none",
-          "projectDomainColor":'#FFFFFF'
-        }
-      );
+    if (ideasResponse.data.rowCount === 0) {
       setModalErrorOpen(true);
       setErrorInfo(
         {
@@ -59,9 +56,9 @@ export default function VoteDashboardPage() {
         }
       );
     }
-    if (projectsResponse.data.rowCount > 0) {
+    if (ideasResponse.data.rowCount > 0) {
 
-      const objProjects = projectsResponse.data.rows.map((idea, index) => {
+      const ideas = ideasResponse.data.rows.map((idea, index) => {
         return {
           "projectIndex":index,
           "projectID":idea.projectid,
@@ -69,10 +66,9 @@ export default function VoteDashboardPage() {
           "projectDomain":idea.projectdomainname,
           "projectDomainColor":idea.projectdomaincolorhex
         }
-      })
-      setProjects(objProjects);
-      setTotalItems(projectsResponse.rowCount);
-      setCurrentProject(objProjects[0]);
+      });
+      setProjects(ideas);
+      setCurrentProject(ideas[0]);
       ConnectWebSocket();
     }
   }
@@ -163,8 +159,8 @@ export default function VoteDashboardPage() {
 
   function HandlePageChange(changeSource, comboboxValue) {
     
-    if (toggleChecked) {
-      setToggleChecked(false);
+    if (toggleCheckedRef.current) {
+      toggleCheckedRef.current = false;
       client.send(
         JSON.stringify({
           sender:"adminDash",
@@ -190,14 +186,13 @@ export default function VoteDashboardPage() {
         
         if (nextIndex >= projects.length - 1) setNextButtonDisabled(true);
         if (nextIndex <= projects.length - 1) {
-          console.log("in if");
           setRemainingVoters([]);
           setPreviousButtonDisabled(false);
           setCurrentProject(projects[nextIndex]);
         }
         break;
       case "combobox":
-        if (comboboxValue === totalItems - 1) setNextButtonDisabled(true);
+        if (comboboxValue === projects.length - 1) setNextButtonDisabled(true);
         else if (nextButtonDisabled) setNextButtonDisabled(false);
         if (comboboxValue === 0 ) setPreviousButtonDisabled(true);
         else if (previousButtonDisabled) setPreviousButtonDisabled(false);
@@ -212,10 +207,10 @@ export default function VoteDashboardPage() {
             sender:"adminDash",
             action: "getRemainingVoters"
           })
-        )
-      }
-    }
-  }
+        );
+      };
+    };
+  };
 
   return (
     <>
@@ -278,9 +273,9 @@ export default function VoteDashboardPage() {
                   size="sm"
                   labelA="Disabled"
                   labelB="Enabled"
-                  toggled={toggleChecked}
+                  toggled={toggleCheckedRef.current}
                   onToggle={(state) => {
-                    setToggleChecked(state);
+                    toggleCheckedRef.current = state;
                     client.send(
                       JSON.stringify({
                         sender:"adminDash",

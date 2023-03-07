@@ -103,11 +103,11 @@ const _verifyJwt = (token) => {
 const verifyJwt = (token) => {
   return new Promise((resolve, reject) => {
     jwt.verify(token, process.env.JWT_SECRET_KEY, (err, decoded) => {
-      if (err) resolve({"status":401});
-      if (!err) resolve({"status":200});
-    })
-  })
-}
+      if (err) resolve({"code":401,message:err.message});
+      if (!err) resolve({"code":200,data:decoded});
+    });
+  });
+};
 
 function _verifyParticipant(token) {
   return new Promise((resolve, reject) => {

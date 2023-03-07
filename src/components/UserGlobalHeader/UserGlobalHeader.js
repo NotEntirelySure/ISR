@@ -249,27 +249,28 @@ class UserGlobalHeader extends Component {
                   ref={this.notificationRef}
                   expanded={this.state.notificationPanelOpen}
                 >
-                    <div style={{overflowY:'scroll'}}>
-                  {this.state.notificationList.reverse().map((item, index) => {
-                    return <>
-                    <div style={{marginTop:'0.25rem'}}>
-
-                      <ToastNotification
-                        className='panelNotification'
-                        key={"notification-"+index}
-                        timeout={0}
-                        kind={item.kind}
-                        lowContrast={false}
-                        title={item.title}
-                        subtitle={item.message}
-                        statusIconDescription={item.kind}
-                        hideCloseButton={true}
-                        >
-                        {item.timestamp}
-                      </ToastNotification>
-                        </div>
-                    </>
-                  })}
+                  <div style={{overflowY:'scroll'}}>
+                    {
+                      this.state.notificationList.reverse().map((item, index) => {
+                        return <>
+                          <div style={{marginTop:'0.25rem'}}>
+                            <ToastNotification
+                              className='panelNotification'
+                              key={"notification-"+index}
+                              timeout={0}
+                              kind={item.kind}
+                              lowContrast={false}
+                              title={item.title}
+                              subtitle={item.message}
+                              statusIconDescription={item.kind}
+                              hideCloseButton={true}
+                            >
+                              {item.timestamp}
+                            </ToastNotification>
+                          </div>
+                        </>
+                      })
+                    }
                   </div>
                 </HeaderPanel>
             </HeaderGlobalBar>

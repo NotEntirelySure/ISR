@@ -702,8 +702,8 @@ export default function AdminVotesPage() {
 						</div>
 					</div>
 				</div>
-				<div style={{display: `${displaySkeleton}`}} className="bx--offset-lg-1 bx--col-lg-13">
-					<DataTableSkeleton columnCount={5} headers={headers}/>
+				<div style={{display: `${displaySkeleton}`}} className="bx--grid bx--grid--full-width adminPageBody">
+					<DataTableSkeleton columnCount={8} rowCount={10} headers={headers}/>
 				</div>
 			</Content>
 		</>

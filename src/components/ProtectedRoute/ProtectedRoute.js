@@ -1,4 +1,4 @@
-import React, { Component } from 'react'
+import React, {useState, useEffect, useRef } from 'react'
 import { Buffer } from 'buffer';
 import { Content } from 'carbon-components-react';
 import AdminGlobalHeader from "../AdminGlobalHeader";
@@ -15,79 +15,73 @@ import LandingPage from "../../content/LandingPage";
 import TestPage from '../../content/TestPage';
 import AdminDomainsPage from '../../content/AdminDomainsPage';
 
-class ProtectedRoute extends Component {
-    constructor(props) {
-        super(props)
-        this.state = {isAuth:null}
-      }
+export default function ProtectedRoute(props) {
+	
+	const [isAuth, setIsAuth] = useState(null);
+	
+	useEffect(() => VerifyJwt(),[]);
+	
+	async function VerifyJwt() {
+		const token = localStorage.getItem("adminjwt");
+		if (token !== null) {
+			const jwtRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/verifyjwt/${token}`, {mode:'cors'});
+			const jwtResult = await jwtRequest.json();
+			if (jwtResult.code === 200 && jwtResult.data.type === "admin") setIsAuth(true);
+			if (jwtResult.code === 401) setIsAuth(false);
+		}
+		if (token === null) setIsAuth(false);
+	};
 
-    componentDidMount = async() => {
+	function RenderPage() {
+		switch (isAuth) {
+			case true:
+				let page;
+				switch (props.page) {
+					case "adminhome": 
+						page = <AdminHomePage/>;
+						break;
+					case "votedashboard":
+						page = <VoteDashboardPage/>;
+						break;
+					case "ideasadmin":
+						page = <ManageProjectsPage/>;
+						break;
+					case "useradmin":
+						page = <AdminUsersPage/>;
+						break;
+					case "connections":
+						page = <AdminConnectionsPage/>;
+						break;
+					case "votesadmin":
+						page = <AdminVotesPage/>;
+						break;
+					case "statistics":
+						page = <StatisticsPage/>;
+						break;
+					case "officesadmin":
+						page = <AdminOfficesPage/>;
+						break;
+					case "domainsadmin":
+						page = <AdminDomainsPage/>;
+						break;
+					case "test":
+						page = <TestPage/>;
+						break;
+					default: page = <LandingPage/>;
+				}
+				return <><AdminGlobalHeader/><Content children={page}/></>;
+				case false: 
+					return <>
+						<UserGlobalHeader/>
+							<div id='forbidden'>
+								<div>
+									<img src={`${process.env.PUBLIC_URL}/403.png`} alt='Forbidden'></img>
+								</div>
+							</div>
+						</>;
+				default: return <><div></div></>;
+		};
+	};
 
-        const token = localStorage.getItem("adminjwt");
-        if (token !== null) {
-            const jwtResult = await fetch(`${process.env.REACT_APP_API_BASE_URL}/verifyjwt/${token}`, {mode:'cors'});
-            const userType = JSON.parse(Buffer.from(token.split(".")[1], "base64").toString('ascii')).type;
-            if (jwtResult.status === 200 && userType === "admin") {this.setState({isAuth:true});}
-            if (jwtResult.status === 401) {this.setState({isAuth:false})}
-        }
-        if (token === null) this.setState({isAuth:false})
-    }
-    
-    render() {
-
-        switch (this.state.isAuth) {
-            case true:
-                let page; 
-                switch (this.props.page) {
-                    case "adminhome": 
-                        page = <AdminHomePage/>;
-                        break;
-                    case "votedashboard":
-                        page = <VoteDashboardPage/>;
-                        break;
-                    case "ideasadmin":
-                        page = <ManageProjectsPage/>;
-                        break;
-                    case "useradmin":
-                        page = <AdminUsersPage/>;
-                        break;
-                    case "connections":
-                        page = <AdminConnectionsPage/>;
-                        break;
-                    case "votesadmin":
-                        page = <AdminVotesPage/>;
-                        break;
-                    case "statistics":
-                        page = <StatisticsPage/>;
-                        break;
-                    case "officesadmin":
-                        page = <AdminOfficesPage/>;
-                        break;
-                    case "domainsadmin":
-                        page = <AdminDomainsPage/>;
-                        break;
-                    case "test":
-                        page = <TestPage/>;
-                        break;
-                    default:
-                        page = <LandingPage/>;
-                        break;
-
-                }
-                return <><AdminGlobalHeader/><Content children={page}/></>
-            case false: 
-                return <>
-                    <UserGlobalHeader/>
-                    <div id='forbidden'>
-                        <div>
-                            <img src={`${process.env.PUBLIC_URL}/403.png`} alt='Forbidden'></img>
-                        </div>
-                    </div>
-                </>
-            default: return <><div></div></>
-        } 
-    }
-
-}
-
-export default ProtectedRoute;
+	return <RenderPage/>;
+};

@@ -1,34 +1,35 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { 
-    Button, 
-    Content,
-    DataTable,
-    DataTableSkeleton,
-    Modal,
-    TableContainer,
-    Table,
-    TableHead,
-    TableRow,
-    TableHeader,
-    TableBody,
-    TableCell,
-    TableToolbar,
-    TableToolbarContent,
-    TableToolbarSearch,
-    TextInput
+  Button, 
+  Content,
+  DataTable,
+  DataTableSkeleton,
+  Modal,
+  TableContainer,
+  Table,
+  TableHead,
+  TableRow,
+  TableHeader,
+  TableBody,
+  TableCell,
+  TableToolbar,
+  TableToolbarContent,
+  TableToolbarSearch,
+  TextInput
 } from '@carbon/react';
 import {
   Add,
   RequestQuote,
-  TrashCan
+  TrashCan,
+  WarningAltFilled
 } from '@carbon/react/icons';
 
 const headers = [
-    {key:'projectdomainid', header:'Domain ID'},
-    {key:'projectdomainname', header:'Domain Name'},
-    {key:'projectdomaincolor',header: 'Domain Color'},
-    {key:'projectdomaincolorhex', header:'Color Hex Value'},
-    {key:'action', header:'Action'}
+  {key:'projectdomainid', header:'Domain ID'},
+  {key:'projectdomainname', header:'Domain Name'},
+  {key:'projectdomaincolor',header: 'Domain Color'},
+  {key:'projectdomaincolorhex', header:'Color Hex Value'},
+  {key:'action', header:'Action'}
 ];
   
 export default function AdminDomainsPage() {
@@ -39,12 +40,12 @@ export default function AdminDomainsPage() {
   const editColorRef = useRef();
   const errorInfo = useRef({heading:"", message:""});
 
-  const [modalErrorOpen, setModalErrorOpen] = useState(false);
   const [displaySkeleton, setDisplaySkeleton] = useState('block');
   const [displayTable, setDisplayTable] = useState('none');
   const [domainsList, setDomainsList] = useState([]);
   const [domainToEdit, setDomainToEdit] = useState({"domainId":"", "domainName":"","colorHex":""});
   const [domainToDelete, setDomainToDelete] = useState({"domainId":"", "domainName":""});
+  const [modalErrorOpen, setModalErrorOpen] = useState(false);
   const [modalAddOpen, setModalAddOpen] = useState();
   const [modalEditOpen, setModalEditOpen] = useState();
   const [modalDeleteOpen, setModalDeleteOpen] = useState();
@@ -55,7 +56,7 @@ export default function AdminDomainsPage() {
   const [colorInvalidMessage, setColorInvalidMessage] = useState('');
   const [previewColor, setPreviewColor] = useState('');
 
-  useEffect(() => GetDomains(), []);
+  useEffect(() => {GetDomains()}, []);
 
   async function GetDomains() {
     const domainsRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/domains/getall/${localStorage.getItem('adminjwt')}`, {mode:'cors'})
@@ -157,7 +158,12 @@ export default function AdminDomainsPage() {
       })
     });
     const addResponse = await addRequest.json();
-    GetDomains();
+    if (addResponse.code !== 200) {
+      errorInfo.current = {heading:`Error ${addResponse.code}`, message:addResponse.message}
+      setModalErrorOpen(true);
+      return;
+    };
+    if (addResponse.code === 200) GetDomains();
 
     setPreviewColor('');
     addNameRef.current.value = '';
@@ -193,7 +199,12 @@ export default function AdminDomainsPage() {
       })
     });
     const editResponse = await editRequest.json();
-    GetDomains();
+    if (editResponse.code !== 200) {
+      errorInfo.current = {heading:`Error ${editResponse.code}`, message:editResponse.message}
+      setModalErrorOpen(true);
+      return;
+    };
+    if (editResponse.code === 200) GetDomains();
 
     setPreviewColor('');
     editNameRef.current.value = '';
@@ -212,8 +223,13 @@ export default function AdminDomainsPage() {
       })    
     });
     const deleteResponse = await deleteRequest.json();
-    GetDomains();
-  }
+    if (deleteResponse.code !== 200) {
+      errorInfo.current = {heading:`Error ${deleteResponse.code}`, message:deleteResponse.message}
+      setModalErrorOpen(true);
+      return;
+    };
+    if (deleteResponse.code === 200) GetDomains();
+  };
 
   return (
     <Content>
@@ -231,7 +247,10 @@ export default function AdminDomainsPage() {
           errorInfo.current = ({heading:"", message:""});
         }}
       >
-        <div>{errorInfo.current.message}</div>
+        <div style={{display:'flex', gap:'2rem',alignItems:'center'}}>
+          <div><WarningAltFilled size={56} fill="red"/></div>
+          <div>{errorInfo.current.message}</div>
+        </div>
       </Modal>
       <Modal
         id='modalAdd' 
@@ -274,18 +293,12 @@ export default function AdminDomainsPage() {
           invalidText={colorInvalidMessage}
           tabIndex={0}
           onPaste={() => {
-            if (addColorRef.current.value.indexOf("#") === 0 && addColorRef.current.value.length === 7) {
-              setPreviewColor(addColorRef.current.value)
-            }
+            if (addColorRef.current.value.indexOf("#") === 0 && addColorRef.current.value.length === 7) setPreviewColor(addColorRef.current.value);
           }}
           onKeyUp={(event) => {
             if (addColorInvalid) setAddColorInvalid(false);
-            if (addColorRef.current.value.indexOf("#") === 0 && addColorRef.current.value.length === 7) {
-              setPreviewColor(addColorRef.current.value)
-            }
-            if (addColorRef.current.value.indexOf("#") !== 0 || addColorRef.current.value.length !== 7) {
-              setPreviewColor("")
-            }
+            if (addColorRef.current.value.indexOf("#") === 0 && addColorRef.current.value.length === 7) setPreviewColor(addColorRef.current.value);
+            if (addColorRef.current.value.indexOf("#") !== 0 || addColorRef.current.value.length !== 7) setPreviewColor("");
             if (event.key === 'Enter') addDomain();
           }}
         />
