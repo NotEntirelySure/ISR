@@ -34,7 +34,7 @@ export default function RegistrationPage () {
 	async function GetOffices() {
 		const officesRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/offices/getall`, {mode:'cors'});
 		const officesResponse = await officesRequest.json();
-		const offices = officesResponse.data.rows.map((office) => {
+		const offices = officesResponse.data.rows.map(office => {
 			return {id:office.officeid, text:office.officename};
 		});
 		setOffices(offices);

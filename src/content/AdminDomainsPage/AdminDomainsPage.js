@@ -25,10 +25,10 @@ import {
 } from '@carbon/react/icons';
 
 const headers = [
-  {key:'projectdomainid', header:'Domain ID'},
-  {key:'projectdomainname', header:'Domain Name'},
-  {key:'projectdomaincolor',header: 'Domain Color'},
-  {key:'projectdomaincolorhex', header:'Color Hex Value'},
+  {key:'ideadomainid', header:'Domain ID'},
+  {key:'ideadomainname', header:'Domain Name'},
+  {key:'ideadomaincolor',header: 'Domain Color'},
+  {key:'ideadomaincolorhex', header:'Color Hex Value'},
   {key:'action', header:'Action'}
 ];
   
@@ -67,16 +67,16 @@ export default function AdminDomainsPage() {
       return;
     }
     if (domainsResponse.code === 200) {
-    const domains = domainsResponse.data.map((domain) => {
+    const domains = domainsResponse.data.map(domain => {
       return {
-        id:String(domain.projectdomainid),
-        "projectdomainid":domain.projectdomainid,
-        "projectdomainname":domain.projectdomainname,
-        "projectdomaincolor":
+        id:String(domain.ideadomainid),
+        "ideadomainid":domain.ideadomainid,
+        "ideadomainname":domain.ideadomainname,
+        "ideadomaincolor":
           <>
             <div 
               style={{
-                backgroundColor:domain.projectdomaincolorhex,
+                backgroundColor:domain.ideadomaincolorhex,
                 width:'40%',
                 borderRadius:'5px'
               }}
@@ -84,7 +84,7 @@ export default function AdminDomainsPage() {
               <p>&nbsp;</p>
             </div>
           </>,
-        "projectdomaincolorhex":domain.projectdomaincolorhex,
+        "ideadomaincolorhex":domain.ideadomaincolorhex,
         "action":
           <>
             <div style={{display:'flex', gap:'0.25rem'}}>
@@ -96,13 +96,13 @@ export default function AdminDomainsPage() {
                 kind="primary"
                 onClick={() => {
                   setDomainToEdit({
-                    "domainId":domain.projectdomainid,
-                    "domainName":domain.projectdomainname,
-                    "colorHex":domain.projectdomaincolorhex,
+                    "domainId":domain.ideadomainid,
+                    "domainName":domain.ideadomainname,
+                    "colorHex":domain.ideadomaincolorhex,
                   });
-                  editNameRef.current.value = domain.projectdomainname;
-                  editColorRef.current.value = domain.projectdomaincolorhex; 
-                  setPreviewColor(domain.projectdomaincolorhex);
+                  editNameRef.current.value = domain.ideadomainname;
+                  editColorRef.current.value = domain.ideadomaincolorhex; 
+                  setPreviewColor(domain.ideadomaincolorhex);
                   setModalEditOpen(true);
                 }}
               />
@@ -114,8 +114,8 @@ export default function AdminDomainsPage() {
                 kind="danger"
                 onClick={() => {
                   setDomainToDelete({
-                    "domainId":domain.projectdomainid,
-                    "domainName":domain.projectdomainname
+                    "domainId":domain.ideadomainid,
+                    "domainName":domain.ideadomainname
                   });
                   setModalDeleteOpen(true);
                 }}

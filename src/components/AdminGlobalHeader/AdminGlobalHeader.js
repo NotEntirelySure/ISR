@@ -68,7 +68,7 @@ class AdminGlobalHeader extends Component {
       voteDescription:"Running..."
     })
     const deleteVotesReq = await fetch(
-      `${process.env.REACT_APP_API_BASE_URL}/resetvotes/${localStorage.getItem('adminjwt')}`,
+      `${process.env.REACT_APP_API_BASE_URL}/votes/reset/${localStorage.getItem('adminjwt')}`,
       {mode:'cors', method:"DELETE"}
     );
     const deleteVotesRes = await deleteVotesReq.json();
@@ -92,7 +92,7 @@ class AdminGlobalHeader extends Component {
       ideaDescription:"Running..."
     })
     const deleteIdeasReq = await fetch(
-      `${process.env.REACT_APP_API_BASE_URL}/resetprojects/${localStorage.getItem('adminjwt')}`,
+      `${process.env.REACT_APP_API_BASE_URL}/ideas/reset/${localStorage.getItem('adminjwt')}`,
       {mode:'cors', method:"DELETE"}
     );
     const deleteIdeasRes = await deleteIdeasReq.json();
@@ -116,7 +116,7 @@ class AdminGlobalHeader extends Component {
       userDescription:"Running..."
     })
     const deleteUserReq = await fetch(
-      `${process.env.REACT_APP_API_BASE_URL}/resetusers/${localStorage.getItem('adminjwt')}`,
+      `${process.env.REACT_APP_API_BASE_URL}/participants/reset/${localStorage.getItem('adminjwt')}`,
       {mode:'cors', method:"DELETE"}
     );
     const deleteUserRes = await deleteUserReq.json();
@@ -140,7 +140,7 @@ class AdminGlobalHeader extends Component {
       logDescription:"Running..."
     })
     const deleteLogReq = await fetch(
-      `${process.env.REACT_APP_API_BASE_URL}/resetlogs/${localStorage.getItem('adminjwt')}`,
+      `${process.env.REACT_APP_API_BASE_URL}/votes/resetlogs/${localStorage.getItem('adminjwt')}`,
       {mode:'cors', method:"DELETE"}
     );
     const deleteLogRes = await deleteLogReq.json();

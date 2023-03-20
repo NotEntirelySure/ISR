@@ -12,7 +12,7 @@ const pool = new Pool({
 });
 
 //used by user registration page
-const registerParticipant = (userInfo) => {
+function registerParticipant(userInfo) {
   return new Promise((resolve, reject) => { 
     pool.query(
       'SELECT register_participant($1,$2,$3,$4);',
@@ -26,7 +26,7 @@ const registerParticipant = (userInfo) => {
   });
 };
 
-const logoutParticipant = (data) => {
+function logoutParticipant(data) {
   return new Promise (async(resolve, reject) => {
     const isAuthReqest = await auth_model._verifyParticipant(data.token);
     const isAuthResponse = await isAuthReqest;
@@ -47,11 +47,11 @@ const logoutParticipant = (data) => {
   });
 };
 
-const getParticipantInfo = (token) => {  
+function getParticipantInfo(token) {  
   return new Promise((resolve, reject) => {
     try {
-      const isVerified = jwt.verify(token, process.env.JWT_SECRET_KEY)
-      if (isVerified.participantid){
+      const isVerified = jwt.verify(token, process.env.JWT_SECRET_KEY);
+      if (isVerified.participantid) {
         pool.query(`
           SELECT 
             p.participantid,
@@ -66,7 +66,7 @@ const getParticipantInfo = (token) => {
           WHERE participantid=$1;`,
           [isVerified.participantid],
           (error, results) => {
-            if (error) {reject(error)}
+            if (error) reject(error);
             resolve(results);
         })
       }
@@ -75,12 +75,12 @@ const getParticipantInfo = (token) => {
       resolve({
         code:500,
         message:error
-      })
+      });
     };
   });
-}
+};
 
-const getVoteHistory = (token) => {
+function getVoteHistory(token) {
   return new Promise(async(resolve, reject) => {
 		const isAuthReqest = await auth_model._verifyParticipant(token);
 		const isAuthResponse = await isAuthReqest;
@@ -93,15 +93,14 @@ const getVoteHistory = (token) => {
         ORDER BY votetime;`,
 				[isAuthResponse.participantId],
 				(error, results) => {
-					if (error) reject(error);
+					if (error) reject({code:500, message:error.detail});
           resolve({code:200,historyData:results.rows});
 			});
 		}
 	}); 
 }
 
-//used by user vote page
-const castVote = (data) => {
+function castVote(data) {
   return new Promise(async(resolve, reject) => {
     try {
       const isAuthReqest = await auth_model._verifyJwt(data.token);

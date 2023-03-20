@@ -6,7 +6,6 @@ import {
   InlineLoading,
   Tile,
   Toggle,
-  Pagination,
   ComboBox,
   Modal
 } from '@carbon/react';
@@ -21,25 +20,25 @@ export default function VoteDashboardPage() {
   const [connectionMessage, setConnectionMessage] = useState("");
   const [connectionStatus, setConnectionStatus] = useState("inactive");
   const [remainingVoters, setRemainingVoters] = useState([]);
-  const [currentProject, setCurrentProject] = useState({});
-  const [votingEnabledProjects, setVotingEnabledProjects] = useState([]);
+  const [currentIdea, setCurrentIdea] = useState({});
+  const [votingEnabledIdeas, setVotingEnabledIdeas] = useState([]);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const [reconnectButtonDisplay, setReconnectButtonDisplay] = useState("none");
   const [nextButtonDisabled, setNextButtonDisabled] = useState(false);
   const [previousButtonDisabled, setPreviousButtonDisabled] = useState(true);
   const [modalErrorOpen, setModalErrorOpen] = useState(false);
   const [errorInfo, setErrorInfo] = useState({heading:"", message:""});
-  const [projects, setProjects] = useState([{
-    "projectIndex":0,
-    "projectID":'0000',
-    "projectDescription": null,
-    "projectDomain":"none",
-    "projectDomainColor":'#FFFFFF'
+  const [ideas, setIdeas] = useState([{
+    "ideaIndex":0,
+    "ideaId":'0000',
+    "ideaDescription": null,
+    "ideaDomain":"none",
+    "ideaDomainColor":'#FFFFFF'
   }]);
   
-  useEffect(() => GetIdeas(),[])
+  useEffect(() => GetIdea(),[])
 
-  async function GetIdeas() {
+  async function GetIdea() {
     const ideasRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/ideas/getall/${localStorage.getItem('adminjwt')}`, {mode:'cors'});
     const ideasResponse = await ideasRequest.json();
     if (ideasResponse.code !== 200) {
@@ -58,17 +57,17 @@ export default function VoteDashboardPage() {
     }
     if (ideasResponse.data.rowCount > 0) {
 
-      const ideas = ideasResponse.data.rows.map((idea, index) => {
+      const ideasArray = ideasResponse.data.rows.map((idea, index) => {
         return {
-          "projectIndex":index,
-          "projectID":idea.projectid,
-          "projectDescription":idea.projectdescription,
-          "projectDomain":idea.projectdomainname,
-          "projectDomainColor":idea.projectdomaincolorhex
+          "ideaIndex":index,
+          "ideaId":idea.ideaid,
+          "ideaDescription":idea.ideadescription,
+          "ideaDomain":idea.ideadomainname,
+          "ideaDomainColor":idea.ideadomaincolorhex
         }
       });
-      setProjects(ideas);
-      setCurrentProject(ideas[0]);
+      setIdeas(ideasArray);
+      setCurrentIdea(ideas[0]);
       ConnectWebSocket();
     }
   }
@@ -89,44 +88,39 @@ export default function VoteDashboardPage() {
       client.send(
         JSON.stringify({
           sender:"adminDash",
-          action: "getVotingEnabledProjects",
+          action: "getVotingEnabledIdeas",
         })
       )
     };
     
     client.onmessage = (message) => {
       const messageData = JSON.parse(message.data);
-      let payload;
-      let votingProjects = [];
+      const payload = JSON.parse(messageData.payload);
+      let votingIdeas = [];
 
       switch (messageData.source) {
-        case "getVotingEnabledProjects":
-          payload = JSON.parse(messageData.payload);
-          for (let i=0; i<payload.length;i++) {votingProjects.push({projectID:payload[i].id})}
-          setVotingEnabledProjects(votingProjects);
+        case "getVotingEnabledIdeas":
+          for (let i=0; i<payload.length;i++) votingIdeas.push({ideaId:payload[i].id});
+          setVotingEnabledIdeas(votingIdeas);
           break;
         
         case "getRemainingVoters":
-          payload = JSON.parse(messageData.payload);
-          if (payload.length > 0) setRemainingVoters(JSON.parse(messageData.payload));
+          if (payload.length > 0) setRemainingVoters(payload);
           break;
         
-        case "addProject":
-          payload = JSON.parse(messageData.payload);
-          if (payload.length > 0) setRemainingVoters(JSON.parse(messageData.payload));
+        case "addIdea":
+          if (payload.length > 0) setRemainingVoters(payload);
           break;
 
-        case "removeProject":
-          payload = JSON.parse(messageData.payload);
+        case "removeIdea":
           if (payload.length > 0) {
-            payload = JSON.parse(messageData.payload);
-            for (let i=0; i<payload.length;i++) {votingProjects.push({projectID:payload[i].id})}
-            setVotingEnabledProjects(votingProjects);
+            for (let i=0; i<payload.length;i++) votingIdeas.push({ideaId:payload[i].id});
+            setVotingEnabledIdeas(votingIdeas);
           }
           break;
 
         case "clientVoted":
-          setRemainingVoters(JSON.parse(messageData.payload));
+          setRemainingVoters(payload);
           break;
       }
     };
@@ -165,43 +159,43 @@ export default function VoteDashboardPage() {
         JSON.stringify({
           sender:"adminDash",
           source:"dashboard",
-          action:"removeProject",
-          payload:`{"id":"${currentProject.projectID}","description":"${currentProject.projectDescription}"}`
+          action:"removeIdea",
+          payload:`{"id":"${currentIdea.ideaId}","description":"${currentIdea.ideaDescription}"}`
         })
       );
     }
 
     switch (changeSource) {
       case "previousButton":
-        let prevIndex = currentProject.projectIndex - 1;
+        let prevIndex = currentIdea.ideaIndex - 1;
         if (prevIndex <= 0) setPreviousButtonDisabled(true);
-        if (currentProject.projectIndex > 0) {
+        if (currentIdea.ideaIndex > 0) {
           setNextButtonDisabled(false);
           setRemainingVoters([]);
-          setCurrentProject(projects[prevIndex])
+          setCurrentIdea(ideas[prevIndex])
         }
         break;
       case "nextButton":
-        let nextIndex = currentProject.projectIndex + 1
+        let nextIndex = currentIdea.ideaIndex + 1
         
-        if (nextIndex >= projects.length - 1) setNextButtonDisabled(true);
-        if (nextIndex <= projects.length - 1) {
+        if (nextIndex >= ideas.length - 1) setNextButtonDisabled(true);
+        if (nextIndex <= ideas.length - 1) {
           setRemainingVoters([]);
           setPreviousButtonDisabled(false);
-          setCurrentProject(projects[nextIndex]);
+          setCurrentIdea(ideas[nextIndex]);
         }
         break;
       case "combobox":
-        if (comboboxValue === projects.length - 1) setNextButtonDisabled(true);
+        if (comboboxValue === ideas.length - 1) setNextButtonDisabled(true);
         else if (nextButtonDisabled) setNextButtonDisabled(false);
         if (comboboxValue === 0 ) setPreviousButtonDisabled(true);
         else if (previousButtonDisabled) setPreviousButtonDisabled(false);
         setRemainingVoters([]);
-        setCurrentProject(projects[comboboxValue]);
+        setCurrentIdea(ideas[comboboxValue]);
     }
 
-    for (let i=0;i<votingEnabledProjects.length; i++){
-      if (votingEnabledProjects[i].projectID === currentProject.projectID) {
+    for (let i=0;i<votingEnabledIdeas.length; i++){
+      if (votingEnabledIdeas[i].ideaId === currentIdea.ideaId) {
         client.send(
           JSON.stringify({
             sender:"adminDash",
@@ -256,15 +250,15 @@ export default function VoteDashboardPage() {
               </div>
             </div>
           </div>
-          <div className='bx--row' style={{backgroundColor:currentProject.projectDomainColor, textAlign:'center'}}>
+          <div className='bx--row' style={{backgroundColor:currentIdea.ideaDomainColor, textAlign:'center'}}>
             <div className='bx--col'>
-              <p style={{fontWeight:'bold'}}>{currentProject.projectDomain}</p>
+              <p style={{fontWeight:'bold'}}>{currentIdea.ideaDomain}</p>
             </div>
           </div>
           <div className='bx--row bx--offset-lg-1 vote-dashboard-page__r1'>
             <div className="bx--col ideaNameAndToggle">
               <div>
-                <h1 style={{fontWeight:'bold', paddingLeft:'1rem'}}>{`${currentProject.projectID}: ${currentProject.projectDescription}`}</h1>
+                <h1 style={{fontWeight:'bold', paddingLeft:'1rem'}}>{`${currentIdea.ideaId}: ${currentIdea.ideaDescription}`}</h1>
               </div>
               <div style={{paddingRight:"10%"}}>
                 <Toggle
@@ -280,8 +274,8 @@ export default function VoteDashboardPage() {
                       JSON.stringify({
                         sender:"adminDash",
                         source:"dashboard",
-                        action: state ? "addProject":"removeProject",
-                        payload: `{"id":"${currentProject.projectID}","description":"${currentProject.projectDescription}"}`
+                        action: state ? "addIdea":"removeIdea",
+                        payload: `{"id":"${currentIdea.ideaId}","description":"${currentIdea.ideaDescription}"}`
                       })
                     );
                   }}
@@ -328,12 +322,12 @@ export default function VoteDashboardPage() {
             <div style={{maxWidth:'75%',minWidth:'50%'}}>
               <ComboBox
                 id="navigationCombo"
-                items={projects}
-                itemToString={(item) => item ? `${item.projectID}: ${item.projectDescription}` : ''}
-                onChange={(event) => {event.selectedItem && HandlePageChange("combobox",event.selectedItem.projectIndex)}}
+                items={ideas}
+                itemToString={item => item ? `${item.ideaId}: ${item.ideaDescription}` : ''}
+                onChange={event => {event.selectedItem && HandlePageChange("combobox",event.selectedItem.ideaIndex)}}
                 direction="top"
-                selectedItem={currentProject}
-                helperText={`Idea ${currentProject.projectIndex + 1} of ${projects.length}`}
+                selectedItem={currentIdea}
+                helperText={`Idea ${currentIdea.ideaIndex + 1} of ${ideas.length}`}
               />
             </div>
             <div style={{marginLeft:'auto'}}>

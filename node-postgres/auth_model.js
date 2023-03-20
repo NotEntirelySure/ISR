@@ -12,7 +12,7 @@ const pool = new Pool({
 });
 
 //used by admin login page
-const adminLogin = (data) => {
+function adminLogin(data) {
   return new Promise((resolve, reject) => {
     pool.query(`
       SELECT (
@@ -35,7 +35,7 @@ const adminLogin = (data) => {
   });
 }
 
-const userLogin = (token) => {
+function userLogin(token) {
   return new Promise((resolve, reject) => {
     try{
       const isVerified = jwt.verify(token, process.env.JWT_SECRET_KEY); 
@@ -53,7 +53,7 @@ const userLogin = (token) => {
   });
 };
 
-const participantLogout = (data) => {
+function participantLogout(data) {
   return new Promise (async(resolve, reject) => {
     const isAuthReqest = await _verifyAdmin(data.token);
     const isAuthResponse = await isAuthReqest;
@@ -71,11 +71,11 @@ const participantLogout = (data) => {
   });
 };
 
-const _mintJwt = (userId) => {
+function _mintJwt(userId) {
   return jwt.sign({"participantid":userId}, process.env.JWT_SECRET_KEY,{expiresIn: '4d'});
-}
+};
 
-const _verifyJwt = (token) => {
+function _verifyJwt(token) {
   return new Promise((resolve, reject) => {
     try {
       const isVerified = jwt.verify(token, process.env.JWT_SECRET_KEY);
@@ -100,7 +100,7 @@ const _verifyJwt = (token) => {
   });
 };
 
-const verifyJwt = (token) => {
+function verifyJwt(token) {
   return new Promise((resolve, reject) => {
     jwt.verify(token, process.env.JWT_SECRET_KEY, (err, decoded) => {
       if (err) resolve({"code":401,message:err.message});

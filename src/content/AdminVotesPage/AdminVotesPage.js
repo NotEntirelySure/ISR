@@ -30,8 +30,8 @@ import {
 } from '@carbon/react/icons';
 
 const headers = [
-	{key:'voteID', header:'Vote ID'},
-	{key:'projectID', header:'Idea Number'},
+	{key:'voteId', header:'Vote ID'},
+	{key:'ideaId', header:'Idea Number'},
 	{key:'voter', header:'Voter'},
 	{key:'office', header:'Office'},
 	{key:'voteValue', header:'Vote Value'},
@@ -43,15 +43,15 @@ const headers = [
 export default function AdminVotesPage() {
 	
 	const errorInfo = useRef({heading:'', message:''});
-	const addVoteCombosRef = useRef({voterId:"",voterName:"",projectId:""});
+	const addVoteCombosRef = useRef({voterId:"",voterName:"",ideaId:""});
 	const addVoteValueRef = useRef(0);
 	const addVoteCommentRef = useRef();
 	const editVoteValueRef = useRef();
 	const voteToEditRef = useRef({});
 	const editVoteCommentRef = useRef();
 	const voteToDelete = useRef({
-		voteID:"",
-		projectID:"",
+		voteId:"",
+		ideaId:"",
 		voter:""
 	});
 	
@@ -64,16 +64,16 @@ export default function AdminVotesPage() {
 	const [modalErrorOpen, setModalErrorOpen] = useState(false);
 	const [deleteAllDisabled, setDeleteAllDisabled] = useState(true);
 	const [userComboInvalid, setUserComboInvalid] = useState(false);
-	const [projectComboInvalid, setProjectComboInvalid] = useState(false);
+	const [ideaComboInvalid, setIdeaComboInvalid] = useState(false);
 	const [displayTable, setDisplayTable] = useState('none');
 	const [displaySkeleton, setDisplaySkeleton] = useState('block');
 	const [userList, setUserList] = useState([]);
-	const [projectList, setProjectList] = useState([]);
+	const [ideaList, setIdeaList] = useState([]);
 	const [voteHistory, setVoteHistory] = useState([]);
 	const [showHistoryContent, setShowHistoryContent] = useState('none');
 	const [showLoading, setShowLoading] = useState('flex');
 	const [currentVoteHistory, setCurrentVoteHistory] = useState(0);
-	const [addProjectComboSelection, setAddProjectComboSelection] = useState({projectid:""});
+	const [addIdeaComboSelection, setAddIdeaComboSelection] = useState({ideaid:""});
 	const [addVoteInputValue, setAddVoteInputValue] = useState(0);
 	const [addUserComboSeletion, setAddUserComboSelection] = useState({
 		fname:"",
@@ -85,8 +85,8 @@ export default function AdminVotesPage() {
 	});
 	const [votesList, setVotesList] = useState([{
 		id:'0',
-		voteID:'-',
-		projectID:'-',
+		voteId:'-',
+		ideaId:'-',
 		voter:'-',
 		office: '-',
 		voteValue:'-',
@@ -104,11 +104,11 @@ export default function AdminVotesPage() {
 			return;
 		};
 		if (votesResponse.code === 200) {
-			const votes = votesResponse.data.map((item,index) => {
+			const votes = votesResponse.data.map((item, index) => {
 				return {
 					"id":String(index),
-					"voteID":item.voteid,
-					"projectID":item.voteprojectid,
+					"voteId":item.voteid,
+					"ideaId":item.voteideaid,
 					"voter":`${item.participanttitle} ${item.participantfname} ${item.participantlname}`,
 					"office":item.officename,
 					"voteValue":item.votevalue,
@@ -129,7 +129,7 @@ export default function AdminVotesPage() {
 										"voteid":item.voteid,
 										"voter":`${item.participanttitle} ${item.participantfname} ${item.participantlname}`,
 										"votevalue":item.votevalue,
-										"projectid":item.voteprojectid
+										"ideaid":item.voteideaid
 									}
 									setModalEditOpen(true);
                 }}
@@ -155,8 +155,8 @@ export default function AdminVotesPage() {
                 kind='danger'
                 onClick={() => {
 									voteToDelete.current = {
-										voteID:item.voteid,
-                    projectID:item.voteprojectid,
+										voteId:item.voteid,
+                    ideaId:item.voteideaid,
                     voter:`${item.participanttitle} ${item.participantfname} ${item.participantlname}`
                   };
                   setModalDeleteOpen(true);
@@ -177,14 +177,14 @@ export default function AdminVotesPage() {
       setUserComboInvalid(true);
       return;
     }
-    if (!addVoteCombosRef.current.projectId || addVoteCombosRef.current.projectId === "") {
-      setProjectComboInvalid(true);
+    if (!addVoteCombosRef.current.ideaId || addVoteCombosRef.current.ideaId === "") {
+      setIdeaComboInvalid(true);
       return;
     }
 
     if (!addVoteValueRef.current.value || addVoteValueRef.current.value < 0 || addVoteValueRef.current.value > 10) return;
     
-		const checkVoteReqest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/votes/check/${addVoteCombosRef.current.voterId}&${addVoteCombosRef.current.projectId}&${localStorage.getItem('adminjwt')}`, {mode:'cors'});
+		const checkVoteReqest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/votes/check/${addVoteCombosRef.current.voterId}&${addVoteCombosRef.current.ideaId}&${localStorage.getItem('adminjwt')}`, {mode:'cors'});
 		const checkVoteResponse = await checkVoteReqest.json();
 		if (checkVoteResponse.code !== 200) {
 			errorInfo.current = {heading:`Error ${checkVoteResponse.code}`, message:checkVoteResponse.message}
@@ -203,8 +203,8 @@ export default function AdminVotesPage() {
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
 				values:{
-					"projectID":addVoteCombosRef.current.projectId,
-					"voterID":addVoteCombosRef.current.voterId,
+					"ideaId":addVoteCombosRef.current.ideaId,
+					"voterId":addVoteCombosRef.current.voterId,
 					"voteValue":addVoteValueRef.current.value,
 					"comment":addVoteCommentRef.current.value,
 					"source":"admin"
@@ -219,17 +219,17 @@ export default function AdminVotesPage() {
 		}
 		if (voteResponse.code === 200) GetVotes();
 
-    addVoteCombosRef.current = {voterId:"",voterName:"",projectId:""};
+    addVoteCombosRef.current = {voterId:"",voterName:"",ideaId:""};
 		addVoteValueRef.current.value = 0;
 		addVoteCommentRef.current.value = "";
 
     if(modalExistsOpen) setModalExistsOpen(false);
     setModalAddOpen(false);
 		setAddUserComboSelection(null);
-		setAddProjectComboSelection(null);
+		setAddIdeaComboSelection(null);
 		setAddVoteInputValue(0);
     setUserList([]);
-    setProjectList([]);
+    setIdeaList([]);
   }
 
   async function EditVote() {
@@ -263,7 +263,7 @@ export default function AdminVotesPage() {
     let fetchUrl;
     let reqBody = {};
     
-    if (voteToDelete.current.voteID === "all") {
+    if (voteToDelete.current.voteId === "all") {
       fetchUrl = `${process.env.REACT_APP_API_BASE_URL}/votes/deleteall`;
       reqBody = {
         method:'DELETE',
@@ -272,14 +272,14 @@ export default function AdminVotesPage() {
         body:JSON.stringify({"token":localStorage.getItem('adminjwt')})
       }
     }
-    if (voteToDelete.current.voteID !== "all") {
+    if (voteToDelete.current.voteId !== "all") {
       fetchUrl = `${process.env.REACT_APP_API_BASE_URL}/votes/delete`;
       reqBody = {
         method:'DELETE',
         mode:'cors',
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({
-					"voteId":voteToDelete.current.voteID,
+					"voteId":voteToDelete.current.voteId,
 					"token":localStorage.getItem('adminjwt')
 				})
       };
@@ -290,7 +290,7 @@ export default function AdminVotesPage() {
     if (deleteResponse.code === 200) GetVotes();
     if (deleteResponse.code !== 200) {
 			errorInfo.current = {
-				heading:`Error Deleting Vote ${voteToDelete.current.voteID}`,
+				heading:`Error Deleting Vote ${voteToDelete.current.voteId}`,
 				message:deleteResponse.message
 			};
 			setModalErrorOpen(true);
@@ -305,7 +305,7 @@ export default function AdminVotesPage() {
 			setModalErrorOpen(true);
 		}
 		if (participantsResponse.code === 200) {
-			const participants = participantsResponse.data.rows.map((participant) => {
+			const participants = participantsResponse.data.rows.map(participant => {
 				return {
 					"userid":participant.participantid,
 					"title":participant.participanttitle,
@@ -319,7 +319,7 @@ export default function AdminVotesPage() {
 		}
   }
 
-  async function GetProjects() {
+  async function GetIdeas() {
     const ideasRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/ideas/getall/${localStorage.getItem('adminjwt')}`, {mode:'cors'})
     const ideasResponse = await ideasRequest.json();
 		if (ideasResponse.code !== 200) {
@@ -328,13 +328,13 @@ export default function AdminVotesPage() {
 			return;
 		}
 		if (ideasResponse.code === 200) {
-			const ideas = ideasResponse.data.rows.map((idea) => {
+			const ideas = ideasResponse.data.rows.map(idea => {
 				return {
-					"projectid":idea.projectid,
-					"text":`${idea.projectid}: ${idea.projectdescription}`
+					"ideaid":idea.ideaid,
+					"text":`${idea.ideaid}: ${idea.ideadescription}`
 				};
 			});
-			setProjectList(ideas);
+			setIdeaList(ideas);
 		}
   }
 
@@ -352,7 +352,7 @@ export default function AdminVotesPage() {
 		if (historyResponse.code === 200) {
     	if (historyResponse.data.length <= 0) setVoteHistory([<><p>This vote has not been modified.</p></>]);
     	if (historyResponse.data.length > 0) {
-				const history = historyResponse.data.map((item) => {
+				const history = historyResponse.data.map(item => {
 					return ( 
 						<>
 							<div 
@@ -407,7 +407,7 @@ export default function AdminVotesPage() {
 				onRequestClose={() => setModalExistsOpen(false)}
 				onRequestSubmit={() => AddVote()}
 				open={modalExistsOpen}>
-					<p>A vote cast by {addVoteCombosRef.current.voterName} for idea {addVoteCombosRef.current.projectId} has already been recorded.</p>
+					<p>A vote cast by {addVoteCombosRef.current.voterName} for idea {addVoteCombosRef.current.ideaId} has already been recorded.</p>
 					<br/>
 					<p>If you choose to continue, the existing vote will be updated with the specified value of {addVoteValueRef.current.value} instead of creating a new vote entry.</p>
 			</Modal>
@@ -422,9 +422,9 @@ export default function AdminVotesPage() {
 				onRequestClose={() => {
 					setModalAddOpen(false);
 					setAddUserComboSelection(null);
-					setAddProjectComboSelection(null);
+					setAddIdeaComboSelection(null);
 					setAddVoteInputValue(0);
-					addVoteCombosRef.current = {voterId:"",voterName:"",projectId:""};
+					addVoteCombosRef.current = {voterId:"",voterName:"",ideaId:""};
 					addVoteValueRef.current.value = 0;
 					addVoteCommentRef.current.value = "";
 				}}
@@ -452,22 +452,22 @@ export default function AdminVotesPage() {
 				/>
 				<br/>
 				<ComboBox
-					id="addProjectCombobox"
+					id="addIdeaCombobox"
 					placeholder="Select"
 					invalidText="This is a required field."
-					invalid={projectComboInvalid}
-					items={projectList}
-					selectedItem={addProjectComboSelection}
-					itemToString={(project) => (project ? project.text: "")}
+					invalid={ideaComboInvalid}
+					items={ideaList}
+					selectedItem={addIdeaComboSelection}
+					itemToString={idea => (idea ? idea.text: "")}
 					titleText="Idea"
 					helperText=""
 					tabIndex={0}
 					onChange={(item) => {
-						setAddProjectComboSelection(item.selectedItem);
-						if (!item.selectedItem) addVoteCombosRef.current.projectId = "";
+						setAddIdeaComboSelection(item.selectedItem);
+						if (!item.selectedItem) addVoteCombosRef.current.ideaId = "";
 						if (item.selectedItem) {
-							if (projectComboInvalid) setProjectComboInvalid(false);
-							addVoteCombosRef.current.projectId = item.selectedItem.projectid;
+							if (ideaComboInvalid) setIdeaComboInvalid(false);
+							addVoteCombosRef.current.ideaId = item.selectedItem.ideaid;
 						}
 					}}
 				/>
@@ -500,7 +500,7 @@ export default function AdminVotesPage() {
 				primaryButtonText="Save"
 				secondaryButtonText="Cancel"
 				shouldSubmitOnEnter={true}
-				modalHeading={`Edit vote for idea ${voteToEditRef.current.projectid}`}
+				modalHeading={`Edit vote for idea ${voteToEditRef.current.ideaid}`}
 				onRequestClose={() => {
 					setModalEditOpen(false);
 					document.getElementById("editComment").value = ""; //this should be a useRef
@@ -508,7 +508,7 @@ export default function AdminVotesPage() {
 				onRequestSubmit={() => EditVote()}
 				open={modalEditOpen}
 			>
-				<p>Edit vote for idea {voteToEditRef.current.projectid} cast by {voteToEditRef.current.voter}</p>
+				<p>Edit vote for idea {voteToEditRef.current.ideaid} cast by {voteToEditRef.current.voter}</p>
 				<NumberInput
 					id="editVoteValue"
 					ref={editVoteValueRef}
@@ -536,14 +536,14 @@ export default function AdminVotesPage() {
 				secondaryButtonText="Cancel"
 				onRequestClose={() => {
 					setModalDeleteOpen(false);
-					voteToDelete.current = {voteID:""};
+					voteToDelete.current = {voteId:""};
 				}}
 				onRequestSubmit={() => {
 					setModalDeleteOpen(false);
 					DeleteVote();
 				}}
 				open={modalDeleteOpen}>
-					<p>Are you sure you want to delete {voteToDelete.current.voter}'s vote for project {voteToDelete.current.projectID}?</p>
+					<p>Are you sure you want to delete {voteToDelete.current.voter}'s vote for idea {voteToDelete.current.ideaId}?</p>
 			</Modal>
 			<Modal
 				danger
@@ -561,8 +561,8 @@ export default function AdminVotesPage() {
 					setDeleteAllDisabled(true);
 					setModalDeleteAllOpen(false);
 					voteToDelete.current = {
-						voteID:"all",
-						projectID:"",
+						voteId:"all",
+						ideaId:"",
 						voter:""
 					}
 					document.getElementById("deleteAllAck").checked = false; //this should be a useRef
@@ -581,11 +581,11 @@ export default function AdminVotesPage() {
 						let isChecked = document.getElementById("deleteAllAck").checked //this should be a useRef
 						if (isChecked === true) {
 							setDeleteAllDisabled(false);
-							voteToDelete.current = {voteID:"all"};
+							voteToDelete.current = {voteId:"all"};
 						}
 						if (isChecked === false) {
 							setDeleteAllDisabled(true);
-							voteToDelete.current = {voteID:""};
+							voteToDelete.current = {voteId:""};
 						}
 					}}
 				/>
@@ -641,7 +641,7 @@ export default function AdminVotesPage() {
 			</Modal>
 			<Content>
 				<div style={{display:displayTable}} className="bx--grid bx--grid--full-width adminPageBody">
-					<div className="bx--row bx--offset-lg-1 ManageProjects__r1" >
+					<div className="bx--row bx--offset-lg-1 ManageIdeas__r1" >
 						<div className="bx--col-lg-15">
 							<DataTable
 								rows={votesList}
@@ -667,7 +667,7 @@ export default function AdminVotesPage() {
 												iconDescription='Add Vote'
 												onClick={() => {
 													GetUsers();
-													GetProjects();
+													GetIdeas();
 													setModalAddOpen(true);
 												}}
 											/>
@@ -683,13 +683,13 @@ export default function AdminVotesPage() {
 										<Table {...getTableProps()}>
 											<TableHead>
 												<TableRow>
-													{headers.map((header, i) => (<TableHeader key={i} {...getHeaderProps({ header })}>{header.header}</TableHeader>))}
+													{headers.map((header, index) => (<TableHeader key={index} {...getHeaderProps({ header })}>{header.header}</TableHeader>))}
 												</TableRow>
 											</TableHead>
 											<TableBody>
-												{rows.map((row) => (
+												{rows.map(row => (
 													<TableRow key={row.id} {...getRowProps({ row })}>
-														{row.cells.map((cell) => (
+														{row.cells.map(cell => (
 															<TableCell key={cell.id}>{cell.value}</TableCell>
 														))}
 										</TableRow>

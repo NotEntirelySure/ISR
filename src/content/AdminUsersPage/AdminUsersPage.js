@@ -49,7 +49,7 @@ export default function AdminUsersPage() {
       setModalErrorOpen(true);
       return;
     }
-    const participants = participantsResponse.data.rows.map((participant) => {
+    const participants = participantsResponse.data.rows.map(participant => {
       return {
         id:String(participant.participantid),
         voterid:participant.participantid,
@@ -193,14 +193,14 @@ export default function AdminUsersPage() {
                 <Table {...getTableProps()}>
                   <TableHead>
                     <TableRow>
-                      {headers.map((header) => (<TableHeader key={header.key} {...getHeaderProps({ header })}>{header.header}</TableHeader>)
+                      {headers.map(header => (<TableHeader key={header.key} {...getHeaderProps({ header })}>{header.header}</TableHeader>)
                       )}
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {rows.map((row) => (
+                    {rows.map(row => (
                       <TableRow key={row.id} {...getRowProps({ row })}>
-                        {row.cells.map((cell) => (
+                        {row.cells.map(cell => (
                           <TableCell key={cell.id}>{cell.value}</TableCell>
                         ))}
                       </TableRow>

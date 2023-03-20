@@ -42,28 +42,6 @@ function getAllVotes(token) {
   });
 };
 
-//used by statistics and admin votes page
-function getVotesByProject(projectID) {
-  return new Promise(async(resolve, reject) => {
-    const isAuthReqest = await auth_model._verifyAdmin(token);
-    const isAuthResponse = await isAuthReqest;
-    if (isAuthResponse.code !== 200) resolve(isAuthResponse);
-    if (isAuthResponse.code === 200) { 
-      pool.query(
-        `SELECT voteparticipantid, votevalue
-        FROM votes
-        WHERE voteprojectid=$1
-        ORDER BY voteid;`,
-        [projectID],
-        (error, results) => {
-          if (error) {reject(error)}
-          resolve(results.rows);
-        }
-      );
-    };
-  });
-};
-
 //used by statistics page
 function getVotesByOffice(data) {
   
@@ -72,7 +50,7 @@ function getVotesByOffice(data) {
     const token = data.split('&')[1];
     const isAuthReqest = await auth_model._verifyAdmin(token);
     const isAuthResponse = await isAuthReqest;
-    
+
     if (isAuthResponse.code !== 200) resolve(isAuthResponse);
     if (isAuthResponse.code === 200) { 
       pool.query(
@@ -335,7 +313,6 @@ function resetLogTable(token) {
 
 module.exports = {
   getAllVotes,
-  getVotesByProject,
   getVotesByOffice,
   getChangeLogById,
   getAllChangeLogs,

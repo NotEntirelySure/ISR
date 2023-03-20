@@ -11,7 +11,7 @@ const pool = new Pool({
 });
 
 //used by admin offices page
-const getOffices = () => {
+function getOffices() {
 	return new Promise((resolve, reject) => {
 		pool.query("SELECT * FROM offices ORDER BY officename;", (error, results) => {
 			if (error) resolve({code:500, message:error.detail})
@@ -21,7 +21,7 @@ const getOffices = () => {
 };
 
 //used by admin offices page
-const addOffice = (data) => {
+function addOffice(data) {
 	return new Promise(async(resolve, reject) => {
 		const isAuthReqest = await auth_model._verifyAdmin(data.token);
 		const isAuthResponse = await isAuthReqest;
@@ -53,7 +53,7 @@ const addOffice = (data) => {
 };
 
 //used by admin offices page
-const deleteOffice = (data) => {
+function deleteOffice(data) {
 	return new Promise(async(resolve, reject) => {
 		try {
 			const isAuthReqest = await auth_model._verifyAdmin(data.token);
@@ -64,14 +64,14 @@ const deleteOffice = (data) => {
 					`DELETE FROM offices WHERE officeid=$1`,
 					[data.officeId],
 					(error, results) => {
-						if (error) {reject({code:500,message:error.detail});}
+						if (error) reject({code:500,message:error.detail});
 						resolve({code:200});
 				});
-			}; 
+			};
 		}
-		catch (error) {reject({code:500,message:error.detail});}
+		catch (error) {reject({code:500,message:error.detail});};
 	});
-}
+};
 
 module.exports = {
     getOffices,

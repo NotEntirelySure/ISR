@@ -15,7 +15,7 @@ const pool = new Pool({
   port: process.env.API_BASE_PORT_NUMBER,
 });
 
-const exportExcel = async(data) => {
+async function exportExcel(data) {
 	return new Promise(async(resolve, reject) => {
 		
 		const isAuthReqest = await auth_model._verifyAdmin(data.split('&')[1]);

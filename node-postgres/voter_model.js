@@ -12,7 +12,7 @@ const pool = new Pool({
 });
 
 //used by user registration page
-const registerVoter = (userInfo) => {
+function registerVoter(userInfo) {
   return new Promise((resolve, reject) => { 
     pool.query(
       'SELECT register_participant($1,$2,$3,$4);',
@@ -26,7 +26,7 @@ const registerVoter = (userInfo) => {
   });
 };
 
-const getAllParticipants = (token) => {
+function getAllParticipants(token) {
   return new Promise(async(resolve, reject) => {
     const isAuthReqest = await auth_model._verifyAdmin(token);
 		const isAuthResponse = await isAuthReqest;
@@ -52,7 +52,7 @@ const getAllParticipants = (token) => {
   });
 };
 //used by user vote page and admin users page
-const getVoterInfo = (token) => {  
+function getVoterInfo(token) {  
   return new Promise((resolve, reject) => {
     const isVerified = jwt.verify(token, process.env.JWT_SECRET_KEY)
     console.log(isVerified);
@@ -79,7 +79,7 @@ const getVoterInfo = (token) => {
 }
     
 //used by user admin page
-const deleteParticipant = (data) => {
+function deleteParticipant(data) {
   return new Promise (async(resolve, reject) => {
 		const isAuthReqest = await auth_model._verifyAdmin(data.token);
     const isAuthResponse = await isAuthReqest;
@@ -96,7 +96,7 @@ const deleteParticipant = (data) => {
   });
 }
 
-const userLogout = (voterId) => {
+function userLogout(voterId) {
   return new Promise((resolve, reject) => {
     pool.query(`UPDATE participants SET participantloggedin='false' WHERE participantid='${voterId}'`, (error, results) => {
       if (error) reject(error)
@@ -105,7 +105,7 @@ const userLogout = (voterId) => {
   })
 }
 
-const resetParticipantsTable = (token) => {
+function resetParticipantsTable(token) {
   return new Promise(async(resolve, reject) => {
     const isAuthReqest = await auth_model._verifyAdmin(token);
 		const isAuthResponse = await isAuthReqest;

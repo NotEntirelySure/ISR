@@ -28,15 +28,15 @@ import { SimpleBarChart } from "@carbon/charts-react";
 
 const rankHeaders = [
   {key:'rank', header:'Rank'},
-  {key:'projectID', header:'Project ID'},
-  {key:'projectDescription', header:'Project Description'},
+  {key:'ideaId', header:'Idea ID'},
+  {key:'ideaDescription', header:'Idea Description'},
   {key:'totalScore', header:'Total Priority Score'},
   {key:'averageScore', header:'Average Priority Score'}
 ];
 
 const voteHeaders = [
-  {key:'projectID', header:'Project ID'},
-  {key:'projectDescription', header:'Project Description'},
+  {key:'ideaId', header:'Idea ID'},
+  {key:'ideaDescription', header:'Idea Description'},
   {key:'participantName', header:'Participant Name'},
   {key:'office', header:'Office'},
   {key:'voteValue', header:'Vote Value'}
@@ -68,8 +68,8 @@ export default function StatisticsPage() {
       {
         id:"0",
         rank:"-",
-        projectID:"-",
-        projectDescription:"-",
+        ideaId:"-",
+        ideaDescription:"-",
         totalScore:"-",
         averageScore:"-"
       }
@@ -79,7 +79,7 @@ export default function StatisticsPage() {
     [
       {
         id:"0",
-        projectID:"-",
+        ideaId:"-",
         name:"-",
         office:"-",
         voteVaue:"-"
@@ -104,9 +104,9 @@ export default function StatisticsPage() {
         return {
           "id":String(index+1),
           "rank":0,
-          "projectID": idea.projectid,
-          "projectDescription": idea.projectdescription,
-          "projectdomaincolorhex":idea.projectdomaincolorhex,
+          "ideaId": idea.ideaid,
+          "ideaDescription": idea.ideadescription,
+          "ideadomaincolorhex":idea.ideadomaincolorhex,
           "totalScore":0
         };
       });
@@ -150,44 +150,44 @@ export default function StatisticsPage() {
       return;
     }
     if (votesResponse.code === 200) {
-      //create hashmap of projects and total scores.
+      //create hashmap of ideas and total scores.
       let votesHashmap = {};
       let objVoteCount = {};
       
       votesResponse.data.forEach((item) => {
         //omit any 0 values from the calculation. This prevents abstain votes from skewing the average down.
         if(item.votevalue !== 0) {
-          if (item.voteprojectid in votesHashmap) {
-            votesHashmap[item.voteprojectid] = votesHashmap[item.voteprojectid] + item.votevalue;
-            objVoteCount[item.voteprojectid]++;
+          if (item.voteideaid in votesHashmap) {
+            votesHashmap[item.voteideaid] = votesHashmap[item.voteideaid] + item.votevalue;
+            objVoteCount[item.voteideaid]++;
           }
           else {
-            votesHashmap[item.voteprojectid] = item.votevalue;
-            objVoteCount[item.voteprojectid] = 1;
+            votesHashmap[item.voteideaid] = item.votevalue;
+            objVoteCount[item.voteideaid] = 1;
           }  
         }
       });
 
       //update state with score values of voteshashmap
-      const projectList = ideas.map((idea) => {
-        let average = (votesHashmap[idea.projectID]/objVoteCount[idea.projectID]).toFixed(2);
+      const ideaList = ideas.map(idea => {
+        let average = (votesHashmap[idea.ideaId]/objVoteCount[idea.ideaId]).toFixed(2);
         if (isNaN(average)) average = 0;
         return {
           "id":idea.id,
           "rank":0,
-          "projectID":idea.projectID,
-          "projectDescription":idea.projectDescription,
-          "totalScore":votesHashmap[idea.projectID],
+          "ideaId":idea.ideaID,
+          "ideaDescription":idea.ideaDescription,
+          "totalScore":votesHashmap[idea.ideaId],
           "averageScore":average,
-          "projectdomaincolorhex":idea.projectdomaincolorhex
+          "ideadomaincolorhex":idea.ideadomaincolorhex
         }
       });
 
       //sort highest score to lowest
-      projectList.sort((a, b) => b.averageScore - a.averageScore);
+      ideaList.sort((a, b) => b.averageScore - a.averageScore);
       //set rank order value based on previous sorting
-      for (let i=0;i<projectList.length;i++){projectList[i].rank = i+1}
-      setIdeaRankings(projectList);
+      for (let i=0;i<ideaList.length;i++){ideaList[i].rank = i+1}
+      setIdeaRankings(ideaList);
     }
   }
 
@@ -198,7 +198,7 @@ export default function StatisticsPage() {
 
     const participantResponse = await fetch(`${process.env.REACT_APP_API_BASE_URL}/participants/getall/${localStorage.getItem('adminjwt')}`, {mode:'cors'});
     const participantList = await participantResponse.json();
-    const objParticipants = participantList.data.rows.map((participant) => {
+    const objParticipants = participantList.data.rows.map(participant => {
       return {
         "Participant ID":participant.participantid,
         "Title":participant.participanttitle,
@@ -215,21 +215,21 @@ export default function StatisticsPage() {
       setModalErrorOpen(true);
       return;
     };
-    const objVotes = voteResponse.data.map((vote) => {
+    const objVotes = voteResponse.data.map(vote => {
       return {
         "Vote ID":vote.voteid,
-        "Project ID":vote.voteprojectid,
+        "Idea ID":vote.voteideaid,
         "Participant ID":vote.participantid,
         "Participant Office":vote.officename,
         "Vote Value":vote.votevalue
       };
     });
     
-    const objRankings = ideaRankings.map((idea) => {
+    const objRankings = ideaRankings.map(idea => {
       return {
         "Rank":idea.rank,
-        "Project ID":idea.projectID,
-        "Project Description":idea.projectDescription,
+        "Idea ID":idea.ideaId,
+        "Idea Description":idea.ideaDescription,
         "Total Priority Score":idea.totalScore,
         "Average Priority Score":idea.averageScore
       }
@@ -242,13 +242,13 @@ export default function StatisticsPage() {
       setModalErrorOpen(true);
       return;
     }
-    const objLogs = logsResponse.data.rows.map((log) => {
+    const objLogs = logsResponse.data.rows.map(log => {
       return {
         "Change ID":log.changeid,
         "Vote ID":log.changevoteid,
         "Voter":`${log.participanttitle} ${log.participantfname} ${log.participantlname}`,
         "Office":log.voteparticipantoffice,
-        "Idea":`${log.projectid}: ${log.projectdescription}`,
+        "Idea":`${log.ideaid}: ${log.ideadescription}`,
         "Previous Value":log.changepreviousvalue,
         "New Value":log.votevalue,
         "Time of Change":log.changetime,
@@ -349,12 +349,12 @@ export default function StatisticsPage() {
       let scaleObj = {};
       
       for (let i=0;i<chartSlice.length;i++){
-        let name = `#${chartSlice[i].rank}) ${chartSlice[i].projectID}: ${chartSlice[i].projectDescription}`;
+        let name = `#${chartSlice[i].rank}) ${chartSlice[i].ideaId}: ${chartSlice[i].ideaDescription}`;
         dataArray.push({
           "group":name,
           "value":isNaN(chartSlice[i].averageScore) ? 0:parseFloat(chartSlice[i].averageScore)
         });
-        scaleObj[name] = chartSlice[i].projectdomaincolorhex;
+        scaleObj[name] = chartSlice[i].ideadomaincolorhex;
       }
       
       setChartData(dataArray.reverse());
@@ -503,7 +503,7 @@ export default function StatisticsPage() {
   async function GetOffices() {
     const officesRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/offices/getall`, {mode:'cors'});
     const officesResponse = await officesRequest.json();
-    const objOffices = officesResponse.data.rows.map((office) => {
+    const objOffices = officesResponse.data.rows.map(office => {
       return {id:office.officename, text:office.officename}
     });
     setOffices(objOffices);
@@ -534,8 +534,8 @@ export default function StatisticsPage() {
         if (votesResponse.data.length === 0) {
           const votes = [{
             id:"0",
-            projectID:"no records found",
-            projectDescription:"no records found",
+            ideaId:"no records found",
+            ideaDescription:"no records found",
             participantName:"no records found",
             office:"no records found",
             voteValue:"no records found"
@@ -546,8 +546,8 @@ export default function StatisticsPage() {
         const votes = votesResponse.data.map((vote,index) => {
           return {
             id:String(index),
-            projectID:vote.voteprojectid,
-            projectDescription:vote.projectdescription,
+            ideaId:vote.voteideaid,
+            ideaDescription:vote.ideadescription,
             participantName:`${vote.participanttitle} ${vote.participantfname} ${vote.participantlname}`,
             office:vote.officename,
             voteValue:vote.votevalue
@@ -580,7 +580,7 @@ export default function StatisticsPage() {
         <div className="bx--grid bx--grid--full-width adminPageBody">
           <div className="bx--row bx--offset-lg-1 statistics-page__r1" >
             <ContentSwitcher onChange={(tab) => {SwitchTabs(tab.name)}}>
-              <Switch name="ranktable" text="Project Ranks" />
+              <Switch name="ranktable" text="Idea Ranks" />
               <Switch name="charts" text="Vote Breakdown Charts" />
               <Switch name="byoffice" text="Vote Breakdown by Office" />
             </ContentSwitcher>
@@ -599,7 +599,7 @@ export default function StatisticsPage() {
                   getTableProps,
                   onInputChange
                 }) => (
-                  <TableContainer title="Project Ranks" description="Displays a rank-ordered list of ideas">
+                  <TableContainer title="Idea Ranks" description="Displays a rank-ordered list of ideas">
                     <TableToolbar>
                       <TableToolbarContent>
                         <TableToolbarSearch onChange={onInputChange} />
@@ -619,12 +619,14 @@ export default function StatisticsPage() {
                     <Table {...getTableProps()}>
                       <TableHead>
                         <TableRow>
-                          {headers.map((header) => (<TableHeader {...getHeaderProps({ header })}>{header.header}</TableHeader>))}
+                          {headers.map(header => (<TableHeader {...getHeaderProps({ header })}>{header.header}</TableHeader>))}
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                      {rows.map((row) => (
-                        <TableRow {...getRowProps({ row })}>{row.cells.map((cell) => (<TableCell key={cell.id}>{cell.value}</TableCell>))}</TableRow>
+                      {rows.map(row => (
+                        <TableRow {...getRowProps({ row })}>
+                          {row.cells.map(cell => (<TableCell key={cell.id}>{cell.value}</TableCell>))}
+                        </TableRow>
                       ))}
                     </TableBody>
                     </Table>
@@ -725,15 +727,13 @@ export default function StatisticsPage() {
                       <Table {...getTableProps()}>
                         <TableHead>
                           <TableRow>
-                            {headers.map((header) => (<TableHeader key={header.key} {...getHeaderProps({ header })}>{header.header}</TableHeader>))}
+                            {headers.map(header => (<TableHeader key={header.key} {...getHeaderProps({ header })}>{header.header}</TableHeader>))}
                           </TableRow>
                         </TableHead>
                         <TableBody>
-                          {rows.map((row) => (
-                            <TableRow key={row.id} {...getRowProps({ row })}>{
-                              row.cells.map((cell) => (
-                                <TableCell key={cell.id}>{cell.value}</TableCell>
-                            ))}
+                          {rows.map(row => (
+                            <TableRow key={row.id} {...getRowProps({ row })}>
+                              {row.cells.map(cell => (<TableCell key={cell.id}>{cell.value}</TableCell>))}
                             </TableRow>
                           ))}
                         </TableBody>

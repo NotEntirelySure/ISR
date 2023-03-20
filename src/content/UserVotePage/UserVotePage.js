@@ -24,12 +24,12 @@ var client;
 export default function UserVotePage() {
 
   const notificationRef = useRef();
-  const voteData = useRef({"project":"","value":null});
+  const voteData = useRef({"idea":"","value":null});
 
   const navigate = useNavigate();
 
   const [isAuth, setIsAuth] = useState(false);
-  const [projects, setProjects] = useState([]);
+  const [ideas, setIdeas] = useState([]);
   const [voteButtonDisabled, setVoteButtonDisabled] = useState(false);
   const [showLoading, setShowLoading] = useState('none');
   const [currentTheme, setCurrentTheme] = useState("white");
@@ -150,12 +150,12 @@ export default function UserVotePage() {
     const historyRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/votes/getparticipanthistory/${localStorage.getItem('jwt')}`, {mode:'cors'});
     const historyResponse = await historyRequest.json();
     if (historyResponse.code === 200) {
-      const initialHistory = historyResponse.historyData.map((item) => {
+      const initialHistory = historyResponse.historyData.map(item => {
         return {
           source:"initialLoad",
           kind:"success",
           title:"Success!",
-          message:`Your ${item.votevalue === 0 ? 'abstain vote':`vote of ${item.votevalue}`} for idea ${item.voteprojectid} was successfully submitted.`,
+          message:`Your ${item.votevalue === 0 ? 'abstain vote':`vote of ${item.votevalue}`} for idea ${item.voteideaid} was successfully submitted.`,
           timestamp: new Date(item.votetime).toLocaleString()
         };
       });
@@ -184,14 +184,14 @@ export default function UserVotePage() {
 
     client.onmessage = (message) => {
       let data = JSON.parse(message.data);
-      let objProjects = [];
+      let objIdeas = [];
       for (var i=0; i<data.length; i++) {
-        objProjects.push( {
-            projectID: data[i].id,
-            projectDescription: data[i].description
+        objIdeas.push( {
+            ideaId: data[i].id,
+            ideaDescription: data[i].description
         });
       }
-      setProjects(objProjects);
+      setIdeas(objIdeas);
     };
 
     client.onclose = () => {
@@ -232,10 +232,10 @@ export default function UserVotePage() {
     This prevents instances where there are multiple tiles, someone selects a value from one tile, they click the
     "submit" button from a different tile, and it actually submits. Without this check, that behavior would be successful.*/
 
-    if (voteData.current.value !== null && voteData.current.project === buttonSource) {
+    if (voteData.current.value !== null && voteData.current.idea === buttonSource) {
       let requestData = {
-        "voterID":voterInfo.id,
-        "projectID":voteData.current.project,
+        "voterId":voterInfo.id,
+        "ideaId":voteData.current.idea,
         "voteValue":voteData.current.value,
         "source":"user"
       };
@@ -258,7 +258,7 @@ export default function UserVotePage() {
             count:notificationInfo.count + 1,
             kind:"error",
             title:`Error: ${voteResponse.code}`,
-            message:`There was a problem submitting your ${voteData.current.value === 0 ? 'abstain vote':`vote of ${voteData.current.value}`} for idea ${voteData.current.project}. (${voteResponse.message})`,
+            message:`There was a problem submitting your ${voteData.current.value === 0 ? 'abstain vote':`vote of ${voteData.current.value}`} for idea ${voteData.current.idea}. (${voteResponse.message})`,
             timestamp: new Date().toLocaleString()
           });
         }
@@ -268,7 +268,7 @@ export default function UserVotePage() {
             count:notificationInfo.count + 1,
             kind:"success",
             title:"Success!",
-            message:`Your ${voteData.current.value === 0 ? 'abstain vote':`vote of ${voteData.current.value}`} for idea ${voteData.current.project} was successfully submitted.`,
+            message:`Your ${voteData.current.value === 0 ? 'abstain vote':`vote of ${voteData.current.value}`} for idea ${voteData.current.idea} was successfully submitted.`,
             timestamp: new Date().toLocaleString()
           });
           client.send(JSON.stringify({
@@ -276,7 +276,7 @@ export default function UserVotePage() {
             office:voterInfo.office,
             msg: "voted"
           }));
-          voteData.current = ({"project":"","value":null});
+          voteData.current = ({"idea":"","value":null});
         }
       }
       catch (err) {
@@ -285,7 +285,7 @@ export default function UserVotePage() {
           count:notificationInfo.count + 1,
           kind:"error",
           title:`Error: ${err.message}`,
-          message:`There was a problem submitting your ${voteData.current.value === 0 ? 'abstain vote':`vote of ${voteData.current.value}`} for idea ${voteData.current.project}.`,
+          message:`There was a problem submitting your ${voteData.current.value === 0 ? 'abstain vote':`vote of ${voteData.current.value}`} for idea ${voteData.current.idea}.`,
           timestamp: new Date().toLocaleString()
         });
       }
@@ -296,27 +296,27 @@ export default function UserVotePage() {
     }
   }
 
-  function BuildRadioButtons(projectID) {
+  function BuildRadioButtons(ideaId) {
 
     let radioButtons = [];
     for (let i=0; i<11; i++) {
       if(i === 0) {
         radioButtons.push(
           <RadioButton
-            key={`${projectID}-${i}`}
+            key={`${ideaId}-${i}`}
             labelText="abstain"
             value={i}
-            id={`radio-${projectID + i}`}
+            id={`radio-${ideaId + i}`}
           />
         )
       }
       else {
         radioButtons.push(
           <RadioButton
-            key={`${projectID}-${i}`}
+            key={`${ideaId}-${i}`}
             labelText={i}
             value={i}
-            id={`radio-${projectID + i}`}
+            id={`radio-${ideaId + i}`}
           />
         )
       }
@@ -447,7 +447,7 @@ function HandleThemeChange(selectedTheme) {
           </div>
           <Content>
             <div id='tileContainer'>
-              {projects.length === 0 ? <>
+              {ideas.length === 0 ? <>
                 <div 
                   className="tile"
                   style={{
@@ -461,7 +461,7 @@ function HandleThemeChange(selectedTheme) {
                   </div>
                 </div>
               </>:
-                projects.map((projects, index) => {
+                ideas.map((idea, index) => {
                   return <>
                     <div
                       className="tile"
@@ -470,16 +470,16 @@ function HandleThemeChange(selectedTheme) {
                         boxShadow:themeValues.shadowColor
                       }}
                     >
-                      <div><p>{`${projects.projectID}: ${projects.projectDescription}`}</p></div>
+                      <div><p>{`${idea.ideaID}: ${idea.ideaDescription}`}</p></div>
                       <hr/>
                       <div className='highResContainer'>
                         <div>
                         <RadioButtonGroup
-                          key={projects.projectID + index}
-                          name={`radio-group-${projects.projectID}`}
-                          onChange={(value) => voteData.current = {"project":projects.projectID,"value":value}}
+                          key={idea.ideaId + index}
+                          name={`radio-group-${idea.ideaId}`}
+                          onChange={(value) => voteData.current = {"idea":idea.ideaId,"value":value}}
                         >
-                          {BuildRadioButtons(projects.projectID)}
+                          {BuildRadioButtons(idea.ideaId)}
                         </RadioButtonGroup>  
                         </div>
                       </div>
@@ -503,21 +503,21 @@ function HandleThemeChange(selectedTheme) {
                               { id: '10', value:10, text: '10 (High impact)' },
                             ]}
                             itemToString={(item) => (item ? item.text : '')}
-                            onChange={(event) => voteData.current = {"project":projects.projectID,"value":event.selectedItem.value}}
+                            onChange={(event) => voteData.current = {"idea":ideas.ideaId,"value":event.selectedItem.value}}
                           />
                         </div>
                       </div>
                       <div style={{display:'flex', alignItems:'center'}}>
                         <div style={{padding:'1rem'}}>
                           <Button 
-                            id={`vote-button-${projects.projectID}`}
-                            onClick={() => SubmitVote(projects.projectID)}
+                            id={`vote-button-${ideas.ideaId}`}
+                            onClick={() => SubmitVote(ideas.ideaId)}
                             disabled={voteButtonDisabled}
                           >
                             Submit Vote
                           </Button>
                         </div>
-                        <div id={`loading-${projects.projectID}`} style={{display:showLoading}}>
+                        <div id={`loading-${ideas.ideaId}`} style={{display:showLoading}}>
                           <InlineLoading status="active" description="Submitting vote..."/>
                         </div>
                       </div>

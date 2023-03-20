@@ -31,25 +31,21 @@ export default function ResultsPage () {
     };
 
     client.onmessage = (message) => {
-      console.info("message received")
 			const messageData = JSON.parse(message.data);
 			//only executes if the data from the web sockets server is chart data to publish
 			if (messageData.chartData && messageData.action === "publish") {
 
-				let dataArray = [];
 				let scaleObj = {};
-				messageData.chartData.map(
-					(idea) => {
-						let name = `${idea.rank}) ${idea.projectID}: ${idea.projectDescription}`;
-						dataArray.push({
-							"group":name,
-							"value":isNaN(idea.averageScore) ? 0:parseFloat(idea.averageScore)
-						})
-						scaleObj[name] = idea.projectdomaincolorhex
-					}
-				)
+				const data = messageData.chartData.map(idea => {
+					let name = `${idea.rank}) ${idea.ideaId}: ${idea.ideaDescription}`;
+					scaleObj[name] = idea.ideadomaincolorhex
+					return {
+						"group":name,
+						"value":isNaN(idea.averageScore) ? 0:parseFloat(idea.averageScore)
+					};
+				});
 
-				setChartData(dataArray.reverse());
+				setChartData(data.reverse());
 				setChartOptions({
 					"title": "",
 					"axes": {
