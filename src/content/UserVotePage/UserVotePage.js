@@ -183,6 +183,7 @@ export default function UserVotePage() {
     };
 
     client.onmessage = (message) => {
+      console.log("message received: ", message);
       let data = JSON.parse(message.data);
       let objIdeas = [];
       for (var i=0; i<data.length; i++) {
@@ -231,10 +232,10 @@ export default function UserVotePage() {
     /*the below "if" ensures that a value has been selected and that the source of the button click is from the same tile.
     This prevents instances where there are multiple tiles, someone selects a value from one tile, they click the
     "submit" button from a different tile, and it actually submits. Without this check, that behavior would be successful.*/
-
+    console.log(buttonSource)
     if (voteData.current.value !== null && voteData.current.idea === buttonSource) {
       let requestData = {
-        "voterId":voterInfo.id,
+        "participantId":voterInfo.id,
         "ideaId":voteData.current.idea,
         "voteValue":voteData.current.value,
         "source":"user"
@@ -465,12 +466,9 @@ function HandleThemeChange(selectedTheme) {
                   return <>
                     <div
                       className="tile"
-                      style={{
-                        backgroundColor:themeValues.tileColor,
-                        boxShadow:themeValues.shadowColor
-                      }}
+                      style={{backgroundColor:themeValues.tileColor, boxShadow:themeValues.shadowColor}}
                     >
-                      <div><p>{`${idea.ideaID}: ${idea.ideaDescription}`}</p></div>
+                      <div><p>{`${idea.ideaId}: ${idea.ideaDescription}`}</p></div>
                       <hr/>
                       <div className='highResContainer'>
                         <div>
@@ -510,14 +508,14 @@ function HandleThemeChange(selectedTheme) {
                       <div style={{display:'flex', alignItems:'center'}}>
                         <div style={{padding:'1rem'}}>
                           <Button 
-                            id={`vote-button-${ideas.ideaId}`}
-                            onClick={() => SubmitVote(ideas.ideaId)}
+                            id={`vote-button-${idea.ideaId}`}
+                            onClick={() => SubmitVote(idea.ideaId)}
                             disabled={voteButtonDisabled}
                           >
                             Submit Vote
                           </Button>
                         </div>
-                        <div id={`loading-${ideas.ideaId}`} style={{display:showLoading}}>
+                        <div id={`loading-${idea.ideaId}`} style={{display:showLoading}}>
                           <InlineLoading status="active" description="Submitting vote..."/>
                         </div>
                       </div>

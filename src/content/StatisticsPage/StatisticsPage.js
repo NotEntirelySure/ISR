@@ -175,7 +175,7 @@ export default function StatisticsPage() {
         return {
           "id":idea.id,
           "rank":0,
-          "ideaId":idea.ideaID,
+          "ideaId":idea.ideaId,
           "ideaDescription":idea.ideaDescription,
           "totalScore":votesHashmap[idea.ideaId],
           "averageScore":average,
@@ -623,11 +623,11 @@ export default function StatisticsPage() {
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                      {rows.map(row => (
-                        <TableRow {...getRowProps({ row })}>
-                          {row.cells.map(cell => (<TableCell key={cell.id}>{cell.value}</TableCell>))}
-                        </TableRow>
-                      ))}
+                        {rows.map(row => (
+                          <TableRow {...getRowProps({ row })}>
+                            {row.cells.map(cell => (<TableCell key={cell.id}>{cell.value}</TableCell>))}
+                          </TableRow>
+                        ))}
                     </TableBody>
                     </Table>
                   </TableContainer>
@@ -637,7 +637,7 @@ export default function StatisticsPage() {
           </div>
           <div id="charts" style={{display:showCharts}} className="bx--row bx--offset-lg-1 statistics-page__r3">
             <div className='chartContainer'>
-              <div id='chartOptions'>
+              <div id='chartOptions' style={{display:'flex', gap:'0.5rem', flexWrap:'wrap', alignItems:'center'}}>
                 <div id='chartDropdown'>
                   <Dropdown
                     id="chartDropdown"
@@ -656,44 +656,40 @@ export default function StatisticsPage() {
                     onChange={(item) => setSelectedChart(item.selectedItem.id)}
                   />
                 </div>
-                <div>
-                  <div style={{display:'flex',gap:'0.5rem',flexWrap:'wrap'}}>
-                    <div style={{display:exportButtonDisplay}}>
-                      <Button
-                        id="chartExportButton"
-                        hasIconOnly={true}
-                        renderIcon={DocumentExport}
-                        iconDescription={exportButtonText}
-                        description={exportButtonText}
-                        onClick={() => ExportChart()}
-                      />
-                    </div>
-                    <div style={{display:exportLoading}}>
-                      <InlineLoading
-                        style={{ marginLeft: '1rem'}}
-                        description='Exporting chart...'
-                        status='active'
-                      />
-                    </div>
-                    <div style={{display:exportButtonDisplay}}>
-                        <Button 
-                          id="publishResultsButton"
-                          kind="secondary"
-                          hasIconOnly={true}
-                          renderIcon={Share}
-                          description='Publishes the rusults of the ISR voting'
-                          iconDescription='Publish Results'
-                          onClick={() => ProcessChartData("publish")}
-                        />
-                      </div>
-                  </div>
+                <div style={{display:exportButtonDisplay}}>
+                  <Button
+                    id="chartExportButton"
+                    hasIconOnly={true}
+                    renderIcon={DocumentExport}
+                    iconDescription={exportButtonText}
+                    description={exportButtonText}
+                    onClick={() => ExportChart()}
+                  />
                 </div>
+                <div style={{display:exportLoading}}>
+                  <InlineLoading
+                    style={{ marginLeft: '1rem'}}
+                    description='Exporting chart...'
+                    status='active'
+                  />
+                </div>
+                <div style={{display:exportButtonDisplay}}>
+                    <Button 
+                      id="publishResultsButton"
+                      kind="secondary"
+                      hasIconOnly={true}
+                      renderIcon={Share}
+                      description='Publishes the rusults of the ISR voting'
+                      iconDescription='Publish Results'
+                      onClick={() => ProcessChartData("publish")}
+                    />
+                </div>
+    
               </div>
             </div>
             <div className='statsBarChart'>
               {chartData && chartOptions ? <SimpleBarChart data={chartData} options={chartOptions}/>:null}
             </div>
-            
           </div>
           <div 
             id="byoffice"
@@ -701,7 +697,7 @@ export default function StatisticsPage() {
             className="bx--row bx--offset-lg-1 statistics-page__r4"
           >
             <div id="byOfficeContainer">
-              <div id="byOfficeOptions">
+              <div id="byOfficeOptions" style={{display:'flex', gap:'0.5rem', alignItems:'center'}}>
                 <div>
                   {
                     offices ? <ComboBox
@@ -713,11 +709,10 @@ export default function StatisticsPage() {
                       invalidText="This is a required field." 
                       items={offices}
                       itemToString={(office) => (office ? office.text : '')}
-                      titleText="Office"
                     />:null
                   }
                 </div>
-                <div className="bx--col-lg-4 officeButton"><Button kind='primary' onClick={() => GetVotesByOffice()}>Get Votes</Button></div>
+                <div><Button kind='primary' onClick={() => GetVotesByOffice()}>Get Votes</Button></div>
               </div>
               <div className="bx--row">
               <div className="bx--col-lg-15 officeTable">

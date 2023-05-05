@@ -253,7 +253,6 @@ export default function AdminIdeasPage() {
 
       //if no direct match can be found between the provided domain name and one recorded in the database, try different iterations of domain names.
       if (!domainFound) {
-        console.log("not found val:", String(fileData[i][2]).toLowerCase())
         let refArray = [];
         const ewIterations = ["ew", "e&w","environment and waterways","environment & waterways"];
         const msIterations = ["ms", "m&s","msa","modeling and simulation","modeling & simulation"];

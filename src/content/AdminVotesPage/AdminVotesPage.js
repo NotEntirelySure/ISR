@@ -1,25 +1,25 @@
 import React, { useState, useEffect, useRef } from 'react'
 import {
-	Button,
-	ComboBox,
-	Content,
-	Checkbox,
-	DataTable,
-	DataTableSkeleton,
-	Modal,
-	NumberInput,
-	TableContainer,
-	Table,
-	TableHead,
-	TableHeader,
-	TableRow,
-	TableBody,
-	TableCell,
-	TableToolbar,
-	TableToolbarContent,
-	TableToolbarSearch,
-	TextArea,
-	Loading
+  Button,
+  ComboBox,
+  Content,
+  Checkbox,
+  DataTable,
+  DataTableSkeleton,
+  Modal,
+  NumberInput,
+  TableContainer,
+  Table,
+  TableHead,
+  TableHeader,
+  TableRow,
+  TableBody,
+  TableCell,
+  TableToolbar,
+  TableToolbarContent,
+  TableToolbarSearch,
+  TextArea,
+  Loading
 } from '@carbon/react';
 import {
   Add,
@@ -154,12 +154,12 @@ export default function AdminVotesPage() {
                 iconDescription='Delete Vote'
                 kind='danger'
                 onClick={() => {
-									voteToDelete.current = {
-										voteId:item.voteid,
-                    ideaId:item.voteideaid,
-                    voter:`${item.participanttitle} ${item.participantfname} ${item.participantlname}`
-                  };
-                  setModalDeleteOpen(true);
+					voteToDelete.current = {
+						voteId:item.voteid,
+                    	ideaId:item.voteideaid,
+                    	voter:`${item.participanttitle} ${item.participantfname} ${item.participantlname}`
+                  	};
+                  	setModalDeleteOpen(true);
                 }}
 								/>
             </div>
@@ -204,7 +204,7 @@ export default function AdminVotesPage() {
       body:JSON.stringify({
 				values:{
 					"ideaId":addVoteCombosRef.current.ideaId,
-					"voterId":addVoteCombosRef.current.voterId,
+					"participantId":addVoteCombosRef.current.voterId,
 					"voteValue":addVoteValueRef.current.value,
 					"comment":addVoteCommentRef.current.value,
 					"source":"admin"

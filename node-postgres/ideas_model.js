@@ -74,7 +74,7 @@ function addIdea(data) {
 				query,
 				[data.ideaId, data.ideaDescription, data.ideaSequence, data.ideaDomainId],
 				(error, results) => {
-				if (error) resolve({code:569, message:error.detail});
+				if (error) resolve({code:500, message:error.detail});
 				resolve({code:200});
 			});
 		};

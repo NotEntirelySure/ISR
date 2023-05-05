@@ -15,8 +15,7 @@ var client;
 
 export default function VoteDashboardPage() {
 
-  const toggleCheckedRef = useRef(false);
-
+  const [toggleChecked, setToggleChecked] = useState(false);
   const [connectionMessage, setConnectionMessage] = useState("");
   const [connectionStatus, setConnectionStatus] = useState("inactive");
   const [remainingVoters, setRemainingVoters] = useState([]);
@@ -67,7 +66,7 @@ export default function VoteDashboardPage() {
         }
       });
       setIdeas(ideasArray);
-      setCurrentIdea(ideas[0]);
+      setCurrentIdea(ideasArray[0]);
       ConnectWebSocket();
     }
   }
@@ -152,9 +151,8 @@ export default function VoteDashboardPage() {
   }
 
   function HandlePageChange(changeSource, comboboxValue) {
-    
-    if (toggleCheckedRef.current) {
-      toggleCheckedRef.current = false;
+    if (toggleChecked) {
+      setToggleChecked(false);
       client.send(
         JSON.stringify({
           sender:"adminDash",
@@ -267,9 +265,9 @@ export default function VoteDashboardPage() {
                   size="sm"
                   labelA="Disabled"
                   labelB="Enabled"
-                  toggled={toggleCheckedRef.current}
-                  onToggle={(state) => {
-                    toggleCheckedRef.current = state;
+                  toggled={toggleChecked}
+                  onToggle={state => {
+                    setToggleChecked(state);
                     client.send(
                       JSON.stringify({
                         sender:"adminDash",

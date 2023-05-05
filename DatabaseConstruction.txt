@@ -8,16 +8,16 @@ CREATE USER participant_account WITH ENCRYPTED PASSWORD 'Aqrabu@m3lu';
 
 CREATE EXTENSION pgcrypto;
 
-CREATE TABLE projectdomains (
-  projectdomainid SERIAL PRIMARY KEY,
-  projectdomainname VARCHAR,
-  projectdomaincolorhex VARCHAR
+CREATE TABLE ideadomains (
+  ideadomainid SERIAL PRIMARY KEY,
+  ideadomainname VARCHAR,
+  ideadomaincolorhex VARCHAR
 );
-CREATE TABLE projects (
-  projectsequence INT,
-  projectid VARCHAR PRIMARY KEY UNIQUE NOT NULL,
-  projectdescription VARCHAR,
-  projectdomain INT REFERENCES projectdomains(projectdomainid)
+CREATE TABLE ideas (
+  ideasequence INT,
+  ideaid VARCHAR PRIMARY KEY UNIQUE NOT NULL,
+  ideadescription VARCHAR,
+  ideadomain INT REFERENCES ideadomains(ideadomainid)
 );
 CREATE TABLE administrators (
   userid SERIAL PRIMARY KEY,
@@ -39,7 +39,7 @@ CREATE TABLE participants (
 );
 CREATE TABLE votes (
   voteid SERIAL PRIMARY KEY,
-  voteprojectid VARCHAR REFERENCES projects(projectid),
+  voteideaid VARCHAR REFERENCES ideas(ideaid),
   voteparticipantid INT REFERENCES participants(participantid),
   votevalue INT,
   votetime TIMESTAMP,
@@ -148,12 +148,12 @@ AS $$
   END;
 $$;
 
-CREATE OR REPLACE FUNCTION submit_vote(project VARCHAR, participant INT, vote INT, source TEXT, comment TEXT) RETURNS INT
+CREATE OR REPLACE FUNCTION submit_vote(idea VARCHAR, participant INT, vote INT, source TEXT, comment TEXT) RETURNS INT
 LANGUAGE plpgsql
 AS $$
 BEGIN 
   PERFORM FROM votes
-  WHERE voteprojectid=project
+  WHERE voteideaid=idea
   AND voteparticipantid=participant;          
   
   IF FOUND THEN
@@ -170,13 +170,13 @@ BEGIN
         (
 	    SELECT voteid 
 	    FROM votes 
-	    WHERE voteprojectid=project
+	    WHERE voteideaid=idea
 	    AND voteparticipantid=participant
         ),
 	  (
 	    SELECT votevalue
 	    FROM votes
-	    WHERE voteprojectid=project
+	    WHERE voteideaid=idea
 	    AND voteparticipantid=participant
         ),
         vote,
@@ -189,14 +189,14 @@ BEGIN
        votevalue=vote,
        votetime=(SELECT NOW()),
 	 votemodified=true
-     WHERE voteprojectid=project
+     WHERE voteideaid=idea
      AND voteparticipantid=participant;
     RETURN 1;    
     END IF;
     IF (source = 'user') THEN
       UPDATE votes
       SET votevalue=vote, votetime=(SELECT NOW())
-      WHERE voteprojectid=project
+      WHERE voteideaid=idea
       AND voteparticipantid=participant;
       RETURN 1;    
     END IF;
@@ -205,24 +205,24 @@ BEGIN
   IF NOT FOUND THEN 
     IF (source = 'user') THEN    
       INSERT INTO votes (
-        voteprojectid,
+        voteideaid,
         voteparticipantid,
         votevalue,
 	  votetime,
         votemodified
       )
-      VALUES (project, participant, vote,(SELECT NOW()),false);
+      VALUES (idea, participant, vote,(SELECT NOW()),false);
       RETURN 1;
     END IF;
     IF (source = 'admin') THEN
 	INSERT INTO votes (
-        voteprojectid,
+        voteideaid,
         voteparticipantid,
         votevalue,
 	  votetime,
         votemodified
       )
-      VALUES (project, participant, vote,(SELECT NOW()),true);
+      VALUES (idea, participant, vote,(SELECT NOW()),true);
       INSERT INTO changelog (
         changevoteid,
         changenewvalue,
@@ -234,7 +234,7 @@ BEGIN
         (
 	    SELECT voteid 
 	    FROM votes 
-	    WHERE voteprojectid=project
+	    WHERE voteideaid=idea
 	    AND voteparticipantid=participant
 	  ),
         vote,

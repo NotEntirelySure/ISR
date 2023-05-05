@@ -87,7 +87,7 @@ function getVoteHistory(token) {
 		if (isAuthResponse.code !== 200) resolve(isAuthResponse);
 		if (isAuthResponse.code === 200) {
 			pool.query(`
-        SELECT voteprojectid, votevalue, votetime
+        SELECT voteideaid, votevalue, votetime
         FROM votes
         WHERE voteparticipantid=$1
         ORDER BY votetime;`,
@@ -110,8 +110,8 @@ function castVote(data) {
         pool.query(
         'SELECT submit_vote($1,$2,$3,$4,$5);',
         [
-          data.values.projectID,
-          data.values.voterID,
+          data.values.ideaId,
+          data.values.participantId,
           data.values.voteValue,
           data.values.source,
           data.values.comment

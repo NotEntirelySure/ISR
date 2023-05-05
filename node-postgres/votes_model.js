@@ -20,7 +20,7 @@ function getAllVotes(token) {
       pool.query(`
         SELECT
           v.voteid,
-          v.voteprojectid,
+          v.voteideaid,
           v.votevalue,
           v.votetime,
           v.votemodified,
@@ -34,7 +34,7 @@ function getAllVotes(token) {
         LEFT JOIN offices AS o ON o.officeid=p.participantoffice
         ORDER BY v.voteid;`,
         (error, results) => {
-          if (error) {reject(error)}
+          if (error) resolve({code:500, message:error.detail});
           resolve({code:200,data:results.rows});
         }
       );
@@ -44,28 +44,26 @@ function getAllVotes(token) {
 
 //used by statistics page
 function getVotesByOffice(data) {
-  
   return new Promise(async(resolve, reject) => {
     const officeName = data.split('&')[0];
     const token = data.split('&')[1];
     const isAuthReqest = await auth_model._verifyAdmin(token);
     const isAuthResponse = await isAuthReqest;
-
     if (isAuthResponse.code !== 200) resolve(isAuthResponse);
     if (isAuthResponse.code === 200) { 
       pool.query(
         `SELECT
-          v.voteprojectid,
+          v.voteideaid,
           v.voteparticipantid,
-          v.voteValue,
+          v.votevalue,
           o.officename,
           p.participanttitle,
           p.participantfname,
           p.participantlname,
-          pr.projectdescription
+          i.ideadescription
         FROM votes AS v
         LEFT JOIN participants AS p ON p.participantid=v.voteparticipantid
-        LEFT JOIN projects AS pr ON v.voteprojectid=pr.projectid
+        LEFT JOIN ideas AS i ON v.voteideaid=i.ideaid
         LEFT JOIN offices AS o ON o.officeid=p.participantoffice
         WHERE o.officename=$1;`,
         [officeName],
@@ -110,19 +108,19 @@ function getAllChangeLogs(token) {
           cl.changetime,
           cl.changecomment,
           cl.changeaction,
-          v.voteprojectid,
+          v.voteideaid,
           v.voteparticipantid,
           v.votevalue,
-          p.projectid,
-          p.projectdescription,
-          pa.participantid,
-          pa.participanttitle,
-          pa.participantfname,
-          pa.participantlname
+          i.ideaid,
+          i.ideadescription,
+          p.participantid,
+          p.participanttitle,
+          p.participantfname,
+          p.participantlname
         FROM changelog AS cl
         LEFT JOIN votes AS v ON cl.changevoteid=v.voteid
-        LEFT JOIN projects AS p ON p.projectid=v.voteprojectid
-        LEFT JOIN participants as pa ON v.voteparticipantid=pa.participantid;`,
+        LEFT JOIN ideas AS i ON i.ideaid=v.voteideaid
+        LEFT JOIN participants as p ON v.voteparticipantid=p.participantid;`,
         (error, results) => {
           if (error) resolve({code:500, message:error.detail});
           resolve({code:200, data:results});
@@ -143,8 +141,8 @@ function addVote(data) {
       pool.query(
         'SELECT submit_vote($1,$2,$3,$4,$5);',
         [
-          data.values.projectID,
-          data.values.voterID,
+          data.values.ideaId,
+          data.values.participantId,
           data.values.voteValue,
           data.values.source,
           data.values.comment
@@ -172,7 +170,7 @@ function checkVote(data) {
           EXISTS (
             SELECT FROM votes 
             WHERE voteparticipantid=$1 
-            AND voteprojectid=$2
+            AND voteideaid=$2
           )
         );`,
         [data.split('&')[0], data.split('&')[1]],
@@ -244,7 +242,7 @@ function editVote(data) {
     if (isAuthResponse.code === 200) {
       if (data.comment === "") data["comment"] = 'Vote value modified by administrator';
       pool.query(
-        `UPDATE votes SET votevalue=$2 WHERE voteid=$1;`,
+        `UPDATE votes SET votevalue=$2, votemodified=true WHERE voteid=$1;`,
         [data.voteid, data.newvalue],
         (error) => {
           if (error) resolve({code:500, message:error.detail});

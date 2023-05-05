@@ -13,7 +13,7 @@ const wsServer = new webSocketServer({httpServer: server});
 var adminConnections = {};
 var clients = {};
 var resultsPageClients = {};
-var votingEnabledProjects = [];
+var votingEnabledIdeas = [];
 var remainingVoters = [];
 var resultsData = {};
 
@@ -52,13 +52,13 @@ wsServer.on('request', function (request) {
         else {
           clients[userId] = connection;
           console.log(`new connection: ${userId} added to voting client list ${Object.getOwnPropertyNames(clients)}`);
-          clients[userId].sendUTF(JSON.stringify(votingEnabledProjects))
+          clients[userId].sendUTF(JSON.stringify(votingEnabledIdeas))
         }
     }
       
     connection.on('message', (message) => {
       const data = JSON.parse(message.utf8Data);
-
+      console.log(message.utf8Data);
       if (data.sender === "adminStat") {
         resultsData = {data:data.chartData};
         for (key in resultsPageClients) {
@@ -92,10 +92,10 @@ wsServer.on('request', function (request) {
       }
       if (data.sender === "adminDash") {
         switch (data.action) {
-          case "getVotingEnabledProjects":
+          case "getVotingEnabledIdeas":
             adminConnections["adminDash"].sendUTF(JSON.stringify({
-              source:"getVotingEnabledProjects",
-              payload: JSON.stringify(votingEnabledProjects)
+              source:"getVotingEnabledIdeas",
+              payload: JSON.stringify(votingEnabledIdeas)
             }));
             break;
             
@@ -107,29 +107,30 @@ wsServer.on('request', function (request) {
             console.log("sent voting enabled projcets");
             break;
           
-          case "addProject":  
-            votingEnabledProjects = [JSON.parse(data.payload)]
+          case "addIdea":
+            console.log("in add idea")
+            votingEnabledIdeas = [JSON.parse(data.payload)]
             if (data.source === "dashboard") {
               remainingVoters = Object.keys(clients);
               adminConnections["adminDash"].sendUTF(JSON.stringify({
-                source:"addProject",
+                source:"addIdea",
                 payload: JSON.stringify(remainingVoters)
               }));
             }
             for(key in clients) {
-              clients[key].sendUTF(JSON.stringify(votingEnabledProjects));
+              clients[key].sendUTF(JSON.stringify(votingEnabledIdeas));
               console.log('sent add project message');
             }
             break;
         
-          case "removeProject":
-            votingEnabledProjects = []
+          case "removeIdea":
+            votingEnabledIdeas = []
             adminConnections["adminDash"].sendUTF(JSON.stringify({
-              source:"removeProject",
-              payload: JSON.stringify(votingEnabledProjects)
+              source:"removeIdea",
+              payload: JSON.stringify(votingEnabledIdeas)
             }));
             for (key in clients) {
-              clients[key].sendUTF(JSON.stringify(votingEnabledProjects));
+              clients[key].sendUTF(JSON.stringify(votingEnabledIdeas));
               console.log('sent remove project message');
             }
             break;
