@@ -1,6 +1,9 @@
 CREATE DATABASE isr;
 CREATE USER superuser WITH ENCRYPTED PASSWORD 'th3ri@nthr0pe';
 GRANT ALL PRIVILEGES ON DATABASE isr TO superuser;
+
+//after the above code, connect to the newly created database with '\c isr postgres'. Run the below commands only AFTER connecting to the new database as the postgres root user.
+
 GRANT ALL ON SCHEMA public TO superuser;
 CREATE USER participant_account WITH ENCRYPTED PASSWORD 'Aqrabu@m3lu';
 
@@ -211,7 +214,7 @@ BEGIN
 	  votetime,
         votemodified
       )
-      VALUES (idea, participant, vote,(SELECT NOW()),false);
+      VALUES (idea, participant, vote, (SELECT NOW()), false);
       RETURN 1;
     END IF;
     IF (source = 'admin') THEN
