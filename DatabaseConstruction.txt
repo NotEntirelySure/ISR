@@ -38,7 +38,8 @@ CREATE TABLE participants (
   participanttitle VARCHAR(6),
   participantfname VARCHAR(25),
   participantlname VARCHAR(25),
-  participantoffice INT REFERENCES offices(officeid)
+  participantoffice INT REFERENCES offices(officeid),
+  participantloggedin BOOLEAN
 );
 CREATE TABLE votes (
   voteid SERIAL PRIMARY KEY,
