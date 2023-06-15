@@ -20,6 +20,7 @@ import {
   TableToolbar,
   TableToolbarContent,
   TableToolbarSearch,
+  Tag,
   TextInput,
   Tile,
   Tooltip,
@@ -55,9 +56,9 @@ export default function AdminIdeasPage() {
   const editDescriptionRef = useRef();
   const uploadFile = useRef();
   const skipHeaderRef = useRef();
+  const domainList = useRef([]);
 
   const [ideasList, setIdeasList] = useState([{id:'0', ideaid:'-', ideadescription:'-', action:'-'}]);
-  const [domainList, setDomainList] = useState([]);
   const [ideaToDelete, setIdeaToDelete] = useState({ideaid:"", ideadescription:""});
   const [ideaToEdit, setIdeaToEdit] = useState({ideaid:"", ideadescription:""});
   const [modalProgressOpen, setModalProgressOpen] = useState(false);
@@ -105,18 +106,10 @@ export default function AdminIdeasPage() {
         ideadomainid:idea.ideadomainid,
         ideadomainname:idea.ideadomainname,
         ideadomaincolor:
-          <>
-            <div style={{display:'flex', justifyContent:'space-between'}}>
-              <div><p>{idea.ideadomaincolorhex}</p></div>
-              <div style={{
-                backgroundColor:idea.ideadomaincolorhex,
-                width:'40%',
-                borderRadius:'5px'
-              }}>
-                <p>&nbsp;</p>
-              </div>
-            </div>
-          </>,
+          <Tag 
+            style={{backgroundColor:idea.ideadomaincolorhex}}
+            children={idea.ideadomaincolorhex}
+          />,
         ideadomaincolorhex:idea.ideadomaincolorhex,
         action:
           <>
@@ -233,7 +226,7 @@ export default function AdminIdeasPage() {
     const fileData = XLSX.utils.sheet_to_row_object_array(worksheet, {header:1});
   
     const maxSequence = await GetSequenceNumber();
-    if (domainList.length === 0) await GetDomains();
+    if (domainList.current.length === 0) await GetDomains();
     let sequenceNumber = parseInt(maxSequence[0].max_sequence);
     if (isNaN(sequenceNumber)) sequenceNumber = 0;
 
@@ -243,9 +236,9 @@ export default function AdminIdeasPage() {
     if (skipHeaderRef.current.checked) i=0;
     for (i; i<fileData.length; i++) {
       let domainFound = false;
-      for (let id=0;id<domainList.length;id++){
-        if (String(domainList[id].ideadomainname).toLowerCase() === String(fileData[i][2]).toLowerCase()) {
-          domainId = domainList[id].ideadomainid
+      for (let id=0;id<domainList.current.length;id++){
+        if (String(domainList.current[id].ideadomainname).toLowerCase() === String(fileData[i][2]).toLowerCase()) {
+          domainId = domainList.current[id].ideadomainid
           domainFound = true;
           break;
         }
@@ -267,9 +260,9 @@ export default function AdminIdeasPage() {
         if (c5Iterations.includes(String(fileData[i][2]).toLowerCase())) refArray = [...c5Iterations];
         
         //if one of the iterations matches the provided domain name, check if the database also contains that iteration.
-        for (let i=0;i<domainList.length;i++){
-          if (refArray.includes(domainList[i].ideadomainname.toLowerCase())) {
-            domainId = domainList[i].ideadomainid
+        for (let i=0;i<domainList.current.length;i++){
+          if (refArray.includes(domainList.current[i].ideadomainname.toLowerCase())) {
+            domainId = domainList.current[i].ideadomainid
             break;
           };
         };
@@ -407,7 +400,7 @@ export default function AdminIdeasPage() {
   async function GetDomains() {
     const domainRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/domains/getall/${localStorage.getItem('adminjwt')}`, {mode:'cors'});
     const domainResponse = await domainRequest.json();
-    if (domainResponse.code === 200) setDomainList(domainResponse.data);
+    if (domainResponse.code === 200) domainList.current = domainResponse.data;
     if (domainResponse.code !== 200) {
       setErrorInfo({heading:`Error ${domainResponse.code}`, message:domainResponse.message.detail});
       setModalErrorOpen(true);
@@ -531,7 +524,7 @@ export default function AdminIdeasPage() {
           titleText="Idea Domain"
           helperText=""
           ref={addDomainRef}
-          items={domainList}
+          items={domainList.current}
           itemToString={item => item ? item.ideadomainname:''}
           itemToElement={item => {
             return <>
@@ -679,7 +672,7 @@ export default function AdminIdeasPage() {
           placeholder="Select"
           invalid={editDomainInvalid}
           invalidText="This is a required field." 
-          items={domainList}
+          items={domainList.current}
           itemToString={item => item ? item.ideadomainname:''}
           itemToElement={item => {
             return <>

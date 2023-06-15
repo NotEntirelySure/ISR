@@ -183,7 +183,6 @@ export default function UserVotePage() {
     };
 
     client.onmessage = (message) => {
-      console.log("message received: ", message);
       let data = JSON.parse(message.data);
       let objIdeas = [];
       for (var i=0; i<data.length; i++) {
@@ -232,7 +231,7 @@ export default function UserVotePage() {
     /*the below "if" ensures that a value has been selected and that the source of the button click is from the same tile.
     This prevents instances where there are multiple tiles, someone selects a value from one tile, they click the
     "submit" button from a different tile, and it actually submits. Without this check, that behavior would be successful.*/
-    console.log(buttonSource)
+
     if (voteData.current.value !== null && voteData.current.idea === buttonSource) {
       let requestData = {
         "participantId":voterInfo.id,
@@ -299,19 +298,15 @@ export default function UserVotePage() {
 
   function BuildRadioButtons(ideaId) {
 
-    let radioButtons = [];
-    for (let i=0; i<11; i++) {
-      if(i === 0) {
-        radioButtons.push(
-          <RadioButton
-            key={`${ideaId}-${i}`}
-            labelText="abstain"
-            value={i}
-            id={`radio-${ideaId + i}`}
-          />
-        )
-      }
-      else {
+    const radioButtons = [
+      <RadioButton
+        key={`${ideaId}-0`}
+        labelText="abstain"
+        value={0}
+        id={`radio-${ideaId}-0`}
+      />
+    ];
+    for (let i=1; i<11; i++) {
         radioButtons.push(
           <RadioButton
             key={`${ideaId}-${i}`}
@@ -320,7 +315,6 @@ export default function UserVotePage() {
             id={`radio-${ideaId + i}`}
           />
         )
-      }
     }
     return radioButtons;
   }
@@ -475,7 +469,7 @@ function HandleThemeChange(selectedTheme) {
                         <RadioButtonGroup
                           key={idea.ideaId + index}
                           name={`radio-group-${idea.ideaId}`}
-                          onChange={(value) => voteData.current = {"idea":idea.ideaId,"value":value}}
+                          onChange={value => voteData.current = {"idea":idea.ideaId,"value":value}}
                         >
                           {BuildRadioButtons(idea.ideaId)}
                         </RadioButtonGroup>  
@@ -500,8 +494,8 @@ function HandleThemeChange(selectedTheme) {
                               { id: '9', value:9, text: '9 (High impact)' },
                               { id: '10', value:10, text: '10 (High impact)' },
                             ]}
-                            itemToString={(item) => (item ? item.text : '')}
-                            onChange={(event) => voteData.current = {"idea":ideas.ideaId,"value":event.selectedItem.value}}
+                            itemToString={item => (item ? item.text : '')}
+                            onChange={event => voteData.current = {"idea":idea.ideaId,"value":event.selectedItem.value}}
                           />
                         </div>
                       </div>

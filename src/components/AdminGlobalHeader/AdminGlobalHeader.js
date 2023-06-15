@@ -24,13 +24,19 @@ import {
   UnorderedList
 } from '@carbon/react';
 import {
+  Building,
+  Certificate,
   ChartHistogram,
   Dashboard,
+  Idea,
+  User,
   UserAdmin,
   UserAvatar,
   Logout,
   Rocket,
-  WarningHex
+  ServerProxy,
+  WarningHex,
+  Wikis
 } from '@carbon/react/icons';
 import { Link } from 'react-router-dom';
 
@@ -325,7 +331,8 @@ class AdminGlobalHeader extends Component {
           <Header aria-label='admin header'>
             <SkipToContent />
             <HeaderMenuButton
-              aria-label="Open menu"
+              isCollapsible
+              aria-label={isSideNavExpanded ? 'Close menu' : 'Open menu'}
               onClick={onClickSideNavExpand}
               isActive={isSideNavExpanded}
             />
@@ -345,22 +352,22 @@ class AdminGlobalHeader extends Component {
               <SideNavLink onClick={() => this.setState({modalSetupOpen:true})} renderIcon={Rocket} element={Link} to="">Initial Setup</SideNavLink>
                 <SideNavMenu renderIcon={UserAdmin} title="Admin Pages">
                   <SideNavMenuItem element={Link} to="/useradmin">
-                    User Administration
+                    <User/> User Administration
                   </SideNavMenuItem>
                   <SideNavMenuItem element={Link} to="/votesadmin">
-                    Vote Administration
+                    <Certificate/> Vote Administration
                   </SideNavMenuItem>
                   <SideNavMenuItem element={Link} to="/officesadmin">
-                    Office Administration
+                    <Building/> Office Administration
                   </SideNavMenuItem>
                   <SideNavMenuItem element={Link} to="/domainsadmin">
-                    Domain Administration
+                    <Wikis/> Domain Administration
                   </SideNavMenuItem>
                   <SideNavMenuItem element={Link} to="/ideasadmin">
-                    Idea Administration
+                    <Idea/> Idea Administration
                   </SideNavMenuItem>
                   <SideNavMenuItem element={Link} to="/connections">
-                    Server Connections
+                    <ServerProxy/> Server Connections
                   </SideNavMenuItem>
                 </SideNavMenu>
                 <SideNavLink renderIcon={Dashboard} element={Link} to="/votedashboard">Vote Dashboard</SideNavLink>

@@ -18,7 +18,37 @@ export default function VoteDashboardPage() {
   const [toggleChecked, setToggleChecked] = useState(false);
   const [connectionMessage, setConnectionMessage] = useState("");
   const [connectionStatus, setConnectionStatus] = useState("inactive");
-  const [remainingVoters, setRemainingVoters] = useState([]);
+  const [remainingVoters, setRemainingVoters] = useState([
+    'test 1',
+    'test 1',
+    'test 1',
+    'test 1',
+    'test 1',
+    'test 1',
+    'test 1',
+    'test 1',
+    'test 1',
+    'test 1',
+    'test 1',
+    'test 1',
+    'test 1',
+    'test 1',
+    'test 1',
+    'test 1',
+    'test 1',
+    'test 1',
+    'test 1',
+    'test 1',
+    'test 1',
+    'test 1',
+    'test 1',
+    'test 1',
+    'test 1',
+    'test 1',
+    'test 1',
+    'test 1',
+    'test 1',
+  ]);
   const [currentIdea, setCurrentIdea] = useState({});
   const [votingEnabledIdeas, setVotingEnabledIdeas] = useState([]);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
@@ -36,6 +66,7 @@ export default function VoteDashboardPage() {
   }]);
   
   useEffect(() => GetIdea(),[])
+  useEffect(() => console.log(remainingVoters),[remainingVoters]);
 
   async function GetIdea() {
     const ideasRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/ideas/getall/${localStorage.getItem('adminjwt')}`, {mode:'cors'});
@@ -283,24 +314,26 @@ export default function VoteDashboardPage() {
           </div>
           <div className='bx--row bx--offset-lg-1 vote-dashboard-page__r2'>
             <div className="vote-dashboard-page-voter-list">
-              {remainingVoters.map(office => {
-                return <div key={office}>
-                  <Tile>
-                    <div className='officeTile'>
-                      <div id='office-icon-div'>
-                        <img
-                          className='office-icon'
-                          src={`${process.env.PUBLIC_URL}/office_symbols/${office}.png`}
-                          onError={(err) => err.currentTarget.src = `${process.env.PUBLIC_URL}/office_symbols/USCG.png`}
-                          alt=''
-                        />
-                      </div>
-                      <br/>
-                      <div id='office-name-div'>{office}</div>
-                    </div>
-                  </Tile>
-                </div>
-              })}
+              {
+                remainingVoters.map(office => {
+                  return <>
+                      
+                        <div className='officeTile'>
+                          <div id='office-icon-div'>
+                            <img
+                              className='office-icon'
+                              src={`${process.env.PUBLIC_URL}/office_symbols/${office}.png`}
+                              onError={(err) => err.currentTarget.src = `${process.env.PUBLIC_URL}/office_symbols/USCG.png`}
+                              alt=''
+                              />
+                          </div>
+                          <br/>
+                          <div id='office-name-div'>{office}</div>
+                        </div>
+                      
+                  </>
+                })
+              }
             </div>
             <div style={{zIndex:'2'}}>
               {remainingVoters.length > 0 ? <p>Remaining Voters: {remainingVoters.length}</p>:null}

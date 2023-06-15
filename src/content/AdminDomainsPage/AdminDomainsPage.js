@@ -15,7 +15,9 @@ import {
   TableToolbar,
   TableToolbarContent,
   TableToolbarSearch,
-  TextInput
+  TextInput,
+  Form,
+  Stack
 } from '@carbon/react';
 import {
   Add,
@@ -253,7 +255,9 @@ export default function AdminDomainsPage() {
         </div>
       </Modal>
       <Modal
-        id='modalAdd' 
+        id='modalAdd'
+        size='xs'
+        shouldSubmitOnEnter
         primaryButtonText="Add"
         secondaryButtonText="Cancel"
         modalHeading='Add Domain'
@@ -266,51 +270,67 @@ export default function AdminDomainsPage() {
           addColorRef.current.value = "";
         }}
         onRequestSubmit={() => addDomain()}
-        open={modalAddOpen}>
-        <TextInput
-          labelText="Domain Name"
-          placeholder="Enter domain name"
-          ref={addNameRef}
-          id="addName"
-          invalid={addNameInvalid}
-          invalidText="This is a required field."
-          tabIndex={0}
-          onKeyPress={(event) => {
-            if (addColorInvalid) setAddColorInvalid(false);
-            if (event.key === 'Enter') addDomain()
-          }}
-        />
-        <br/>
-        <div style={{display:'flex'}}>
-          <div style={{width:'40%', marginRight:'10%'}}>
-        <TextInput
-          labelText="Domain Color Hex Value"
-          placeholder="Enter the color's hex value"
-          helperText="Example: #78277E"
-          ref={addColorRef}
-          id="addColor"
-          invalid={addColorInvalid}
-          invalidText={colorInvalidMessage}
-          tabIndex={0}
-          onPaste={() => {
-            if (addColorRef.current.value.indexOf("#") === 0 && addColorRef.current.value.length === 7) setPreviewColor(addColorRef.current.value);
-          }}
-          onKeyUp={(event) => {
-            if (addColorInvalid) setAddColorInvalid(false);
-            if (addColorRef.current.value.indexOf("#") === 0 && addColorRef.current.value.length === 7) setPreviewColor(addColorRef.current.value);
-            if (addColorRef.current.value.indexOf("#") !== 0 || addColorRef.current.value.length !== 7) setPreviewColor("");
-            if (event.key === 'Enter') addDomain();
-          }}
-        />
-        </div>
-        <div id='colorPreview' style={{backgroundColor:previewColor}}><p>Color Preview</p></div>
-        </div>
-      </Modal>
+        open={modalAddOpen}
+        children={
+          <Form>
+            <Stack gap={5}>
+              <TextInput
+                labelText="Domain Name"
+                placeholder="Enter domain name"
+                ref={addNameRef}
+                id="addName"
+                invalid={addNameInvalid}
+                invalidText="This is a required field."
+                tabIndex={0}
+                onChange={() => {if (addNameInvalid) setAddNameInvalid(false)}}
+              />
+              <div className='domainModalForm'>
+                <div>
+                  <TextInput
+                    labelText="Domain Color Hex Value"
+                    placeholder="Enter the color's hex value"
+                    helperText="Example: #78277E"
+                    ref={addColorRef}
+                    id="addColor"
+                    invalid={addColorInvalid}
+                    invalidText={colorInvalidMessage}
+                    tabIndex={0}
+                    onPaste={() => {
+                      if (addColorRef.current.value.indexOf("#") === 0 && addColorRef.current.value.length === 7) setPreviewColor(addColorRef.current.value);
+                    }}
+                    onKeyUp={(event) => {
+                      if (addColorInvalid) setAddColorInvalid(false);
+                      if (addColorRef.current.value.indexOf("#") === 0 && addColorRef.current.value.length === 7) setPreviewColor(addColorRef.current.value);
+                      if (addColorRef.current.value.indexOf("#") !== 0 || addColorRef.current.value.length !== 7) setPreviewColor("");
+                      if (event.key === 'Enter') addDomain();
+                    }}
+                  />
+                </div>
+                <div>
+                  <input
+                    type='color'
+                    value={previewColor} 
+                    className='colorPalette'
+                    onChange={event => {
+                      setPreviewColor(event.target.value);
+                      addColorRef.current.value = event.target.value;
+                    }}
+                  />
+                </div>
+              </div>
+            </Stack>
+          </Form>
+        }
+      />
       <Modal
-        id='modalEdit' 
+        id='modalEdit'
+        size='xs'
+        shouldSubmitOnEnter
         primaryButtonText="Save"
         secondaryButtonText="Cancel"
         modalHeading={`Edit Domain ${domainToEdit.domainName}`}
+        open={modalEditOpen}
+        onRequestSubmit={() => editDomain()}
         onRequestClose={() => {
           setModalEditOpen(false);
           setEditNameInvalid(false);
@@ -319,55 +339,70 @@ export default function AdminDomainsPage() {
           addNameRef.current.value = "";
           addColorRef.current.value = "";
         }}
-        onRequestSubmit={() => editDomain()}
-        open={modalEditOpen}>
-        <TextInput
-          labelText="Domain Name"
-          ref={editNameRef}
-          id="editName"
-          invalid={editNameInvalid}
-          invalidText="This is a required field."
-          placeholder="Enter the domain"
-          tabIndex={0}
-          onKeyPress={(event) => {
-            if (editColorInvalid) setEditColorInvalid(false);
-            if (event.key === 'Enter') editDomain()
-          }}
-        />
-        <br/>
-        <div style={{display:'flex'}}>
-          <div style={{width:'40%', marginRight:'10%'}}>
-        <TextInput
-          labelText="Domain Color Hex Value"
-          helperText="Example: #78277E"
-          ref={editColorRef}
-          id="editColor"
-          invalid={editColorInvalid}
-          invalidText={colorInvalidMessage}
-          placeholder="Enter the color's hex value"
-          tabIndex={0}
-          onPaste={() => {
-            if (editColorRef.current.value.indexOf("#") === 0 && editColorRef.current.value.length === 7) {
-              setPreviewColor(editColorRef.current.value)
-            }
-          }}
-          onKeyUp={(event) => {
-            if (editColorInvalid) setEditColorInvalid(false);
-            if (editColorRef.current.value.indexOf("#") === 0 && editColorRef.current.value.length === 7) {
-              setPreviewColor(editColorRef.current.value)
-            }
-            if (editColorRef.current.value.indexOf("#") !== 0 || editColorRef.current.value.length !== 7) {
-              setPreviewColor("")
-            }
-            if (event.key === 'Enter') addDomain();
-          }}
-        />
-        </div>
-        <div id='colorPreview' style={{backgroundColor:previewColor}}><p>Color Preview</p></div>
-        </div>
-      </Modal>
+        children={
+          <Form>
+            <Stack gap={5}>
+              <TextInput
+                labelText="Domain Name"
+                ref={editNameRef}
+                id="editName"
+                invalid={editNameInvalid}
+                invalidText="This is a required field."
+                placeholder="Enter the domain"
+                tabIndex={0}
+                onKeyPress={(event) => {
+                  if (editColorInvalid) setEditColorInvalid(false);
+                  if (event.key === 'Enter') editDomain()
+                }}
+              />
+              <div className='domainModalForm'>
+                <div>
+                  <TextInput
+                    labelText="Domain Color Hex Value"
+                    helperText="Example: #78277E"
+                    ref={editColorRef}
+                    id="editColor"
+                    invalid={editColorInvalid}
+                    invalidText={colorInvalidMessage}
+                    placeholder="Enter the color's hex value"
+                    tabIndex={0}
+                    onPaste={() => {
+                      if (editColorRef.current.value.indexOf("#") === 0 && editColorRef.current.value.length === 7) {
+                        setPreviewColor(editColorRef.current.value)
+                      }
+                    }}
+                    onKeyUp={(event) => {
+                      if (editColorInvalid) setEditColorInvalid(false);
+                      if (editColorRef.current.value.indexOf("#") === 0 && editColorRef.current.value.length === 7) {
+                        setPreviewColor(editColorRef.current.value)
+                      }
+                      if (editColorRef.current.value.indexOf("#") !== 0 || editColorRef.current.value.length !== 7) {
+                        setPreviewColor("")
+                      }
+                      if (event.key === 'Enter') addDomain();
+                    }}
+                  />
+                </div>
+                <div>
+                  <input
+                    type='color'
+                    value={previewColor} 
+                    className='colorPalette'
+                    onChange={event => {
+                      setPreviewColor(event.target.value);
+                      editColorRef.current.value = event.target.value;
+                    }}
+                  />
+                </div>
+              </div>
+            </Stack>
+          </Form>
+        }
+      />
+      
       <Modal
         danger
+        size='xs'
         modalHeading='Confirm Delete'
         primaryButtonText="Delete"
         secondaryButtonText="Cancel"

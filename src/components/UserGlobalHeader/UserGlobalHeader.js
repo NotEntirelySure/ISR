@@ -178,13 +178,13 @@ class UserGlobalHeader extends Component {
         {this.state.redirect ? <Navigate to='/'/>:null}
         <Theme theme={this.state.themeSelection}>
         <HeaderContainer render={({ isSideNavExpanded, onClickSideNavExpand }) => (
-          <Header onClick={isSideNavExpanded === true ? onClickSideNavExpand : null} aria-label="ISRVotingSystem">
+          <Header aria-label="ISRVotingSystem">
             <SkipToContent />
             <HeaderMenuButton
-              aria-label="Open menu"
+              aria-label={isSideNavExpanded ? 'Close menu' : 'Open menu'}
               onClick={onClickSideNavExpand}
               isActive={isSideNavExpanded}
-              />
+            />
             <HeaderName element={Link} to="/" prefix="ISR">Home</HeaderName>
             <HeaderNavigation aria-label='navItems'>
               <HeaderMenuItem element={Link} to="/vote">Vote</HeaderMenuItem>
