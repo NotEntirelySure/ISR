@@ -65,7 +65,6 @@ wsServer.on('request', function (request) {
       
     connection.on('message', (message) => {
       const data = JSON.parse(message.utf8Data);
-      console.log(message.utf8Data);
       if (data.sender === "adminStat") {
         resultsData = {data:data.chartData};
         for (key in resultsPageClients) {
@@ -75,9 +74,8 @@ wsServer.on('request', function (request) {
               chartData:resultsData.data
             })
           );
-          console.log(`sent message to ${key}`);
-        }
-      }
+        };
+      };
 
       if (data.sender === "adminConn") {
         switch (data.action) {
