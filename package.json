@@ -7,7 +7,7 @@
     "@carbon/charts": "^1.6.3",
     "@carbon/charts-react": "^1.6.3",
     "@carbon/grid": "10.17.0",
-    "@carbon/react": "1.1.0",
+    "@carbon/react": "1.32.0",
     "@carbon/styles": "^1.11.0",
     "@carbon/themes": "^11.0.1",
     "@testing-library/jest-dom": "^5.14.1",

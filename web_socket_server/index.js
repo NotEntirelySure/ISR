@@ -1,12 +1,19 @@
 const webSocketsServerPort = 8000;
 const webSocketServer = require('websocket').server;
-const http = require('http');
+const https = require('https');
 
 // Spinning the http server and the websocket server.
+const http = require('http');
 const server = http.createServer();
 server.listen(webSocketsServerPort);
 console.log('Websocket server listening on port 8000');
 
+// const server = createServer(  
+//   {
+//     pfx:fs.readFileSync('C:/inetpub/isr/www_isrvote_com_pfx.pfx'),
+//     passphrase:'2J[F#41CRx.zF3//'
+//   }
+// ).listen(webSocketsServerPort, () => console.log(`Websocket server listening on port ${webSocketsServerPort}`));
 
 const wsServer = new webSocketServer({httpServer: server});
 

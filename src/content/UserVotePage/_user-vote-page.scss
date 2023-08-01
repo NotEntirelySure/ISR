@@ -75,16 +75,16 @@
 }
 
 .user-vote-page__banner {
-  margin-top: $spacing-05 * 4;
-  padding-top: $spacing-05;
-  padding-bottom: $spacing-03;
+  margin-top: 6rem;
+  padding-top: 6rem;
+  padding-bottom: 3rem;
   background-color: #f4f4f4;
 }
 
-.user-vote-page__r1 {padding-top: $spacing-09;}
+.user-vote-page__r1 {padding-top: 5rem;}
 
 .li-User-Vote-Page {
-  padding-bottom: $spacing-05;
+  padding-bottom: 4rem;
   -webkit-animation: fadein 1s;
   animation: fadein 1s;
 }

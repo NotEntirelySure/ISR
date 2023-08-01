@@ -1,7 +1,14 @@
-//allows access to .env file for environment variable declaration
+/*
+  The dotenv library allows access to .env file for environment variable declaration.
+  For server functionality, the path must be specified.
+  Uncomment the import with the specified path. This must be done in all imported model files as well.
+*/
+//require('dotenv').config({path:'C:/inetpub/isr/api/.env'});
 require('dotenv').config();
 
 const express = require('express');
+const fs = require('fs');
+const https = require('https');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
 
@@ -251,6 +258,16 @@ app.get('/export/excelchart/:data', (req, res) => {
     .catch(error => res.status(500).send(error));
 });
 
+//http server
 app.listen(process.env.API_LISTENING_PORT, () => {
   console.log(`Postgres API running on port ${process.env.API_LISTENING_PORT}.`)
 })
+
+//https server
+// https.createServer(
+//   {
+//     pfx:fs.readFileSync('C:/inetpub/isr/www_isrvote_com_pfx.pfx'),
+//     passphrase:'2J[F#41CRx.zF3//'
+//   },
+//   app
+// ).listen(`Secure postgres API listening on port ${process.env.API_LISTENING_PORT}`)

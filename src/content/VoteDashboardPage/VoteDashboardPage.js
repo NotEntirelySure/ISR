@@ -317,20 +317,18 @@ export default function VoteDashboardPage() {
               {
                 remainingVoters.map(office => {
                   return <>
-                      
-                        <div className='officeTile'>
-                          <div id='office-icon-div'>
-                            <img
-                              className='office-icon'
-                              src={`${process.env.PUBLIC_URL}/office_symbols/${office}.png`}
-                              onError={(err) => err.currentTarget.src = `${process.env.PUBLIC_URL}/office_symbols/USCG.png`}
-                              alt=''
-                              />
-                          </div>
-                          <br/>
-                          <div id='office-name-div'>{office}</div>
-                        </div>
-                      
+                    <div className='officeTile'>
+                      <div id='office-icon-div'>
+                        <img
+                          className='office-icon'
+                          src={`${process.env.PUBLIC_URL}/office_symbols/${office}.png`}
+                          onError={(err) => err.currentTarget.src = `${process.env.PUBLIC_URL}/office_symbols/USCG.png`}
+                          alt=''
+                        />
+                      </div>
+                      <br/>
+                      <div id='office-name-div'>{office}</div>
+                    </div>
                   </>
                 })
               }

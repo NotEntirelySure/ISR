@@ -1,4 +1,9 @@
-//allows access to .env file for environment variable declaration
+/*
+  The dotenv library allows access to .env file for environment variable declaration.
+  For server functionality, the path must be specified.
+  Uncomment the import with the specified path. This must be done in all imported model files as well.
+*/
+//require('dotenv').config({path:'C:/inetpub/isr/api/.env'});
 require('dotenv').config();
 const jwt = require('jsonwebtoken');
 const auth_model = require('./auth_model');
