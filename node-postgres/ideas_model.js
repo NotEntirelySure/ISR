@@ -74,11 +74,17 @@ function addIdea(data) {
     const isAuthResponse = await isAuthReqest;
     if (isAuthResponse.code !== 200) resolve(isAuthResponse);
     if (isAuthResponse.code === 200) {
-			let query = 'INSERT INTO ideas (ideaid,	ideadescription, ideasequence, ideadomain) VALUES ($1,$2,$3,$4);';
-			pool.query(
-				query,
-				[data.ideaId, data.ideaDescription, data.ideaSequence, data.ideaDomainId],
-				(error, results) => {
+			let query = '';
+			let values = [];
+			if (data.ideaDomainId === '' || isNaN(data.ideaDomainId) || data.ideaDomainId === undefined) {
+				query = 'INSERT INTO ideas (ideaid,ideadescription,ideasequence) VALUES ($1,$2,$3);';
+				values = [data.ideaId, data.ideaDescription, data.ideaSequence];
+			}
+			else {
+				query = 'INSERT INTO ideas (ideaid,ideadescription,ideasequence,ideadomain) VALUES ($1,$2,$3,$4);';
+				values = [data.ideaId, data.ideaDescription, data.ideaSequence, data.ideaDomainId];
+			}
+			pool.query(query, values, (error, results) => {
 				if (error) resolve({code:500, message:error.detail});
 				resolve({code:200});
 			});

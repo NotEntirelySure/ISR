@@ -158,6 +158,7 @@ export default function AdminOfficesPage() {
         secondaryButtonText="Cancel"
         shouldSubmitOnEnter={true}
         modalHeading='Add Office'
+        size='xs'
         onRequestClose={() => {
           setModalAddOpen(false);
           setAddNameInvalid(false);

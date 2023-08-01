@@ -6,7 +6,7 @@
 .vote-dashboard-page__banner {
   display: flex;
   justify-content: space-between;
-  padding: 4rem 4rem 5rem 4rem;
+  padding: 2rem 2rem 3rem 2rem;
   background-color: #f4f4f4;
 }
 
@@ -69,11 +69,11 @@
 }
 .navControls {
   background-color: #f4f4f4;
-  position: absolute;
-  width: 93vw;
-  margin-right: auto;
-  margin-left: auto; 
+  position: fixed;
   bottom: 0;
+  width: 93vw;
+  margin-right: 3rem;
+  margin-left: auto; 
   display:flex;
   justify-content:space-between;
   align-items: center;

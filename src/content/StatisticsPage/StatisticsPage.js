@@ -21,7 +21,9 @@ import {
   TableCell,
   TableBody,
   TableRow,
-  TableContainer
+  TableContainer,
+  Tile,
+  Toggle
 } from '@carbon/react';
 import { DocumentExport, Renew, Share } from '@carbon/react/icons';
 import { SimpleBarChart } from "@carbon/charts-react";
@@ -62,6 +64,8 @@ export default function StatisticsPage() {
   const [exportButtonText, setExportButtonText] = useState('');
   const [exportButtonDisplay, setExportButtonDisplay] = useState('none');
   const [exportLoading, setExportLoading] = useState('none');
+  const [shareToggled, setShareToggled] = useState(false);
+  const [sharedChart, setSharedChart] = useState();
   const [ideas, setIdeas] = useState([]);
   const [ideaRankings, setIdeaRankings] = useState(
     [
@@ -335,7 +339,7 @@ export default function StatisticsPage() {
     setExportLoading('none');
   }
 
-  function ProcessChartData(action) {
+  function ProcessChartData(action, share) {
     
     let chartSlice = [];
     if (chartDataRef.current.sliceValue === "all") chartSlice = ideaRankings;
@@ -389,12 +393,12 @@ export default function StatisticsPage() {
           JSON.stringify({
             sender:"adminStat",
             action: "publishResults",
-            chartData:chartSlice
+            chartData:share ? chartSlice:[]
           })
-        )
+        );
       };
-    }
-  }
+    };
+  };
 
   function SwitchTabs(tabName) {
     switch (tabName) {
@@ -637,55 +641,63 @@ export default function StatisticsPage() {
           </div>
           <div id="charts" style={{display:showCharts}} className="bx--row bx--offset-lg-1 statistics-page__r3">
             <div className='chartContainer'>
-              <div id='chartOptions' style={{display:'flex', gap:'0.5rem', flexWrap:'wrap', alignItems:'center'}}>
-                <div id='chartDropdown'>
-                  <Dropdown
-                    id="chartDropdown"
-                    label="Select rank segment"
-                    items={[
-                      {id:"all", text:"All Ideas"},
-                      {id:"first", text:"Top 25 Ranked (#1 - #25)"},
-                      {id:"second", text:"Second 25 Ranked (#26 - #50)"},
-                      {id:"third", text:"Third 25 ranked (#51 - #75)"},
-                      {id:"fourth", text:"Fourth 25 Ranked (#76 - #100)"},
-                      {id:"fifth", text:"Fifth 25 Ranked (#101 - #125)"},
-                      {id:"sixth", text:"Sixth 25 Ranked (#126 - #150)"},
-                      {id:"remainder", text:"Remaining Ranked Ideas (#151...)"},
-                    ]}
-                    itemToString={(item) => (item ? item.text : '')}
-                    onChange={(item) => setSelectedChart(item.selectedItem.id)}
-                  />
-                </div>
-                <div style={{display:exportButtonDisplay}}>
-                  <Button
-                    id="chartExportButton"
-                    hasIconOnly={true}
-                    renderIcon={DocumentExport}
-                    iconDescription={exportButtonText}
-                    description={exportButtonText}
-                    onClick={() => ExportChart()}
-                  />
-                </div>
-                <div style={{display:exportLoading}}>
-                  <InlineLoading
-                    style={{ marginLeft: '1rem'}}
-                    description='Exporting chart...'
-                    status='active'
-                  />
-                </div>
-                <div style={{display:exportButtonDisplay}}>
-                    <Button 
-                      id="publishResultsButton"
-                      kind="secondary"
-                      hasIconOnly={true}
-                      renderIcon={Share}
-                      description='Publishes the rusults of the ISR voting'
-                      iconDescription='Publish Results'
-                      onClick={() => ProcessChartData("publish")}
+              <Tile>
+                <div className='chartOptions'>
+                  <div id='chartDropdown'>
+                    <Dropdown
+                      id="chartDropdown"
+                      label="Select rank segment"
+                      items={[
+                        {id:"all", text:"All Ideas"},
+                        {id:"first", text:"Top 25 Ranked (#1 - #25)"},
+                        {id:"second", text:"Second 25 Ranked (#26 - #50)"},
+                        {id:"third", text:"Third 25 ranked (#51 - #75)"},
+                        {id:"fourth", text:"Fourth 25 Ranked (#76 - #100)"},
+                        {id:"fifth", text:"Fifth 25 Ranked (#101 - #125)"},
+                        {id:"sixth", text:"Sixth 25 Ranked (#126 - #150)"},
+                        {id:"remainder", text:"Remaining Ranked Ideas (#151...)"},
+                      ]}
+                      itemToString={item => (item ? item.text : '')}
+                      onChange={item => {
+                        setSelectedChart(item.selectedItem.id);
+                        if (selectedChart !== item.selectedItem.id && shareToggled) setShareToggled(false);
+                        if (sharedChart === item.selectedItem.id) setShareToggled(true);
+                      }}
                     />
+                  </div>
+                  <div style={{display:exportButtonDisplay}}>
+                    <Button
+                      id="chartExportButton"
+                      hasIconOnly={true}
+                      renderIcon={DocumentExport}
+                      iconDescription={exportButtonText}
+                      description={exportButtonText}
+                      onClick={() => ExportChart()}
+                      />
+                  </div>
+                  <div style={{display:exportLoading}}>
+                    <InlineLoading
+                      style={{ marginLeft: '1rem'}}
+                      description='Exporting chart...'
+                      status='active'
+                    />
+                  </div>
+                  <div style={{display:exportButtonDisplay}}>
+                    <Toggle 
+                      id="shareToggle"
+                      labelText="Share Chart" 
+                      labelB="Shared"
+                      labelA="Not Shared"
+                      toggled={shareToggled}
+                      onToggle={event => {
+                        setShareToggled(event);
+                        setSharedChart(selectedChart);
+                        ProcessChartData("publish",event);
+                      }}
+                    />
+                  </div>
                 </div>
-    
-              </div>
+              </Tile>
             </div>
             <div className='statsBarChart'>
               {chartData && chartOptions ? <SimpleBarChart data={chartData} options={chartOptions}/>:null}

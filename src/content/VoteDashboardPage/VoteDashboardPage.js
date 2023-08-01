@@ -18,37 +18,7 @@ export default function VoteDashboardPage() {
   const [toggleChecked, setToggleChecked] = useState(false);
   const [connectionMessage, setConnectionMessage] = useState("");
   const [connectionStatus, setConnectionStatus] = useState("inactive");
-  const [remainingVoters, setRemainingVoters] = useState([
-    'test 1',
-    'test 1',
-    'test 1',
-    'test 1',
-    'test 1',
-    'test 1',
-    'test 1',
-    'test 1',
-    'test 1',
-    'test 1',
-    'test 1',
-    'test 1',
-    'test 1',
-    'test 1',
-    'test 1',
-    'test 1',
-    'test 1',
-    'test 1',
-    'test 1',
-    'test 1',
-    'test 1',
-    'test 1',
-    'test 1',
-    'test 1',
-    'test 1',
-    'test 1',
-    'test 1',
-    'test 1',
-    'test 1',
-  ]);
+  const [remainingVoters, setRemainingVoters] = useState([]);
   const [currentIdea, setCurrentIdea] = useState({});
   const [votingEnabledIdeas, setVotingEnabledIdeas] = useState([]);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);

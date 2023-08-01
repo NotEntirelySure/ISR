@@ -413,6 +413,7 @@ export default function AdminVotesPage() {
 			</Modal>
 			<Modal
 				id='modalAdd'
+				size='sm'
 				primaryButtonText="Add"
 				secondaryButtonText="Cancel"
 				shouldSubmitOnEnter={true}
@@ -673,12 +674,9 @@ export default function AdminVotesPage() {
 											/>
 											<Button 
 												kind='danger'
-												renderIcon={TrashCan}
-												size='sm'
 												onClick={() => setModalDeleteAllOpen(true)}
-											>
-												Delete All
-											</Button>
+												children={<><TrashCan/> Delete All</>}
+											/>
 										</TableToolbar>
 										<Table {...getTableProps()}>
 											<TableHead>

@@ -32,8 +32,9 @@ export default function ResultsPage () {
 
     client.onmessage = (message) => {
 			const messageData = JSON.parse(message.data);
+			if (messageData.chartData.length === 0) setChartData(null);
 			//only executes if the data from the web sockets server is chart data to publish
-			if (messageData.chartData && messageData.action === "publish") {
+			if (messageData.chartData.length > 0 && messageData.action === "publish") {
 
 				let scaleObj = {};
 				const data = messageData.chartData.map(idea => {

@@ -68,7 +68,6 @@ export default function AdminIdeasPage() {
   const [modalImportOpen, setModalImportOpen] = useState(false);
   const [modalEditOpen, setModalEditOpen] = useState(false);
   const [addIdInvalid, setAddIdInvalid] = useState(false);
-  const [addDomainInvalid, setAddDomainInvalid] = useState(false);
   const [addDescriptionInvalid, setAddDescriptionInvalid] = useState(false);
   const [addSequenceValue, setAddSequenceValue] = useState(0);
   const [addSelectedDomain, setAddSelectedDomain] = useState({});
@@ -166,7 +165,6 @@ export default function AdminIdeasPage() {
 
     setAddIdInvalid(false);
     setAddDescriptionInvalid(false);
-    setAddDomainInvalid(false);
 
     if (isNaN(addSequenceRef.current.value) || addSequenceRef.current.value === "") return;
 
@@ -177,11 +175,6 @@ export default function AdminIdeasPage() {
     
     if (addDescriptionRef.current.value === "") {
       setAddDescriptionInvalid(true);
-      return;
-    }
-    
-    if (addDomainRef.current.value === "") {
-      setAddDomainInvalid(true);
       return;
     }
     
@@ -231,10 +224,11 @@ export default function AdminIdeasPage() {
     if (isNaN(sequenceNumber)) sequenceNumber = 0;
 
     let objIdeaList = [];
-    let i=1;
     let domainId;
+    let i=1;
     if (skipHeaderRef.current.checked) i=0;
     for (i; i<fileData.length; i++) {
+      
       let domainFound = false;
       for (let id=0;id<domainList.current.length;id++){
         if (String(domainList.current[id].ideadomainname).toLowerCase() === String(fileData[i][2]).toLowerCase()) {
@@ -465,7 +459,8 @@ export default function AdminIdeasPage() {
         <div>{errorInfo.message}</div>
       </Modal>
       <Modal
-        id='modalAdd' 
+        id='modalAdd'
+        size='sm' 
         aria-label='Add Idea'
         primaryButtonText="Add"
         secondaryButtonText="Cancel"
@@ -519,10 +514,7 @@ export default function AdminIdeasPage() {
         <ComboBox
           id="addDomain"
           placeholder="Select"
-          invalid={addDomainInvalid}
-          invalidText="This is a required field." 
           titleText="Idea Domain"
-          helperText=""
           ref={addDomainRef}
           items={domainList.current}
           itemToString={item => item ? item.ideadomainname:''}
@@ -541,10 +533,7 @@ export default function AdminIdeasPage() {
             </>
           }}
           onChange={item => {
-            if (item.selectedItem !== null) {
-              setAddDomainInvalid(false);
-              setAddSelectedDomain(item.selectedItem.ideadomainid);
-            }
+            if (item.selectedItem !== null) setAddSelectedDomain(item.selectedItem.ideadomainid);
             if (item.selectedItem === null) setAddSelectedDomain({});
           }}
           
@@ -695,6 +684,7 @@ export default function AdminIdeasPage() {
       </Modal>
       <Modal
         danger
+        size='sm'
         modalHeading='Confirm Delete'
         primaryButtonText="Delete"
         secondaryButtonText="Cancel"
@@ -756,15 +746,12 @@ export default function AdminIdeasPage() {
                       />
                       <Button
                         kind='danger'
-                        renderIcon={TrashCan}
-                        size='sm'
                         onClick={() => {
                           setIdeaToDelete({ideaid:"all", ideadescription:"ideas"});
                           setModalDeleteOpen(true);
                         }}
-                      >
-                        Delete All
-                      </Button>
+                        children={<><TrashCan/> Delete All</>}
+                      />
                     </TableToolbar>
                     <Table {...getTableProps()}>
                   <TableHead>
