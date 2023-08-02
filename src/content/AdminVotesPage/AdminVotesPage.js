@@ -498,6 +498,7 @@ export default function AdminVotesPage() {
 			</Modal>
 			<Modal
 				id='modalEdit'
+				size='sm'
 				primaryButtonText="Save"
 				secondaryButtonText="Cancel"
 				shouldSubmitOnEnter={true}
@@ -532,6 +533,7 @@ export default function AdminVotesPage() {
 			</Modal>
 			<Modal
 				danger
+				size='sm'
 				modalHeading='Confirm Delete'
 				primaryButtonText="Delete"
 				secondaryButtonText="Cancel"
@@ -548,6 +550,7 @@ export default function AdminVotesPage() {
 			</Modal>
 			<Modal
 				danger
+				size='sm'
 				modalHeading='Confirm Delete All'
 				primaryButtonText="Delete"
 				primaryButtonDisabled={deleteAllDisabled}
@@ -571,7 +574,7 @@ export default function AdminVotesPage() {
 				}}
 			>
 				<div style={{display:'flex'}}>
-					<WarningHex size={32}/>
+					<WarningHex style={{color:'orange'}} size={48}/>
 					<p style={{paddingLeft:'8px'}}>Warning! This action will delete all votes from the database. Once executed, this action cannot be undone.</p>
 				</div>
 				<br/>

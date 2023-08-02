@@ -1,8 +1,6 @@
-import React, { Component } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  Button,
   Checkbox,
-  ComposedModal,
   Header,
   HeaderContainer,
   HeaderName,
@@ -12,9 +10,6 @@ import {
   InlineLoading,
   ListItem,
   Modal,
-  ModalFooter,
-  ModalHeader,
-  ModalBody,
   SideNav,
   SideNavItems,
   SideNavLink,
@@ -40,39 +35,54 @@ import {
 } from '@carbon/react/icons';
 import { Link } from 'react-router-dom';
 
-class AdminGlobalHeader extends Component {
+export default function AdminGlobalHeader(props) {
   
-  constructor(props) {
-      super(props)
-      this.state = {
-        modalSetupOpen:false,
-        modalConfirmOpen:false,
-        modalSetupExeOpen:false,
-        confirmDisabled:true,
-        setupCloseButtonDisabled:true,
-        voteStatus:"inactive",
-        voteDescription:"waiting...",
-        ideaStatus:"inactive",
-        ideaDescription:"waiting...",
-        userStatus:"inactive",
-        userDescription:"waiting...",
-        logStatus:"inactive",
-        logDescription:"waiting..."
-      }
-  }
+  const [modalSetupOpen, setModalSetupOpen] = useState(false);
+  const [modalConfirmOpen, setModalConfirmOpen] = useState(false);
+  const [modalSetupExeOpen, setModalSetupExeOpen] = useState(false);
+  const [confirmDisabled, setConfirmDisabled] = useState(true);
+  const [setupCloseButtonDisabled, setSetupCloseButtonDisabled] = useState(true);
+  const [voteStatus, setVoteStatus] = useState("inactive");
+  const [voteDescription, setVoteDescription] = useState('waiting...');
+  const [ideaStatus, setIdeaStatus] = useState('inactive...');
+  const [ideaDescription, setIdeaDescription] = useState('waiting...');
+  const [userStatus, setUserStatus] = useState('inactive');
+  const [userDescription, setUserDescription] = useState('waiting...');
+  const [logStatus, setLogStatus] = useState('inactive');
+  const [logDescription, setLogDescription] = useState('waiting...');
+  const [menuItemActiveStatus, setMenuItemActiveStatus] = useState({
+    "votedashboard":false,
+    "ideasadmin":false,
+    "useradmin":false,
+    "connections":false,
+    "votesadmin":false,
+    "statistics":false,
+    "officesadmin":false,
+    "domainsadmin":false
+  })
   
-  HandleLogout = () => {
+  useEffect(() => {HandleActiveMenuItem(props.activePage)},[props.active])
+
+
+  function HandleLogout() {
     localStorage.removeItem("adminjwt");
     if (!localStorage.getItem("adminjwt")) alert("You have been successfully logged out.")
   }
   
-  initSetup = async() => {
-    if (!this.state.setupCloseButton) this.setState({setupCloseButtonDisabled:true})
+  function HandleActiveMenuItem(activePage) {
+    const activeObj = {...menuItemActiveStatus};
+    for (let key in activeObj) {
+      if (activeObj.hasOwnProperty(key)) activeObj[key] = key === activePage;
+    }
+    setMenuItemActiveStatus(activeObj);
+  }
+
+  async function initSetup() {
+    if (!setupCloseButtonDisabled) setSetupCloseButtonDisabled(true);
     //Delete all votes
-    this.setState({
-      voteStatus:"active",
-      voteDescription:"Running..."
-    })
+    setVoteStatus("active");
+    setVoteDescription("Running...");
+
     const deleteVotesReq = await fetch(
       `${process.env.REACT_APP_API_BASE_URL}/votes/reset/${localStorage.getItem('adminjwt')}`,
       {mode:'cors', method:"DELETE"}
@@ -80,23 +90,17 @@ class AdminGlobalHeader extends Component {
     const deleteVotesRes = await deleteVotesReq.json();
     switch (deleteVotesRes.result) {
       case 200:
-        this.setState({
-          voteStatus:"finished",
-          voteDescription:"Done"
-        })
+        setVoteStatus("finished");
+        setVoteDescription("Done");
         break;
       case 500:
-        this.setState({
-          voteStatus:"error",
-          voteDescription:"an error was encountreded deleting votes."
-        })
+        setVoteStatus("error");
+        setVoteDescription("an error was encountreded deleting votes.");
         break;
     }
     //Remove all ideas
-    this.setState({
-      ideaStatus:"active",
-      ideaDescription:"Running..."
-    })
+    setIdeaStatus("active");
+    setIdeaDescription("Running...");
     const deleteIdeasReq = await fetch(
       `${process.env.REACT_APP_API_BASE_URL}/ideas/reset/${localStorage.getItem('adminjwt')}`,
       {mode:'cors', method:"DELETE"}
@@ -104,23 +108,18 @@ class AdminGlobalHeader extends Component {
     const deleteIdeasRes = await deleteIdeasReq.json();
     switch (deleteIdeasRes.result) {
       case 200:
-        this.setState({
-          ideaStatus:"finished",
-          ideaDescription:"Done"
-        })
+        setIdeaStatus("finished");
+        setIdeaDescription("Done");
         break;
       case 500:
-        this.setState({
-          ideaStatus:"error",
-          ideaDescription:"an error was encountreded deleting ideas."
-        })
+        setIdeaStatus("error");
+        setIdeaDescription("an error was encountreded deleting ideas.");
         break;
     }
     //Delete all users
-    this.setState({
-      userStatus:"active",
-      userDescription:"Running..."
-    })
+    setUserStatus("active");
+    setUserDescription("Running...");
+  
     const deleteUserReq = await fetch(
       `${process.env.REACT_APP_API_BASE_URL}/participants/reset/${localStorage.getItem('adminjwt')}`,
       {mode:'cors', method:"DELETE"}
@@ -128,23 +127,17 @@ class AdminGlobalHeader extends Component {
     const deleteUserRes = await deleteUserReq.json();
     switch (deleteUserRes.result) {
       case 200:
-        this.setState({
-          userStatus:"finished",
-          userDescription:"Done"
-        })
+        setUserStatus("finished");
+        setUserDescription("Done");
         break;
       case 500:
-        this.setState({
-          userStatus:"error",
-          userDescription:"an error was encountreded deleting participants."
-        })
+        setUserStatus("error");
+        setUserDescription("an error was encountreded deleting participants.");
         break;
     }
     //Clear change log
-    this.setState({
-      logStatus:"active",
-      logDescription:"Running..."
-    })
+    setLogStatus("active");
+    setLogDescription("Running...");
     const deleteLogReq = await fetch(
       `${process.env.REACT_APP_API_BASE_URL}/votes/resetlogs/${localStorage.getItem('adminjwt')}`,
       {mode:'cors', method:"DELETE"}
@@ -152,234 +145,263 @@ class AdminGlobalHeader extends Component {
     const deleteLogRes = await deleteLogReq.json();
     switch (deleteLogRes.result) {
       case 200:
-        this.setState({
-          logStatus:"finished",
-          logDescription:"Done"
-        })
+        setLogStatus("finished");
+        setLogDescription("Done");
         break;
       case 500:
-        this.setState({
-          logStatus:"error",
-          logDescription:"an error was encountered clearing the change log."
-        })
+        setLogStatus("error");
+        setLogDescription("an error was encountered clearing the change log.");
         break;
     }
 
-    this.setState({setupCloseButtonDisabled:false})
+    setSetupCloseButtonDisabled(false);
   }
 
-  render () {
-    return (
-      <>
+  return (
+    <>
       <Modal
         id='initSetup'
         modalHeading='Initial Setup'
         primaryButtonText="Execute"
         secondaryButtonText="Cancel"
-        onRequestClose={() => {this.setState({modalSetupOpen:false})}}
-        onRequestSubmit={() => {this.setState({modalConfirmOpen:true})}}
+        onRequestClose={() => setModalSetupOpen(false)}
+        onRequestSubmit={() => setModalConfirmOpen(true)}
         zindex={1}
-        open={this.state.modalSetupOpen}>
-          <p>
-            The initial setup option is used to prepare the voting system for a
-            new ISR session. Only use this option when preparing the system
-            for a new ISR voting session. 
-          </p>
-          <br/>
-          <div style={{display:'flex'}}>
-          <WarningHex size={32}/>
-          <p style={{marginLeft:'2%', color:'red'}}>
-            WARNING: Do not use this option on an in progress ISR voting session.
-            IT WILL DELETE ALL VOTING DATA!
-          </p>
-          </div>
-          <br/>
-          <p>Initial setup will perform the following functions:</p>
-          <div style={{marginLeft:'5%'}}>
-          <UnorderedList>
-            <ListItem>Delete all votes</ListItem>
-            <ListItem>Delete all ideas</ListItem>
-            <ListItem>Remove all participants</ListItem>
-            <ListItem>Clear the change log</ListItem>
-          </UnorderedList>
-          </div>
-        </Modal>
-        <Modal
-          danger
-          modalHeading='Initial Setup Confirm Execute'
-          primaryButtonText="Confirm"
-          primaryButtonDisabled={this.state.confirmDisabled}
-          secondaryButtonText="Cancel"
-          zindex={2}
-          open={this.state.modalConfirmOpen}
-          onRequestClose={() => {
-            this.setState({
-              modalSetupOpen:false,
-              modalConfirmOpen:false,
-              confirmDisabled:true
-            });
-            document.getElementById("setupAck").checked = false;
-          }}
-          onRequestSubmit={() => {
-            document.getElementById("setupAck").checked = false;
-            this.setState({
-              modalSetupExeOpen:true,
-              modalSetupOpen:false,
-              modalConfirmOpen:false,
-              confirmDisabled:true
-            }, () => this.initSetup());
-          }}
-        >
-          <div style={{display:'flex'}}>
-            <WarningHex size={32}/>
-            <p style={{paddingLeft:'8px'}}>Warning! Once executed, initial setup actions cannot be undone. Please confirm you that wish to take this action.</p>
-          </div>
-          <br/>
-          <Checkbox
-            id="setupAck"
-            labelText="I understand these actions cannot be undone"
-            onChange={() => {
-              if (document.getElementById("setupAck").checked === true) {
-                this.setState({confirmDisabled: false});
-              }
-              if (document.getElementById("setupAck").checked === false) {
-                this.setState({confirmDisabled: true});
-              }
-            }}
-          />
-        </Modal>
-        <ComposedModal 
-          open={this.state.modalSetupExeOpen}
-          preventCloseOnClickOutside={true}
-        >
-          <ModalHeader>
-            <h4>Executing Initial Setup</h4>
-          </ModalHeader>
-          <ModalBody>
-            <div>
-              <br/>
-              <div style={{marginLeft:'5%'}}>
-                <div style={{display:'flex'}}>
-                  <div>
-                    <UnorderedList>
-                      <ListItem>Delete all votes</ListItem>
-                    </UnorderedList>
-                  </div>
-                  <div style={{marginTop:'-1%', marginLeft:'2%'}}>
-                  <InlineLoading
-                    status={this.state.voteStatus}
-                    iconDescription="Active loading indicator"
-                    description={this.state.voteDescription}
-                  />
-                  </div>
+        open={modalSetupOpen}
+        children={
+          <>
+            <p>
+              The initial setup option is used to prepare the voting system for a
+              new ISR session. Only use this option when preparing the system
+              for a new ISR voting session. 
+            </p>
+            <br/>
+            <div style={{display:'flex'}}>
+              <WarningHex size={32}/>
+              <p style={{marginLeft:'2%', color:'red'}}>
+                WARNING: Do not use this option on an in progress ISR voting session.
+                IT WILL DELETE ALL VOTING DATA!
+              </p>
+            </div>
+            <br/>
+            <p>Initial setup will perform the following functions:</p>
+            <div style={{marginLeft:'5%'}}>
+            <UnorderedList>
+              <ListItem>Delete all votes</ListItem>
+              <ListItem>Delete all ideas</ListItem>
+              <ListItem>Remove all participants</ListItem>
+              <ListItem>Clear the change log</ListItem>
+            </UnorderedList>
+            </div>
+          </>
+        }
+      />
+        
+      <Modal
+        danger
+        modalHeading='Initial Setup Confirm Execute'
+        primaryButtonText="Confirm"
+        primaryButtonDisabled={confirmDisabled}
+        secondaryButtonText="Cancel"
+        zindex={2}
+        open={modalConfirmOpen}
+        onRequestClose={() => {
+          setModalSetupOpen(false);
+          setModalConfirmOpen(false);
+          setConfirmDisabled(true);
+          document.getElementById("setupAck").checked = false; // this needs to be a ref
+        }}
+        onRequestSubmit={() => {
+          document.getElementById("setupAck").checked = false; //this needs to be a ref
+          setModalSetupExeOpen(true);
+          setModalSetupOpen(false);
+          setModalConfirmOpen(false);
+          setConfirmDisabled(true);
+          initSetup()
+        }}
+        children={
+          <>
+            <div style={{display:'flex'}}>
+              <WarningHex size={32}/>
+              <p style={{paddingLeft:'8px'}}>Warning! Once executed, initial setup actions cannot be undone. Please confirm you that wish to take this action.</p>
+            </div>
+            <br/>
+            <Checkbox
+              id="setupAck"
+              labelText="I understand these actions cannot be undone"
+              onChange={() => {
+                if (document.getElementById("setupAck").checked === true) setConfirmDisabled(false);
+                if (document.getElementById("setupAck").checked === false) setConfirmDisabled(true);
+              }}
+            />
+          </>
+        }
+      />
+      <Modal 
+        modalHeading="Executing Initial Setup"
+        open={modalSetupExeOpen}
+        preventCloseOnClickOutside={true}
+        primaryButtonText="Close"
+        primaryButtonDisabled={setupCloseButtonDisabled}
+        onRequestClose={() => setModalSetupExeOpen(false)}
+        onRequestSubmit={() => setModalSetupExeOpen(false)}
+        children={
+          <div>
+            <br/>
+            <div style={{marginLeft:'5%'}}>
+              <div style={{display:'flex'}}>
+                <div>
+                  <UnorderedList>
+                    <ListItem>Delete all votes</ListItem>
+                  </UnorderedList>
                 </div>
-                <div style={{display:'flex'}}>  
-                  <div>
-                    <UnorderedList>
-                      <ListItem>Delete all ideas</ListItem>
-                    </UnorderedList>
-                  </div>
-                  <div style={{marginTop:'-1%', marginLeft:'2%'}}>
-                  <InlineLoading
-                    status={this.state.ideaStatus}
-                    iconDescription="Active loading indicator"
-                    description={this.state.ideaDescription}
-                  />
-                  </div>
+                <div style={{marginTop:'-1%', marginLeft:'2%'}}>
+                <InlineLoading
+                  status={voteStatus}
+                  iconDescription="Active loading indicator"
+                  description={voteDescription}
+                />
                 </div>
-                <div style={{display:'flex'}}>
-                  <div>
-                    <UnorderedList>
-                      <ListItem>Remove all users</ListItem>
-                    </UnorderedList>
-                  </div>
-                  <div style={{marginTop:'-1%', marginLeft:'2%'}}>
-                  <InlineLoading
-                    status={this.state.userStatus}
-                    iconDescription="Active loading indicator"
-                    description={this.state.userDescription}
-                  />
-                  </div>
+              </div>
+              <div style={{display:'flex'}}>  
+                <div>
+                  <UnorderedList>
+                    <ListItem>Delete all ideas</ListItem>
+                  </UnorderedList>
                 </div>
-                <div style={{display:'flex'}}>
-                  <div>
-                    <UnorderedList>
-                      <ListItem>Clear change log</ListItem>
-                    </UnorderedList>
-                  </div>
-                  <div style={{marginTop:'-1%', marginLeft:'2%'}}>
-                  <InlineLoading
-                    status={this.state.logStatus}
-                    iconDescription="Active loading indicator"
-                    description={this.state.logDescription}
-                  />
-                  </div>
+                <div style={{marginTop:'-1%', marginLeft:'2%'}}>
+                <InlineLoading
+                  status={ideaStatus}
+                  iconDescription="Active loading indicator"
+                  description={ideaDescription}
+                />
+                </div>
+              </div>
+              <div style={{display:'flex'}}>
+                <div>
+                  <UnorderedList>
+                    <ListItem>Remove all users</ListItem>
+                  </UnorderedList>
+                </div>
+                <div style={{marginTop:'-1%', marginLeft:'2%'}}>
+                <InlineLoading
+                  status={userStatus}
+                  iconDescription="Active loading indicator"
+                  description={userDescription}
+                />
+                </div>
+              </div>
+              <div style={{display:'flex'}}>
+                <div>
+                  <UnorderedList>
+                    <ListItem>Clear change log</ListItem>
+                  </UnorderedList>
+                </div>
+                <div style={{marginTop:'-1%', marginLeft:'2%'}}>
+                <InlineLoading
+                  status={logStatus}
+                  iconDescription="Active loading indicator"
+                  description={logDescription}
+                />
                 </div>
               </div>
             </div>
-          </ModalBody>
-          <ModalFooter>
-            <Button
-              disabled={this.state.setupCloseButtonDisabled}
-              kind="primary"
-              onClick={() => {this.setState({modalSetupExeOpen:false})}}>
-              Close
-            </Button>
-          </ModalFooter> 
-        </ComposedModal>
-        <HeaderContainer render={({ isSideNavExpanded, onClickSideNavExpand }) => (
-          <Header aria-label='admin header'>
-            <SkipToContent />
-            <HeaderMenuButton
-              isCollapsible
-              aria-label={isSideNavExpanded ? 'Close menu' : 'Open menu'}
-              onClick={onClickSideNavExpand}
-              isActive={isSideNavExpanded}
-            />
-            <HeaderName element={Link} to="/" prefix="ISR">Home</HeaderName>
-            <HeaderGlobalBar>
-              <HeaderGlobalAction isActive={isSideNavExpanded} tooltipAlignment="end" aria-label="User Avatar">
-                <UserAvatar size={20}/>
-              </HeaderGlobalAction>
-            </HeaderGlobalBar>
-          
-            <SideNav
-              isRail
-              isChildOfHeader={true}
-              expanded={isSideNavExpanded}
-              aria-label="Side navigation">
-              <SideNavItems>
-              <SideNavLink onClick={() => this.setState({modalSetupOpen:true})} renderIcon={Rocket} element={Link} to="">Initial Setup</SideNavLink>
-                <SideNavMenu renderIcon={UserAdmin} title="Admin Pages">
-                  <SideNavMenuItem element={Link} to="/useradmin">
-                    <User/> User Administration
-                  </SideNavMenuItem>
-                  <SideNavMenuItem element={Link} to="/votesadmin">
-                    <Certificate/> Vote Administration
-                  </SideNavMenuItem>
-                  <SideNavMenuItem element={Link} to="/officesadmin">
-                    <Building/> Office Administration
-                  </SideNavMenuItem>
-                  <SideNavMenuItem element={Link} to="/domainsadmin">
-                    <Wikis/> Domain Administration
-                  </SideNavMenuItem>
-                  <SideNavMenuItem element={Link} to="/ideasadmin">
-                    <Idea/> Idea Administration
-                  </SideNavMenuItem>
-                  <SideNavMenuItem element={Link} to="/connections">
-                    <ServerProxy/> Server Connections
-                  </SideNavMenuItem>
-                </SideNavMenu>
-                <SideNavLink renderIcon={Dashboard} element={Link} to="/votedashboard">Vote Dashboard</SideNavLink>
-                <SideNavLink renderIcon={ChartHistogram} element={Link} to="/statistics">Statistics</SideNavLink>
-                <SideNavLink renderIcon={Logout} element={Link} to="/" onClick={() => this.HandleLogout()}>Logout</SideNavLink>
-              </SideNavItems>
-            </SideNav>
-          </Header>
-          )}
-        />
-      </>
-    )
-  };
-}
-export default AdminGlobalHeader;
+          </div>
+        }
+      />
+      <HeaderContainer render={({ isSideNavExpanded, onClickSideNavExpand }) => (
+        <Header aria-label='admin header'>
+          <SkipToContent />
+          <HeaderMenuButton
+            isCollapsible
+            aria-label={isSideNavExpanded ? 'Close menu' : 'Open menu'}
+            onClick={onClickSideNavExpand}
+            isActive={isSideNavExpanded}
+          />
+          <HeaderName element={Link} to="/" prefix="ISR">Home</HeaderName>
+          <HeaderGlobalBar>
+            <HeaderGlobalAction isActive={isSideNavExpanded} tooltipAlignment="end" aria-label="User Avatar">
+              <UserAvatar size={20}/>
+            </HeaderGlobalAction>
+          </HeaderGlobalBar>
+        
+          <SideNav
+            isRail
+            isChildOfHeader={true}
+            expanded={isSideNavExpanded}
+            aria-label="Side navigation">
+            <SideNavItems>
+              <SideNavLink
+                onClick={() => setModalSetupOpen(true)}
+                renderIcon={Rocket}
+                element={Link}
+                to=""
+                children={"Initial Setup"}
+              />
+              <SideNavMenu renderIcon={UserAdmin} title="Admin Pages">
+                <SideNavMenuItem 
+                  element={Link}
+                  to="/useradmin"
+                  isActive={menuItemActiveStatus.useradmin}
+                  children={<><User/> User Administration</>}
+                />
+                <SideNavMenuItem
+                  element={Link}
+                  to="/votesadmin"
+                  isActive={menuItemActiveStatus.votesadmin}
+                  children={<><Certificate/> Vote Administration</>}  
+                />
+                <SideNavMenuItem
+                  element={Link}
+                  to="/officesadmin"
+                  isActive={menuItemActiveStatus.officesadmin}
+                  children={<><Building/> Office Administration</>}
+                />
+                <SideNavMenuItem
+                  element={Link}
+                  to="/domainsadmin"
+                  isActive={menuItemActiveStatus.domainsadmin}
+                  children={<><Wikis/> Domain Administration</>}
+                />
+                <SideNavMenuItem
+                  element={Link}
+                  to="/ideasadmin"
+                  isActive={menuItemActiveStatus.ideasadmin}
+                  children={<><Idea/> Idea Administration</>}
+                />
+                <SideNavMenuItem
+                  element={Link}
+                  to="/connections"
+                  isActive={menuItemActiveStatus.connections}
+                  children={<><ServerProxy/> Server Connections</>}
+                />
+              </SideNavMenu>
+              <SideNavLink
+                renderIcon={Dashboard}
+                isActive={menuItemActiveStatus.votedashboard}
+                element={Link}
+                to="/votedashboard"
+                children={"Vote Dashboard"}
+              />
+              <SideNavLink
+                renderIcon={ChartHistogram}
+                isActive={menuItemActiveStatus.statistics}
+                element={Link}
+                to="/statistics"
+                children={"Statistics"}
+              />
+              <SideNavLink
+                renderIcon={Logout}
+                element={Link}
+                to="/"
+                onClick={() => HandleLogout()}
+                children={"Logout"}
+              />
+            </SideNavItems>
+          </SideNav>
+        </Header>
+        )}
+      />
+    </>
+  );
+};

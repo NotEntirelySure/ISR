@@ -183,6 +183,7 @@ export default function AdminOfficesPage() {
       </Modal>
       <Modal
         danger
+        size='sm'
         modalHeading='Confirm Delete'
         primaryButtonText="Delete"
         secondaryButtonText="Cancel"

@@ -69,7 +69,7 @@ export default function ProtectedRoute(props) {
 						break;
 					default: page = <LandingPage/>;
 				}
-				return <><AdminGlobalHeader/><Content children={page}/></>;
+				return <><AdminGlobalHeader activePage={props.page}/><Content children={page}/></>;
 				case false: 
 					return <>
 						<UserGlobalHeader/>

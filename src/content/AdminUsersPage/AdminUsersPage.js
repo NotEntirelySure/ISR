@@ -150,6 +150,7 @@ export default function AdminUsersPage() {
       </Modal>
       <Modal
         danger
+        size='sm'
         modalHeading='Confirm Delete'
         primaryButtonText="Delete"
         secondaryButtonText="Cancel"

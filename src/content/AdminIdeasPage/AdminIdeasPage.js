@@ -50,7 +50,6 @@ export default function AdminIdeasPage() {
   const addSequenceRef = useRef();
   const addIdRef = useRef();
   const addDescriptionRef = useRef();
-  const addDomainRef = useRef();
   const editSequenceRef = useRef();
   const editIdRef = useRef();
   const editDescriptionRef = useRef();
@@ -74,7 +73,6 @@ export default function AdminIdeasPage() {
   const [editSelectedDomain, setEditSelectedDomain] = useState({});
   const [editIdInvalid, setEditIdInvalid] = useState(false);
   const [editDescriptionInvalid, setEditDescriptionInvalid] = useState(false);
-  const [editDomainInvalid, setEditDomainInvalid] = useState(false);
   const [editSequenceValue, setEditSequenceValue] = useState(0);
   const [displayTable, setDisplayTable] = useState('none');
   const [displaySkeleton, setDisplaySkeleton] = useState('block');
@@ -82,6 +80,7 @@ export default function AdminIdeasPage() {
   const [importButtonDisabled, setImportButtonDisabled] = useState(true);
   const [errorInfo, setErrorInfo] = useState({heading:"", message:""});
   const [progressButtonDisabled, setProgressButtonDisabled] = useState(true);
+  const [progressLabel, setProgressLabel] = useState('');
   const [progressStatus, setProgressStatus] = useState(null);
   const [progressHelperText, setProgressHelperText] = useState('')
   const [progressCurrentValue, setProgressCurrentValue] = useState(null);
@@ -123,7 +122,7 @@ export default function AdminIdeasPage() {
                   setEditSequenceValue(idea.ideasequence);
                   editIdRef.current.value = idea.ideaid;
                   editDescriptionRef.current.value = idea.ideadescription;
-                  await GetDomains();
+                  if (domainList.current.length === 0) await GetDomains();
                   setIdeaToEdit({
                     "ideasequence":idea.ideasequence,
                     "ideaid":idea.ideaid,
@@ -189,7 +188,7 @@ export default function AdminIdeasPage() {
         "ideaId":addIdRef.current.value,
         "ideaDescription":addDescriptionRef.current.value,
         "ideaSequence":addSequenceRef.current.value,
-        "ideaDomainId":addSelectedDomain,
+        "ideaDomainId":addSelectedDomain.ideadomainid,
         "token":localStorage.getItem('adminjwt')
       })
     });
@@ -199,9 +198,11 @@ export default function AdminIdeasPage() {
       setErrorInfo({heading:`Error ${addResponse.code}`, message:addResponse.message});
       setModalErrorOpen(true);
     }
+
+    setAddSequenceValue(0);
     addIdRef.current.value = "";
     addDescriptionRef.current.value = "";
-    addDomainRef.current.value = "";
+    setAddSelectedDomain({});
   }
 
   async function BatchAddIdeas() {
@@ -211,7 +212,8 @@ export default function AdminIdeasPage() {
     setModalImportOpen(false);
     setImportButtonDisabled(true);
     setModalProgressOpen(true);
-    setProgressHelperText('Processing file...')
+    setProgressLabel("Importing Ideas...");
+    setProgressHelperText('Processing file...');
     //process file
     const workbook = XLSX.read(uploadFile.current, {type:'binary'});
     const worksheetName = workbook.SheetNames[0];
@@ -295,6 +297,7 @@ export default function AdminIdeasPage() {
       }
       
     };
+    setProgressLabel("Done.");
     setProgressStatus('finished');
     setProgressMaxValue(null);
     setProgressButtonDisabled(false);
@@ -341,6 +344,7 @@ export default function AdminIdeasPage() {
       setModalErrorOpen(true);
     }
     setEditSequenceValue(0);
+    setEditSelectedDomain({});
     editIdRef.current.value = "";
     editDescriptionRef.current.value = "";
   };
@@ -422,7 +426,7 @@ export default function AdminIdeasPage() {
           <>
             <div>
               <ProgressBar
-                label="Importing Ideas..."
+                label={progressLabel}
                 helperText={progressHelperText}
                 status={progressStatus}
                 max={progressMaxValue}
@@ -508,35 +512,27 @@ export default function AdminIdeasPage() {
           invalid={addDescriptionInvalid}
           onKeyPress={() => setAddDescriptionInvalid(false)}
           invalidText="This is a required field."
-          placeholder="Enter your the idea's description"
+          placeholder="Enter the idea's description"
           tabIndex={0}
         />
         <ComboBox
           id="addDomain"
-          placeholder="Select"
           titleText="Idea Domain"
-          ref={addDomainRef}
+          selectedItem={addSelectedDomain}
+          placeholder="Select" 
           items={domainList.current}
           itemToString={item => item ? item.ideadomainname:''}
-          itemToElement={item => {
-            return <>
-              <div style={{display:'flex', justifyContent:'space-between'}}>
+          itemToElement={item =>  (
+            <>
+              <div style={{display:'flex',justifyContent:'space-between'}}>
                 <div>{item.ideadomainname}</div>
-                <div style={{
-                  backgroundColor:item.ideadomaincolorhex,
-                  width:'15%',
-                  borderRadius:'5px'
-                }}>
-                  <p>&nbsp;</p>
+                <div style={{marginTop:'-0.5rem'}}>
+                  <Tag style={{backgroundColor:item.ideadomaincolorhex}} children={item.ideadomaincolorhex}/>
                 </div>
               </div>
             </>
-          }}
-          onChange={item => {
-            if (item.selectedItem !== null) setAddSelectedDomain(item.selectedItem.ideadomainid);
-            if (item.selectedItem === null) setAddSelectedDomain({});
-          }}
-          
+           )}
+          onChange={item => setAddSelectedDomain(item.selectedItem)}
         />
       </Modal>
       <Modal
@@ -602,7 +598,8 @@ export default function AdminIdeasPage() {
         </div>
       </Modal>
       <Modal
-        id='modalEdit' 
+        id='modalEdit'
+        size='sm' 
         aria-label='Edit Idea'
         primaryButtonText="Save"
         secondaryButtonText="Cancel"
@@ -647,39 +644,25 @@ export default function AdminIdeasPage() {
           invalidText="This is a required field."
           placeholder="Enter your the idea's description"
           tabIndex={0}
-        />
+          />
         <ComboBox
           id="editDomain"
-          selectedItem={editSelectedDomain}
-          onChange={item => {
-            if (item.selectedItem !== null) {
-              setEditDomainInvalid(false);
-              setEditSelectedDomain(item.selectedItem);
-            };
-            if (item.selectedItem === null) setEditSelectedDomain({});
-          }}
+          titleText="Idea Domain"
           placeholder="Select"
-          invalid={editDomainInvalid}
-          invalidText="This is a required field." 
+          selectedItem={editSelectedDomain} 
           items={domainList.current}
           itemToString={item => item ? item.ideadomainname:''}
-          itemToElement={item => {
-            return <>
+          itemToElement={item =>  (
+            <>
               <div style={{display:'flex',justifyContent:'space-between'}}>
                 <div>{item.ideadomainname}</div>
-                <div style={{
-                  backgroundColor:item.ideadomaincolorhex,
-                  width:'15%',
-                  borderRadius:'5px'
-                }}>
-                    <p>&nbsp;</p>
+                <div style={{marginTop:'-0.5rem'}}>
+                  <Tag style={{backgroundColor:item.ideadomaincolorhex}} children={item.ideadomaincolorhex}/>
                 </div>
               </div>
             </>
-          }}
-          
-          titleText="Idea Domain"
-          helperText=""
+           )}
+          onChange={item => setEditSelectedDomain(item.selectedItem)} 
         />
       </Modal>
       <Modal
@@ -728,8 +711,8 @@ export default function AdminIdeasPage() {
                         hasIconOnly
                         iconDescription='Add Idea'
                         onClick={async() => {
+                          if (domainList.current.length === 0) await GetDomains();
                           const maxSequence = await GetSequenceNumber();
-                          GetDomains();
                           let sequenceNumber = parseInt(maxSequence[0].max_sequence);
                           if (isNaN(sequenceNumber)) sequenceNumber = 1
                           else {sequenceNumber++};
