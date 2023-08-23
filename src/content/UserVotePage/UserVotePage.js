@@ -16,7 +16,7 @@ import {
   ListItem,
   Dropdown
 } from '@carbon/react';
-import { Renew } from '@carbon/react/icons';
+import { Renew, Send } from '@carbon/react/icons';
 import UserGlobalHeader from '../../components/UserGlobalHeader';
 
 var client;
@@ -34,6 +34,7 @@ export default function UserVotePage() {
   const [showLoading, setShowLoading] = useState('none');
   const [currentTheme, setCurrentTheme] = useState("white");
   const [connectionAttempts, setConnectionAttempts] = useState(0);
+  const [notificationOpen, setNotificationOpen] = useState(false);
   const [connectionInfo, setConnectionInfo] = useState({
     status:"inactive",
     message:"",
@@ -56,22 +57,11 @@ export default function UserVotePage() {
     heading:"",
     message:""
   });
-  const [notificationInfo, setNotificationInfo] = useState({
-    source:"",
-    count:0,
-    kind:"success",
-    title:"",
-    message:"",
-  });
-  const [notificationList, setNotificationList] = useState([]);
-  const [notificationOpen, setNotificationOpen] = useState(false);
+  const [notificationInfo, setNotificationInfo] = useState({});
 
-  useEffect(() => Login(),[]);
+  useEffect(() => {Login()},[]);
   useEffect(() => {if (voterInfo.office) ConnectWebSocket()},[voterInfo]);
-  useEffect(() => {
-    setNotificationList(previousState => [...previousState, notificationInfo]);
-    ShowToast()
-  },[notificationInfo]); 
+  useEffect(() => {ShowToast();},[notificationInfo]);
   useEffect(() => {if (connectionAttempts > 0) ConnectWebSocket();},[connectionAttempts])
 
   async function Login() {
@@ -110,7 +100,7 @@ export default function UserVotePage() {
           setIsAuth(true)
           GetVoteHistory();
           break;
-        case 401: 
+        case 401:
           setModalInfo({
             heading:"Not Registered",
             message:<><p>You must register before you are able to vote.</p></>,
@@ -122,11 +112,11 @@ export default function UserVotePage() {
             heading:"Other Participant Logged In",
             message:<>
               <p>You have been registered in the system, however, another participant from your office is currently logged in.</p>
+              <br/>
               <p>Only one participant from the same office may be logged in at a time. If you wish to vote in the ISR, you can do one of the following:</p>
               <div style={{marginLeft:'5%'}}>
                 <OrderedList>
                   <ListItem>Contact the person from your office and ask them to logout.</ListItem>
-                  <ListItem>Return to the registration page and register under a different office.</ListItem>
                   <ListItem>Contact the system administrator and ask them to log the other person out.</ListItem>
                 </OrderedList>
               </div>
@@ -145,22 +135,21 @@ export default function UserVotePage() {
 
     };
   };
-  
+
   async function GetVoteHistory() {
     const historyRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/votes/getparticipanthistory/${localStorage.getItem('jwt')}`, {mode:'cors'});
     const historyResponse = await historyRequest.json();
     if (historyResponse.code === 200) {
-      const initialHistory = historyResponse.historyData.map(item => {
-        return {
-          source:"initialLoad",
+      const initialHistory = historyResponse.historyData.map(item => (
+        {
           kind:"success",
           title:"Success!",
           message:`Your ${item.votevalue === 0 ? 'abstain vote':`vote of ${item.votevalue}`} for idea ${item.voteideaid} was successfully submitted.`,
           timestamp: new Date(item.votetime).toLocaleString()
-        };
-      });
-      setNotificationList(initialHistory);
-    };
+        }
+      ));
+      setNotificationInfo({source:'initialLoad', payload:initialHistory.reverse()});
+    }
   };
 
   function ConnectWebSocket() {
@@ -182,13 +171,20 @@ export default function UserVotePage() {
       if (connectionAttempts !== 0) setConnectionAttempts(0);
     };
 
-    client.onmessage = (message) => {
-      let data = JSON.parse(message.data);
-      let objIdeas = [];
-      for (var i=0; i<data.length; i++) {
-        objIdeas.push( {
-            ideaId: data[i].id,
-            ideaDescription: data[i].description
+    client.onmessage = message => {
+      const data = JSON.parse(message.data);
+      if (data.source && data.source === "adminUsers" && data.action === "logout") {
+        setModalInfo({
+          heading:"Logout",
+          message:<><p>You have been logged out by an administrator. If you believe this was done in error, please contact your system administrator.</p></>,
+          open:true
+        })
+      }
+      const objIdeas = [];
+      for (let i=0; i<data.length; i++) {
+        objIdeas.push({
+          ideaId: data[i].id,
+          ideaDescription: data[i].description
         });
       }
       setIdeas(objIdeas);
@@ -253,24 +249,32 @@ export default function UserVotePage() {
         const voteResponse = await voteRequest.json();
 
         if (voteResponse.code !== 200) {
-          setNotificationInfo({
-            source:"user",
-            count:notificationInfo.count + 1,
-            kind:"error",
-            title:`Error: ${voteResponse.code}`,
-            message:`There was a problem submitting your ${voteData.current.value === 0 ? 'abstain vote':`vote of ${voteData.current.value}`} for idea ${voteData.current.idea}. (${voteResponse.message})`,
-            timestamp: new Date().toLocaleString()
-          });
+          setNotificationInfo(
+            {
+              source:"user",
+              payload: {
+                count:notificationInfo.count + 1,
+                kind:"error",
+                title:`Error: ${voteResponse.code}`,
+                message:`There was a problem submitting your ${voteData.current.value === 0 ? 'abstain vote':`vote of ${voteData.current.value}`} for idea ${voteData.current.idea}. (${voteResponse.message})`,
+                timestamp: new Date().toLocaleString()
+              }
+            }
+          );
         }
         if (voteResponse.code === 200) {
-          setNotificationInfo({
-            source:"user",
-            count:notificationInfo.count + 1,
-            kind:"success",
-            title:"Success!",
-            message:`Your ${voteData.current.value === 0 ? 'abstain vote':`vote of ${voteData.current.value}`} for idea ${voteData.current.idea} was successfully submitted.`,
-            timestamp: new Date().toLocaleString()
-          });
+          setNotificationInfo(
+            {
+              source:"user",
+              payload:{
+                count:notificationInfo.count + 1,
+                kind:"success",
+                title:"Success!",
+                message:`Your ${voteData.current.value === 0 ? 'abstain vote':`vote of ${voteData.current.value}`} for idea ${voteData.current.idea} was successfully submitted.`,
+                timestamp: new Date().toLocaleString()
+              }
+            }
+          );
           client.send(JSON.stringify({
             sender:"client",
             office:voterInfo.office,
@@ -280,14 +284,18 @@ export default function UserVotePage() {
         }
       }
       catch (err) {
-       setNotificationInfo({
-          source:"user",
-          count:notificationInfo.count + 1,
-          kind:"error",
-          title:`Error: ${err.message}`,
-          message:`There was a problem submitting your ${voteData.current.value === 0 ? 'abstain vote':`vote of ${voteData.current.value}`} for idea ${voteData.current.idea}.`,
-          timestamp: new Date().toLocaleString()
-        });
+        setNotificationInfo(
+          {
+            source:"user",
+            payload: {
+              count:notificationInfo.count + 1,
+              kind:"error",
+              title:`Error: ${err.message}`,
+              message:`There was a problem submitting your ${voteData.current.value === 0 ? 'abstain vote':`vote of ${voteData.current.value}`} for idea ${voteData.current.idea}.`,
+              timestamp: new Date().toLocaleString()
+            }
+          }
+        );
       }
 
       setShowLoading('none');
@@ -321,10 +329,8 @@ export default function UserVotePage() {
 
   function ShowToast() {
     if (notificationInfo.source === "user") {
-      let slideout = document.getElementById('notification');
-      slideout.classList.toggle('visible');
-      //toggle the visibility back to hidden. If this doesn't happen, the next button click will not show the notification (it will take 2 clicks to show).
-      setTimeout(() => slideout.classList.toggle('visible'), 5000);
+      setNotificationOpen(true);
+      setTimeout(() => setNotificationOpen(false),5000);
     }
 }
 
@@ -361,7 +367,7 @@ function HandleThemeChange(selectedTheme) {
         onThemeChange={theme => HandleThemeChange(theme)}
         notificationActive={isAuth}
         isAuth={isAuth}
-        notificationData={notificationList}
+        notificationData={notificationInfo}
         userInfo={{
           "voterID":voterInfo.id,
           "title":voterInfo.title,
@@ -374,25 +380,27 @@ function HandleThemeChange(selectedTheme) {
       <Modal
         modalHeading={modalInfo.heading}
         open={modalInfo.open}
-        acknowledgment="true"
+        size='sm'
         preventCloseOnClickOutside={true}
-        primaryButtonText="Register"
-        onRequestClose={() => navigate('/register')}
-        onRequestSubmit={() => navigate('/register')}
+        primaryButtonText={modalInfo.heading === "Not Registered" ? "Register":"Ok"}
+        onRequestClose={() => modalInfo.heading === "Not Registered" ? navigate('/register'):navigate('/')}
+        onRequestSubmit={() => modalInfo.heading === "Not Registered" ? navigate('/register'):navigate('/')}
+        children={modalInfo.message}
+      />
+      <div
+        className={`notification ${notificationOpen ? 'show':''}`}
+        ref={notificationRef}
       >
-        {modalInfo.message}
-      </Modal>
-      <div id="notification" ref={notificationRef}>   
         <ToastNotification
           className='bx--toast-notification'
           open={notificationOpen}
-          key={notificationInfo.count}
+          key={notificationInfo.payload && (notificationInfo.payload.count)}
           timeout={0}
-          kind={notificationInfo.kind}
+          kind={notificationInfo.payload && (notificationInfo.payload.kind)}
           lowContrast={false}
           role='alert'
-          title={notificationInfo.title}
-          subtitle={notificationInfo.message}
+          title={notificationInfo.payload && (notificationInfo.payload.title)}
+          subtitle={notificationInfo.payload && (notificationInfo.payload.message)}
           iconDescription='Icon description (iconDescription)'
           statusIconDescription='describes the status icon'
           hideCloseButton={false}
@@ -402,19 +410,19 @@ function HandleThemeChange(selectedTheme) {
       <div style={{minHeight:"100vh"}}>
         <div id='headerContainer' style={{backgroundColor:themeValues.headerColor}}>
           <div id='titleContainer'>
-            <h1>Idea Voting</h1>
+            <h1 className='headerText'>Idea Voting</h1>
             <br/>
-            <div id='userInfo'>
+            <div className='userInfo'>
               <div>
                 <img
-                  id='user-icon'
+                  className='user-icon'
                   src={`${process.env.PUBLIC_URL}/office_symbols/${voterInfo.office}.png`}
                   onError={(err) => err.currentTarget.src = `${process.env.PUBLIC_URL}/office_symbols/USCG.png`}
                   alt=''
                 />
               </div>
               <div >
-                <h4>{isAuth ? `${voterInfo.title} ${voterInfo.firstName} ${voterInfo.lastName} (${voterInfo.office})`:null}</h4>
+                <h4 className='user-title'>{isAuth ? `${voterInfo.title} ${voterInfo.firstName} ${voterInfo.lastName} (${voterInfo.office})`:null}</h4>
               </div>
             </div>
           </div>
@@ -443,7 +451,7 @@ function HandleThemeChange(selectedTheme) {
           <Content>
             <div id='tileContainer'>
               {ideas.length === 0 ? <>
-                <div 
+                <div
                   className="tile"
                   style={{
                     backgroundColor:themeValues.tileColor,
@@ -472,7 +480,7 @@ function HandleThemeChange(selectedTheme) {
                           onChange={value => voteData.current = {"idea":idea.ideaId,"value":value}}
                         >
                           {BuildRadioButtons(idea.ideaId)}
-                        </RadioButtonGroup>  
+                        </RadioButtonGroup>
                         </div>
                       </div>
                       <div className='lowResContainer'>
@@ -501,13 +509,12 @@ function HandleThemeChange(selectedTheme) {
                       </div>
                       <div style={{display:'flex', alignItems:'center'}}>
                         <div style={{padding:'1rem'}}>
-                          <Button 
+                          <Button
                             id={`vote-button-${idea.ideaId}`}
                             onClick={() => SubmitVote(idea.ideaId)}
                             disabled={voteButtonDisabled}
-                          >
-                            Submit Vote
-                          </Button>
+                            children={<><Send/> Submit</>}
+                          />
                         </div>
                         <div id={`loading-${idea.ideaId}`} style={{display:showLoading}}>
                           <InlineLoading status="active" description="Submitting vote..."/>

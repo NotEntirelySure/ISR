@@ -15,6 +15,7 @@ import {
   TableToolbar,
   TableToolbarContent,
   TableToolbarSearch,
+  Tag,
   TextInput,
   Form,
   Stack
@@ -76,15 +77,9 @@ export default function AdminDomainsPage() {
         "ideadomainname":domain.ideadomainname,
         "ideadomaincolor":
           <>
-            <div 
-              style={{
-                backgroundColor:domain.ideadomaincolorhex,
-                width:'40%',
-                borderRadius:'5px'
-              }}
-            >
-              <p>&nbsp;</p>
-            </div>
+            <Tag 
+              style={{backgroundColor:domain.ideadomaincolorhex, width:'5rem'}}
+            />
           </>,
         "ideadomaincolorhex":domain.ideadomaincolorhex,
         "action":
@@ -174,7 +169,7 @@ export default function AdminDomainsPage() {
 
   const editDomain = async() => {
     
-    if (editNameRef.current.value === "" || editNameRef.current.value === null || editNameRef.current.value === undefined) {
+    if (editNameRef.current.value === "" || editNameRef.current.value === null || !editNameRef.current.value) {
       setEditNameInvalid(true);
       return;
     }
@@ -234,7 +229,7 @@ export default function AdminDomainsPage() {
   };
 
   return (
-    <Content>
+    <>
       <Modal
         id='modalError'
         modalHeading={errorInfo.current.heading}
@@ -248,7 +243,7 @@ export default function AdminDomainsPage() {
           setModalErrorOpen(false);
           errorInfo.current = ({heading:"", message:""});
         }}
-      >
+        >
         <div style={{display:'flex', gap:'2rem',alignItems:'center'}}>
           <div><WarningAltFilled size={56} fill="red"/></div>
           <div>{errorInfo.current.message}</div>
@@ -283,7 +278,7 @@ export default function AdminDomainsPage() {
                 invalidText="This is a required field."
                 tabIndex={0}
                 onChange={() => {if (addNameInvalid) setAddNameInvalid(false)}}
-              />
+                />
               <div className='domainModalForm'>
                 <div>
                   <TextInput
@@ -304,7 +299,7 @@ export default function AdminDomainsPage() {
                       if (addColorRef.current.value.indexOf("#") !== 0 || addColorRef.current.value.length !== 7) setPreviewColor("");
                       if (event.key === 'Enter') addDomain();
                     }}
-                  />
+                    />
                 </div>
                 <div>
                   <input
@@ -381,7 +376,7 @@ export default function AdminDomainsPage() {
                       }
                       if (event.key === 'Enter') addDomain();
                     }}
-                  />
+                    />
                 </div>
                 <div>
                   <input
@@ -392,7 +387,7 @@ export default function AdminDomainsPage() {
                       setPreviewColor(event.target.value);
                       editColorRef.current.value = event.target.value;
                     }}
-                  />
+                    />
                 </div>
               </div>
             </Stack>
@@ -412,12 +407,12 @@ export default function AdminDomainsPage() {
         }}
         onRequestSubmit={() => deleteDomain()}
         open={modalDeleteOpen}
-      >
+        >
         <p>Are you sure you want to delete {domainToDelete.domainName}?</p>
       </Modal>
-      <div className="bx--grid bx--grid--full-width adminPageBody">
-        <div className="bx--row bx--offset-lg-1 domainsadmin__r1">
-          <div className="bx--col-lg-15" style={{display: `${displayTable}`}}>
+      <div className="adminPageBody">
+        <div className="domainsadmin__r1">
+          <div className="" style={{display: `${displayTable}`}}>
             <DataTable
               rows={domainsList}
               headers={headers}
@@ -430,7 +425,7 @@ export default function AdminDomainsPage() {
                 getTableProps,
                 onInputChange
               }) => (
-              <TableContainer title="Idea Domains" description="Displays a list of all domains related to ISR ideas">
+                <TableContainer title="Idea Domains" description="Displays a list of all domains related to ISR ideas">
                 <TableToolbar>
                   <TableToolbarContent>
                       <TableToolbarSearch onChange={onInputChange} />
@@ -460,13 +455,13 @@ export default function AdminDomainsPage() {
                 </Table>
               </TableContainer>
               )}
-            />
+              />
           </div>
           <div className="bx--col-lg-15" style={{display:`${displaySkeleton}`}}>
             <DataTableSkeleton columnCount={4} headers={headers}/>
           </div>
         </div>
       </div>
-    </Content>
-  )
-}
+    </>
+  );
+};

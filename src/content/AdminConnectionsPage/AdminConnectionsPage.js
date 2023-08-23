@@ -34,7 +34,8 @@ export default function AdminConnectionsPage() {
   const [connectionMessage, setConnectionMessage] = useState('');
   const [clients, setClients] = useState([]);
 
-  useEffect (() => {ConnectWebSocket()},[])
+  useEffect (() => {ConnectWebSocket()},[]);
+  useEffect(() => {if (connectionStatus === "finished") GetClients();},[connectionStatus]);
 
   function ConnectWebSocket() {
 
@@ -46,7 +47,6 @@ export default function AdminConnectionsPage() {
     client.onopen = () => {
       setConnectionStatus("finished");
       setConnectionMessage("Connected to server");
-      GetClients();
     };
     
     client.onmessage = (message) => {
@@ -97,11 +97,13 @@ export default function AdminConnectionsPage() {
   }
 
   function GetClients() {
-    client.send(JSON.stringify({
-      sender:"adminConn",
-      action: "getClients",
-    }))
-  }
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(JSON.stringify({
+        sender: "adminConn",
+        action: "getClients",
+      }));
+    };
+  };
 
   function RemoveClient(clientToRemove) {
     client.send(JSON.stringify({

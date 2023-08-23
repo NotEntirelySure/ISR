@@ -24,7 +24,7 @@ import {
 import {
   Add,
   RecentlyViewed,
-  RequestQuote,
+  Edit,
   TrashCan,
   WarningHex
 } from '@carbon/react/icons';
@@ -49,6 +49,7 @@ export default function AdminVotesPage() {
 	const editVoteValueRef = useRef();
 	const voteToEditRef = useRef({});
 	const editVoteCommentRef = useRef();
+	const deleteAllAck = useRef();
 	const voteToDelete = useRef({
 		voteId:"",
 		ideaId:"",
@@ -93,7 +94,7 @@ export default function AdminVotesPage() {
 		action:'-'
 	}]);
 
-  useEffect(() => GetVotes(),[])
+  useEffect(() => {GetVotes()},[])
 	
   async function GetVotes() {
     const votesRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/votes/getall/${localStorage.getItem('adminjwt')}`, {mode:'cors'});
@@ -120,7 +121,7 @@ export default function AdminVotesPage() {
               <Button
                 hasIconOnly
                 size='md'
-                renderIcon={RequestQuote}
+                renderIcon={Edit}
                 iconDescription='Edit Vote'
                 kind="primary"
                 onClick={() => {
@@ -401,16 +402,21 @@ export default function AdminVotesPage() {
 			<Modal
 				danger
 				id='modalExists'
+				size='sm'
 				modalHeading='Vote Already Exists'
 				primaryButtonText="Update Vote"
 				secondaryButtonText="Cancel"
 				onRequestClose={() => setModalExistsOpen(false)}
 				onRequestSubmit={() => AddVote()}
-				open={modalExistsOpen}>
-					<p>A vote cast by {addVoteCombosRef.current.voterName} for idea {addVoteCombosRef.current.ideaId} has already been recorded.</p>
-					<br/>
-					<p>If you choose to continue, the existing vote will be updated with the specified value of {addVoteValueRef.current.value} instead of creating a new vote entry.</p>
-			</Modal>
+				open={modalExistsOpen}
+				children={
+					<>
+						<p>A vote cast by {addVoteCombosRef.current.voterName} for idea {addVoteCombosRef.current.ideaId} has already been recorded.</p>
+						<br/>
+						<p>If you choose to continue, the existing vote will be updated with the specified value of {addVoteValueRef.current.value} instead of creating a new vote entry.</p>
+					</>
+				}
+			/>
 			<Modal
 				id='modalAdd'
 				size='sm'
@@ -429,73 +435,76 @@ export default function AdminVotesPage() {
 					addVoteValueRef.current.value = 0;
 					addVoteCommentRef.current.value = "";
 				}}
-			>
-				<ComboBox
-					id="addUserCombobox"
-					placeholder="Select"
-					invalidText="This is a required field."
-					invalid={userComboInvalid}
-					items={userList}
-					itemToString={(user) => (user ? `${user.text}` : '')}
-					titleText="User"
-					helperText=""
-					selectedItem={addUserComboSeletion}
-					tabIndex={0}
-					onChange={(item) => {
-						setAddUserComboSelection(item.selectedItem);
-						if (!item.selectedItem) addVoteCombosRef.current.voterId = "";
-						if (item.selectedItem) {
-							if (userComboInvalid) setUserComboInvalid(false);
-							addVoteCombosRef.current.voterId = item.selectedItem.userid
-							addVoteCombosRef.current.voterName = item.selectedItem.text
-						}
-					}}
-				/>
-				<br/>
-				<ComboBox
-					id="addIdeaCombobox"
-					placeholder="Select"
-					invalidText="This is a required field."
-					invalid={ideaComboInvalid}
-					items={ideaList}
-					selectedItem={addIdeaComboSelection}
-					itemToString={idea => (idea ? idea.text: "")}
-					titleText="Idea"
-					helperText=""
-					tabIndex={0}
-					onChange={(item) => {
-						setAddIdeaComboSelection(item.selectedItem);
-						if (!item.selectedItem) addVoteCombosRef.current.ideaId = "";
-						if (item.selectedItem) {
-							if (ideaComboInvalid) setIdeaComboInvalid(false);
-							addVoteCombosRef.current.ideaId = item.selectedItem.ideaid;
-						}
-					}}
-				/>
-				<br/>
-				<NumberInput
-					id="addVoteValue"
-					allowEmpty={false}
-					iconDescription="Add Vote Value"
-					ref={addVoteValueRef}
-					disableWheel={true}
-					min={0}
-					max={10}
-					value={addVoteInputValue}
-					label="Vote Value"
-					invalidText="Number is not valid. Please enter a value of 0 - 10."
-					tabIndex={0}
-					onChange={() => setAddVoteInputValue(addVoteValueRef.current.value)}
-				/>
-				<br/>
-				<TextArea
-					id="addComment"
-					labelText="Comment"
-					helperText="Enter the reason for manually adding the vote."
-					ref={addVoteCommentRef}
-					rows={2}
-				/>
-			</Modal>
+				children={
+					<>
+						<ComboBox
+							id="addUserCombobox"
+							placeholder="Select"
+							invalidText="This is a required field."
+							invalid={userComboInvalid}
+							items={userList}
+							itemToString={(user) => (user ? `${user.text}` : '')}
+							titleText="User"
+							helperText=""
+							selectedItem={addUserComboSeletion}
+							tabIndex={0}
+							onChange={(item) => {
+								setAddUserComboSelection(item.selectedItem);
+								if (!item.selectedItem) addVoteCombosRef.current.voterId = "";
+								if (item.selectedItem) {
+									if (userComboInvalid) setUserComboInvalid(false);
+									addVoteCombosRef.current.voterId = item.selectedItem.userid
+									addVoteCombosRef.current.voterName = item.selectedItem.text
+								}
+							}}
+						/>
+						<br/>
+						<ComboBox
+							id="addIdeaCombobox"
+							placeholder="Select"
+							invalidText="This is a required field."
+							invalid={ideaComboInvalid}
+							items={ideaList}
+							selectedItem={addIdeaComboSelection}
+							itemToString={idea => (idea ? idea.text: "")}
+							titleText="Idea"
+							helperText=""
+							tabIndex={0}
+							onChange={(item) => {
+								setAddIdeaComboSelection(item.selectedItem);
+								if (!item.selectedItem) addVoteCombosRef.current.ideaId = "";
+								if (item.selectedItem) {
+									if (ideaComboInvalid) setIdeaComboInvalid(false);
+									addVoteCombosRef.current.ideaId = item.selectedItem.ideaid;
+								}
+							}}
+						/>
+						<br/>
+						<NumberInput
+							id="addVoteValue"
+							allowEmpty={false}
+							iconDescription="Add Vote Value"
+							ref={addVoteValueRef}
+							disableWheel={true}
+							min={0}
+							max={10}
+							value={addVoteInputValue}
+							label="Vote Value"
+							invalidText="Number is not valid. Please enter a value of 0 - 10."
+							tabIndex={0}
+							onChange={() => setAddVoteInputValue(addVoteValueRef.current.value)}
+						/>
+						<br/>
+						<TextArea
+							id="addComment"
+							labelText="Comment"
+							helperText="Enter the reason for manually adding the vote."
+							ref={addVoteCommentRef}
+							rows={2}
+						/>
+					</>
+				}
+			/>
 			<Modal
 				id='modalEdit'
 				size='sm'
@@ -505,32 +514,35 @@ export default function AdminVotesPage() {
 				modalHeading={`Edit vote for idea ${voteToEditRef.current.ideaid}`}
 				onRequestClose={() => {
 					setModalEditOpen(false);
-					document.getElementById("editComment").value = ""; //this should be a useRef
+					editVoteCommentRef.current.value = "";
 				}}
 				onRequestSubmit={() => EditVote()}
 				open={modalEditOpen}
-			>
-				<p>Edit vote for idea {voteToEditRef.current.ideaid} cast by {voteToEditRef.current.voter}</p>
-				<NumberInput
-					id="editVoteValue"
-					ref={editVoteValueRef}
-					min={0}
-					max={10}
-					value={voteToEditRef.current.votevalue}
-					label="Vote Value"
-					invalidText="Number is not valid. Please enter a value of 0 - 10."
-					tabIndex={0}
-				/>
-				<br/>
-				<br/>
-				<TextArea
-					id="editComment"
-					ref={editVoteCommentRef}
-					labelText="Comment"
-					helperText="Enter the reason for editing the vote."
-					rows={2}
-				/>
-			</Modal>
+				children={
+					<>
+						<p>Edit vote for idea {voteToEditRef.current.ideaid} cast by {voteToEditRef.current.voter}</p>
+						<NumberInput
+							id="editVoteValue"
+							ref={editVoteValueRef}
+							min={0}
+							max={10}
+							value={voteToEditRef.current.votevalue}
+							label="Vote Value"
+							invalidText="Number is not valid. Please enter a value of 0 - 10."
+							tabIndex={0}
+						/>
+						<br/>
+						<br/>
+						<TextArea
+							id="editComment"
+							ref={editVoteCommentRef}
+							labelText="Comment"
+							helperText="Enter the reason for editing the vote."
+							rows={2}
+						/>
+					</>
+				}
+			/>
 			<Modal
 				danger
 				size='sm'
@@ -545,9 +557,9 @@ export default function AdminVotesPage() {
 					setModalDeleteOpen(false);
 					DeleteVote();
 				}}
-				open={modalDeleteOpen}>
-					<p>Are you sure you want to delete {voteToDelete.current.voter}'s vote for idea {voteToDelete.current.ideaId}?</p>
-			</Modal>
+				open={modalDeleteOpen}
+				children={<p>Are you sure you want to delete {voteToDelete.current.voter}'s vote for idea {voteToDelete.current.ideaId}?</p>}
+			/>
 			<Modal
 				danger
 				size='sm'
@@ -559,7 +571,7 @@ export default function AdminVotesPage() {
 				onRequestClose={() => {
 					setModalDeleteAllOpen(false);
 					setDeleteAllDisabled(true);
-					document.getElementById("deleteAllAck").checked = false; //this should be a useRef
+					deleteAllAck.current.checked = false;
 				}}
 				onRequestSubmit={() => {
 					setDeleteAllDisabled(true);
@@ -569,31 +581,34 @@ export default function AdminVotesPage() {
 						ideaId:"",
 						voter:""
 					}
-					document.getElementById("deleteAllAck").checked = false; //this should be a useRef
+					deleteAllAck.current.checked = false;
 					DeleteVote();
 				}}
-			>
-				<div style={{display:'flex'}}>
-					<WarningHex style={{color:'orange'}} size={48}/>
-					<p style={{paddingLeft:'8px'}}>Warning! This action will delete all votes from the database. Once executed, this action cannot be undone.</p>
-				</div>
-				<br/>
-				<Checkbox
-					id="deleteAllAck"
-					labelText="I understand this action cannot be undone"
-					onChange={() => {
-						let isChecked = document.getElementById("deleteAllAck").checked //this should be a useRef
-						if (isChecked === true) {
-							setDeleteAllDisabled(false);
-							voteToDelete.current = {voteId:"all"};
-						}
-						if (isChecked === false) {
-							setDeleteAllDisabled(true);
-							voteToDelete.current = {voteId:""};
-						}
-					}}
-				/>
-			</Modal>
+				children={
+					<>
+						<div style={{display:'flex'}}>
+							<WarningHex style={{color:'orange'}} size={48}/>
+							<p style={{paddingLeft:'1rem'}}>Warning! This action will delete all votes from the database. Once executed, this action cannot be undone.</p>
+						</div>
+						<br/>
+						<Checkbox
+							id="deleteAllAck"
+							ref={deleteAllAck}
+							labelText="I understand this action cannot be undone"
+							onChange={event => {
+								if (event.target.checked) {
+									setDeleteAllDisabled(false);
+									voteToDelete.current = {voteId:"all"};
+								}; 
+								if (!event.target.checked) {
+									setDeleteAllDisabled(true);
+									voteToDelete.current = {voteId:""};
+								};
+							}}
+						/>
+					</>
+				}
+			/>
 			<Modal
 				id='voteHistory'
 				aria-label='Vote History'
@@ -602,28 +617,31 @@ export default function AdminVotesPage() {
 				primaryButtonText="Ok"
 				onRequestClose={() => setModalHistoryOpen(false)}
 				onRequestSubmit={() => setModalHistoryOpen(false)}
-				open={modalHistoryOpen}>
-					<div
-						style={{
-							display:showLoading,
-							justifyContent:'center',
-							padding:'1rem'
-						}}
-					>
-						<Loading
-							withOverlay={false}
-							active={true}
-							description="Loading History..."
-						/>
-					</div>
-					<div style={{display:showHistoryContent}}>
-						{voteHistory}
-					</div>
-			</Modal>
+				open={modalHistoryOpen}
+				children={
+					<>
+						<div
+							style={{
+								display:showLoading,
+								justifyContent:'center',
+								padding:'1rem'
+							}}
+						>
+							<Loading
+								withOverlay={false}
+								active={true}
+								description="Loading History..."
+							/>
+						</div>
+						<div style={{display:showHistoryContent}}>{voteHistory}</div>
+					</>
+				}
+			/>
 			<Modal
 				id='modalError'
 				modalHeading={errorInfo.current.heading}
 				primaryButtonText="Ok"
+				open={modalErrorOpen}
 				onRequestClose={() => {
 					setModalErrorOpen(false);
 					errorInfo.current = {
@@ -638,75 +656,68 @@ export default function AdminVotesPage() {
 						message:""
 					};
 				}}
-				open={modalErrorOpen}>
-					<div>
-						{errorInfo.current.message}
-					</div>
-			</Modal>
-			<Content>
-				<div style={{display:displayTable}} className="bx--grid bx--grid--full-width adminPageBody">
-					<div className="bx--row bx--offset-lg-1 ManageIdeas__r1" >
-						<div className="bx--col-lg-15">
-							<DataTable
-								rows={votesList}
-								headers={headers}
-								isSortable={true}
-								render={({
-									rows,
-									headers,
-									getHeaderProps,
-									getRowProps,
-									getTableProps,
-									onInputChange
-								}) => (
-									<TableContainer title="Votes" description="Displays list of all votes cast at the ISR">
-										<TableToolbar>
-											<TableToolbarContent>
-												<TableToolbarSearch onChange={onInputChange} />
-											</TableToolbarContent>
-											<Button
-												renderIcon={Add}
-												hasIconOnly={true}
-												size='lg'
-												iconDescription='Add Vote'
-												onClick={() => {
-													GetUsers();
-													GetIdeas();
-													setModalAddOpen(true);
-												}}
-											/>
-											<Button 
-												kind='danger'
-												onClick={() => setModalDeleteAllOpen(true)}
-												children={<><TrashCan/> Delete All</>}
-											/>
-										</TableToolbar>
-										<Table {...getTableProps()}>
-											<TableHead>
-												<TableRow>
-													{headers.map((header, index) => (<TableHeader key={index} {...getHeaderProps({ header })}>{header.header}</TableHeader>))}
-												</TableRow>
-											</TableHead>
-											<TableBody>
-												{rows.map(row => (
-													<TableRow key={row.id} {...getRowProps({ row })}>
-														{row.cells.map(cell => (
-															<TableCell key={cell.id}>{cell.value}</TableCell>
-														))}
+				children={<div>{errorInfo.current.message}</div>}
+			/>
+			<div style={{display:displayTable}} className="adminPageBody">
+				<div className="dataTable">
+					<DataTable
+						rows={votesList}
+						headers={headers}
+						isSortable={true}
+						render={({
+							rows,
+							headers,
+							getHeaderProps,
+							getRowProps,
+							getTableProps,
+							onInputChange
+						}) => (
+							<TableContainer title="Votes" description="Displays list of all votes cast at the ISR">
+								<TableToolbar>
+									<TableToolbarContent>
+										<TableToolbarSearch onChange={onInputChange}/>
+									</TableToolbarContent>
+									<Button
+										renderIcon={Add}
+										hasIconOnly={true}
+										size='lg'
+										iconDescription='Add Vote'
+										onClick={() => {
+											GetUsers();
+											GetIdeas();
+											setModalAddOpen(true);
+										}}
+									/>
+									<Button 
+										kind='danger'
+										onClick={() => setModalDeleteAllOpen(true)}
+										children={<><TrashCan/> Delete All</>}
+								/>
+								</TableToolbar>
+								<Table {...getTableProps()}>
+									<TableHead>
+										<TableRow>
+											{headers.map((header, index) => (<TableHeader key={index} {...getHeaderProps({ header })}>{header.header}</TableHeader>))}
 										</TableRow>
-									))}
-								</TableBody>
-										</Table>
-									</TableContainer>
-								)}
-							/>
-						</div>
-					</div>
+									</TableHead>
+									<TableBody>
+										{
+											rows.map(row => (
+												<TableRow key={row.id} {...getRowProps({ row })}>
+													{row.cells.map(cell => (<TableCell key={cell.id}>{cell.value}</TableCell>))}
+												</TableRow>
+											))
+										}
+									</TableBody>
+								</Table>
+							</TableContainer>
+						)}
+					/>
 				</div>
-				<div style={{display: `${displaySkeleton}`}} className="bx--grid bx--grid--full-width adminPageBody">
-					<DataTableSkeleton columnCount={8} rowCount={10} headers={headers}/>
-				</div>
-			</Content>
+			</div>
+			<div style={{display:displaySkeleton}} className="adminPageBody">
+				<DataTableSkeleton columnCount={8} rowCount={8} headers={headers}/>
+			</div>
 		</>
 	);
-}
+};

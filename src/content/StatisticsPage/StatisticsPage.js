@@ -7,7 +7,6 @@ import {
   ComboBox,
   Content,
   ContentSwitcher,
-  Dropdown,
   DataTable,
   InlineLoading,
   Modal,
@@ -21,9 +20,7 @@ import {
   TableCell,
   TableBody,
   TableRow,
-  TableContainer,
-  Tile,
-  Toggle
+  TableContainer
 } from '@carbon/react';
 import { DocumentExport, Renew, Share } from '@carbon/react/icons';
 import { SimpleBarChart } from "@carbon/charts-react";
@@ -50,6 +47,7 @@ export default function StatisticsPage() {
   const chartDataRef = useRef(null);
   const selectedOffice = useRef();
   const errorInfo = useRef({heading:"", message:""});
+  const sharedChart = useRef();
 
   const [modalErrorOpen, setModalErrorOpen] = useState(false);
   const [showRankTable, setShowRankTable] = useState('block');
@@ -58,14 +56,26 @@ export default function StatisticsPage() {
   const [offices, setOffices] = useState([]);
   const [selectedChart, setSelectedChart] = useState("start");
   const [comboBoxInvalid, setComboBoxInvalid] = useState(false);
-  const [chartData, setChartData] = useState(null);
-  const [chartOptions, setChartOptions] = useState({});
+  const [chartData, setChartData] = useState([]);
+  const [chartOptions, setChartOptions] = useState({
+    "title": "Select Rank Segment",
+        "axes": {
+          "left": {
+            "mapsTo": "group",
+            "scaleType": "labels",
+            "truncation": {
+              "type": "end_line",
+              "threshold": 56,
+              "numCharacter": 56
+            }
+          },
+          "bottom": {"mapsTo":"value"},
+          "legend": {"enabled":false},
+        }
+  });
   const [domainList, setDomainList] = useState([]);
-  const [exportButtonText, setExportButtonText] = useState('');
   const [exportButtonDisplay, setExportButtonDisplay] = useState('none');
   const [exportLoading, setExportLoading] = useState('none');
-  const [shareToggled, setShareToggled] = useState(false);
-  const [sharedChart, setSharedChart] = useState();
   const [ideas, setIdeas] = useState([]);
   const [ideaRankings, setIdeaRankings] = useState(
     [
@@ -91,9 +101,12 @@ export default function StatisticsPage() {
     ]
   );
 
-  useEffect(() => GetIdeas(),[]);
-  useEffect(() => UpdateStatTable(),[ideas]);
-  useEffect(() => UpdateChart(),[selectedChart]);
+  useEffect(() => {GetIdeas();},[]);
+  useEffect(() => {
+    UpdateStatTable();
+    UpdateChart();
+  },[ideas]);
+  useEffect(() => {UpdateChart()},[selectedChart]);
 
   async function GetIdeas() {
     const ideasRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/ideas/getall/${localStorage.getItem('adminjwt')}`, {mode:'cors'});
@@ -116,32 +129,6 @@ export default function StatisticsPage() {
       });
       setIdeas(ideaList);
     }
-  }
-
-  function PublishResults() { //this function is unused. Consider deleting or seperating the publishing code into here.
-    this.setState({
-      connectionStatus:"active",
-      connectionMessage:"Connecting...",
-      reconnectButtonDisplay:"none"
-    });
-    
-    let client = new w3cwebsocket(`${process.env.REACT_APP_WEBSOCKET_BASE_URL}/adminStat`);
-
-    client.onopen = () => {
-      client.send(JSON.stringify({
-        sender:"adminStat",
-        action: "publishResults",
-      }))
-    };
-    
-    client.onmessage = (message) => {
-      const messageData = JSON.parse(message.data);
-    };
-    
-    client.onclose = () => {}
-
-    client.onerror = (event) => {}
-
   }
 
   async function UpdateStatTable() {
@@ -197,7 +184,7 @@ export default function StatisticsPage() {
 
   async function ExportExcel() {
     //get most recent rankings before exporting.
-    setExportLoading('block');
+    setExportLoading('flex');
     UpdateStatTable();
 
     const participantResponse = await fetch(`${process.env.REACT_APP_API_BASE_URL}/participants/getall/${localStorage.getItem('adminjwt')}`, {mode:'cors'});
@@ -289,7 +276,7 @@ export default function StatisticsPage() {
 
   async function ExportChart() {
 
-    setExportLoading('block');
+    setExportLoading('flex');
     const chartRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/export/excelchart/${selectedChart}&${localStorage.getItem('adminjwt')}`, {mode:'cors'});
     const chartResponse = await chartRequest.arrayBuffer();
     
@@ -342,48 +329,33 @@ export default function StatisticsPage() {
   function ProcessChartData(action, share) {
     
     let chartSlice = [];
+    switch (chartDataRef.current.sliceValue) {
+      case "init": break;
+      case "all":
+        chartSlice = ideaRankings;
+        break;
+      default: chartSlice = ideaRankings.slice(chartDataRef.current.sliceValue[0], chartDataRef.current.sliceValue[1]);
+    }
     if (chartDataRef.current.sliceValue === "all") chartSlice = ideaRankings;
     if (chartDataRef.current.sliceValue !== "all") {
       chartSlice = ideaRankings.slice(chartDataRef.current.sliceValue[0], chartDataRef.current.sliceValue[1]);
     };
     
-    if (action === "update") {
-      
-      let dataArray = [];
-      let scaleObj = {};
-      
+    let scaleObj = {};
+
+    let dataArray = [];
+    if (chartDataRef.current.sliceValue !== "init") {
       for (let i=0;i<chartSlice.length;i++){
         let name = `#${chartSlice[i].rank}) ${chartSlice[i].ideaId}: ${chartSlice[i].ideaDescription}`;
         dataArray.push({
           "group":name,
           "value":isNaN(chartSlice[i].averageScore) ? 0:parseFloat(chartSlice[i].averageScore)
         });
-        scaleObj[name] = chartSlice[i].ideadomaincolorhex;
+        scaleObj[name] = chartSlice[i].ideadomaincolorhex ? chartSlice[i].ideadomaincolorhex:'#7F7F7F';
       }
-      
-      setChartData(dataArray.reverse());
-      setChartOptions({
-        "title": "",
-        "axes": {
-          "left": {
-            "mapsTo": "group",
-            "scaleType": "labels",
-            "truncation": {
-              "type": "end_line",
-              "threshold": 56,
-              "numCharacter": 56
-            }
-          },
-          "bottom": {"mapsTo":"value"}
-        },
-        "color": {
-          "pairing": {"option": 2},
-          "scale":scaleObj,
-        }, 
-        "legend": {"enabled":false},
-        "height":chartDataRef.current.sliceValue === "all" ? "3000px":"1000px",
-        "bars":{"width":15}
-      });
+    if (action === "update") {
+        setChartData(dataArray.reverse());
+      }
     }
     
     if (action === "publish") {
@@ -398,6 +370,156 @@ export default function StatisticsPage() {
         );
       };
     };
+
+    setChartOptions({
+      "title": chartDataRef.current.title,
+      "axes": {
+        "left": {
+          "mapsTo": "group",
+          "scaleType": "labels",
+          "truncation": {
+            "type": "end_line",
+            "threshold": 56,
+            "numCharacter": 56
+          }
+        },
+        "bottom": {"mapsTo":"value"}
+      },
+      "color": {
+        "pairing": {"option": 2},
+        "scale":scaleObj,
+      }, 
+      "legend": {"enabled":false},
+      "height":chartDataRef.current.sliceValue === "all" ? "3000px":"1000px",
+      "bars":{"width":15},
+      "toolbar": {
+        "enabled": true,
+        "numberOfIcons":4,
+        "controls": [
+          {
+            "type": "Custom",
+            "clickFunction":() => {
+              sharedChart.current = '';
+              ProcessChartData("publish",false);},
+            "shouldBeDisabled":() => {
+              if (sharedChart.current === selectedChart) return false;
+              else {return true}
+            },
+            "text": "Unpublish Results",
+            "id":"unpublish",
+            "iconSVG": {
+              "content": `
+              <svg
+                id="icon"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 64 64"
+              >
+                <defs>
+                    <style>.cls-1{fill:none;}</style>
+                </defs>
+                <title>Unpublish Results</title>
+                <path d="M59.5,62.9L49.4,49.2l-4-5.4l0,0L16.7,5l-2.8,2.1L27.1,25l-3.7,2.1C22,25.8,20.2,25,18.1,25c-4.2,0-7.6,3.4-7.6,7.6   c0,4.2,3.4,7.6,7.6,7.6c2.1,0,3.9-0.8,5.3-2.2l18.2,10.5c-0.2,0.6-0.3,1.3-0.3,1.9c0,4.2,3.4,7.6,7.6,7.6c0.8,0,1.6-0.1,2.3-0.4   l5.4,7.3L59.5,62.9z M25.5,34.5c0.2-0.6,0.3-1.3,0.3-1.9c0-0.7-0.1-1.3-0.3-2l4.1-2.3l11.1,15L25.5,34.5z"/>
+                <path d="M56.3,52.6c0.2-0.7,0.3-1.4,0.3-2.2c0-4.2-3.4-7.6-7.5-7.6L56.3,52.6z"/>
+                <path d="M35.6,24.7l8.1-4.7c1.4,1.3,3.2,2.1,5.2,2.1c4.2,0,7.6-3.4,7.6-7.6c0-4.2-3.4-7.6-7.6-7.6s-7.6,3.4-7.6,7.6   c0,0.7,0.1,1.4,0.3,2.1l-8.5,4.9L35.6,24.7z"/>
+                <rect id="_Transparent_Rectangle_" data-name="&lt;Transparent Rectangle&gt;" class="cls-1" width="128" height="128" transform="translate(0 64) rotate(-90)"/>
+              </svg>`
+            }
+          },
+          {
+            "type": "Custom",
+            "clickFunction":() => {
+              sharedChart.current = selectedChart;
+              ProcessChartData("publish",true);},
+            "shouldBeDisabled":() => {
+              if (sharedChart.current === selectedChart) return true;
+              if (chartDataRef.current.sliceValue === "init") return true;
+              else {return false}
+            },
+            "text": "Publish Results",
+            "id":"publish",
+            "iconSVG": {
+              "content": `
+                <svg
+                  id="icon"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 32 32"
+                >
+                  <defs>
+                    <style>.cls-1{fill:none;}</style>
+                  </defs>
+                  <title>Publish Chart</title>
+                  <path d="M23,20a5,5,0,0,0-3.89,1.89L11.8,17.32a4.46,4.46,0,0,0,0-2.64l7.31-4.57A5,5,0,1,0,18,7a4.79,4.79,0,0,0,.2,1.32l-7.31,4.57a5,5,0,1,0,0,6.22l7.31,4.57A4.79,4.79,0,0,0,18,25a5,5,0,1,0,5-5ZM23,4a3,3,0,1,1-3,3A3,3,0,0,1,23,4ZM7,19a3,3,0,1,1,3-3A3,3,0,0,1,7,19Zm16,9a3,3,0,1,1,3-3A3,3,0,0,1,23,28Z"/>
+                  <rect id="_Transparent_Rectangle_" data-name="&lt;Transparent Rectangle&gt;" class="cls-1" width="32" height="32" transform="translate(0 32) rotate(-90)"/>
+                </svg>`
+            }
+          },
+          {
+            "type": "Custom",
+            "clickFunction":() => {ExportChart()},
+            "shouldBeDisabled":() => {return chartDataRef.current.sliceValue === "init" ? true:false},
+            "text": "Export",
+            "id":"export",
+            "iconSVG": {"content": '<svg id="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><defs><style>.cls-1{fill:none;}</style></defs><title>Export Chart</title><polygon points="13 21 26.17 21 23.59 23.59 25 25 30 20 25 15 23.59 16.41 26.17 19 13 19 13 21"/><path d="M22,14V10a1,1,0,0,0-.29-.71l-7-7A1,1,0,0,0,14,2H4A2,2,0,0,0,2,4V28a2,2,0,0,0,2,2H20a2,2,0,0,0,2-2V26H20v2H4V4h8v6a2,2,0,0,0,2,2h6v2Zm-8-4V4.41L19.59,10Z"/><rect id="_Transparent_Rectangle_" data-name="&lt;Transparent Rectangle&gt;" class="cls-1" width="32" height="32"/></svg>'}
+          },
+          {
+            "type": "Custom",
+            "shouldBeDisabled":() => {return selectedChart === "all" ? true:false;},
+            "clickFunction":() => {setSelectedChart("all");},
+            "text": "All Ideas",
+            "id":"allIdeas"
+          },
+          {
+            "type": "Custom",
+            "shouldBeDisabled":() => {return selectedChart === "first" ? true:false;},
+            "clickFunction":() => {setSelectedChart("first");},
+            "text": "Top 25",
+            "id":"first"
+          }, 
+          {
+            "type": "Custom",
+            "shouldBeDisabled":() => {return selectedChart === "second" ? true:false;},
+            "clickFunction":() => {setSelectedChart("second");},
+            "text": "Rank #26 - #50",
+            "id":"second"
+          },
+          {
+            "type": "Custom",
+            "shouldBeDisabled":() => {return selectedChart === "third" ? true:false;},
+            "clickFunction":() => {setSelectedChart("third");},
+            "text": "Rank #51 - #75",
+            "id":"third"
+          },
+          {
+            "type": "Custom",
+            "shouldBeDisabled":() => {return selectedChart === "fourth" ? true:false;},
+            "clickFunction":() => {setSelectedChart("fourth");},
+            "text": "Rank #76 - #100",
+            "id":"fourth"
+          },
+          {
+            "type": "Custom",
+            "shouldBeDisabled":() => {return selectedChart === "fifth" ? true:false;},
+            "clickFunction":() => {setSelectedChart("fifth");},
+            "text": "Rank #101 - #125",
+            "id":"fifth"
+          },
+          {
+            "type": "Custom",
+            "shouldBeDisabled":() => {return selectedChart === "sixth" ? true:false;},
+            "clickFunction":() => {setSelectedChart("sixth");},
+            "text": "Rank #126 - #150",
+            "id":"sixth"
+          },
+          {
+            "type": "Custom",
+            "shouldBeDisabled":() => {return selectedChart === "remainder" ? true:false;},
+            "clickFunction":() => {setSelectedChart("remainder");},
+            "text": "Rank #151+",
+            "id":"remainder"
+          },
+        ]
+      }
+    });
   };
 
   function SwitchTabs(tabName) {
@@ -413,6 +535,7 @@ export default function StatisticsPage() {
         if (showCharts === "none") setShowCharts("block");
         if (showByOffice !== "none") setShowByOffice("none");
         if (showRankTable !== "none") setShowRankTable("none");
+
         break;
       
       case "byoffice":
@@ -431,7 +554,6 @@ export default function StatisticsPage() {
 
     switch (selectedChart) {
       case "all":
-        setExportButtonText("Export All Ideas");
         chartDataRef.current = {
           sliceValue:"all",
           title:"All Ranked Ideas"
@@ -440,67 +562,66 @@ export default function StatisticsPage() {
         break;
 
       case "first":
-        setExportButtonText("Export Top 25");
         chartDataRef.current = {
           sliceValue:[0,25],
-          title:"Top 25 Ranked Ideas"
+          title:"Vote Results Ranking: Top 25 Ideas"
         }
         ProcessChartData("update");
         break;
 
       case "second":
-        setExportButtonText("Export Second 25");
         chartDataRef.current = {
           sliceValue:[25, 50],
-          title:"#26 - #50 Ranked Ideas"
+          title:"Vote Results Ranking: Ideas #26 - #50"
         }
         ProcessChartData("update");
         break;
 
       case "third":
-        setExportButtonText("Export Third 25");
         chartDataRef.current = {
           sliceValue:[50,75],
-          title:"#51 - #75 Ranked Ideas"
+          title:"Vote Results Ranking: Ideas #51 - #75"
         }
         ProcessChartData("update");
         break;
 
       case "fourth":
-        setExportButtonText("Export Fourth 25");
         chartDataRef.current = {
           sliceValue:[75,100],
-          title:"#76 - #100 Ranked Ideas"
+          title:"Vote Results Ranking: Ideas #76 - #100"
         };
         ProcessChartData("update");
         break;
 
       case "fifth":
-        setExportButtonText("Export Fifth 25");
         chartDataRef.current = {
           sliceValue:[100, 125],
-          title:"#101 - #125 Ranked Ideas"
+          title:"Vote Results Ranking: Ideas #101 - #125"
         }
         ProcessChartData("update");
         break;
 
       case "sixth":
-        setExportButtonText("Export Sixth 25");
         chartDataRef.current = {
           sliceValue:[125, 150],
-          title:"Sixth 25 Ranked (#126 - #150)"
+          title:"Vote Results Ranking: Ideas #126 - #150"
         }
         ProcessChartData("update");
         break;
 
       case "remainder":
-        setExportButtonText("Export Remainder");
         chartDataRef.current = {
           sliceValue:[150],
-          title:"Remaining Ranked Ideas (#151...)"
+          title:"Remaining Ranked Ideas: #151+"
         }
         ProcessChartData("update");
         break;
+      default:
+        chartDataRef.current = {
+          sliceValue:"init",
+          title:"(Select Rank Segment)"
+        }
+        ProcessChartData("update");
     }
   }
 
@@ -580,139 +701,85 @@ export default function StatisticsPage() {
       >
         <div>{errorInfo.current.message}</div>
       </Modal>
-      <Content>
-        <div className="bx--grid bx--grid--full-width adminPageBody">
-          <div className="bx--row bx--offset-lg-1 statistics-page__r1" >
-            <ContentSwitcher onChange={(tab) => {SwitchTabs(tab.name)}}>
-              <Switch name="ranktable" text="Idea Ranks" />
-              <Switch name="charts" text="Vote Breakdown Charts" />
-              <Switch name="byoffice" text="Vote Breakdown by Office" />
-            </ContentSwitcher>
-          </div>
-          <div id="ranktable" style={{display:showRankTable}} className="bx--row bx--offset-lg-1 statistics-page__r2">
-            <div className="bx--col-lg-15">
-              <DataTable
-                rows={ideaRankings}
-                headers={rankHeaders}
-                isSortable={true}
-                render={({
-                  rows,
-                  headers,
-                  getHeaderProps,
-                  getRowProps,
-                  getTableProps,
-                  onInputChange
-                }) => (
-                  <TableContainer title="Idea Ranks" description="Displays a rank-ordered list of ideas">
-                    <TableToolbar>
-                      <TableToolbarContent>
-                        <TableToolbarSearch onChange={onInputChange} />
-                      </TableToolbarContent>
-                      <Button renderIcon={Renew} hasIconOnly iconDescription='Refresh Table' onClick={() => UpdateStatTable()} />
-                      <Button
-                        renderIcon={DocumentExport}
-                        kind="secondary" 
-                        hasIconOnly
-                        iconDescription='Export to Excel Spreadsheet'
-                        onClick={() => ExportExcel()}
-                      />
-                      <div style={{marginTop:'0.5%', marginLeft:'1%', display:exportLoading}}>
-                        <InlineLoading description="Exporting..." status='active'></InlineLoading>
-                      </div>
-                    </TableToolbar>
-                    <Table {...getTableProps()}>
-                      <TableHead>
-                        <TableRow>
-                          {headers.map(header => (<TableHeader {...getHeaderProps({ header })}>{header.header}</TableHeader>))}
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {rows.map(row => (
-                          <TableRow {...getRowProps({ row })}>
-                            {row.cells.map(cell => (<TableCell key={cell.id}>{cell.value}</TableCell>))}
-                          </TableRow>
-                        ))}
-                    </TableBody>
-                    </Table>
-                  </TableContainer>
-                )}
-              />
-            </div>
-          </div>
-          <div id="charts" style={{display:showCharts}} className="bx--row bx--offset-lg-1 statistics-page__r3">
-            <div className='chartContainer'>
-              <Tile>
-                <div className='chartOptions'>
-                  <div id='chartDropdown'>
-                    <Dropdown
-                      id="chartDropdown"
-                      label="Select rank segment"
-                      items={[
-                        {id:"all", text:"All Ideas"},
-                        {id:"first", text:"Top 25 Ranked (#1 - #25)"},
-                        {id:"second", text:"Second 25 Ranked (#26 - #50)"},
-                        {id:"third", text:"Third 25 ranked (#51 - #75)"},
-                        {id:"fourth", text:"Fourth 25 Ranked (#76 - #100)"},
-                        {id:"fifth", text:"Fifth 25 Ranked (#101 - #125)"},
-                        {id:"sixth", text:"Sixth 25 Ranked (#126 - #150)"},
-                        {id:"remainder", text:"Remaining Ranked Ideas (#151...)"},
-                      ]}
-                      itemToString={item => (item ? item.text : '')}
-                      onChange={item => {
-                        setSelectedChart(item.selectedItem.id);
-                        if (selectedChart !== item.selectedItem.id && shareToggled) setShareToggled(false);
-                        if (sharedChart === item.selectedItem.id) setShareToggled(true);
-                      }}
-                    />
-                  </div>
-                  <div style={{display:exportButtonDisplay}}>
+      <div className="adminPageBody">
+        <div className="statistics-page__r1" >
+          <ContentSwitcher onChange={(tab) => {SwitchTabs(tab.name)}}>
+            <Switch name="ranktable" text="Idea Ranks" />
+            <Switch name="charts" text="Vote Breakdown Charts" />
+            <Switch name="byoffice" text="Vote Breakdown by Office" />
+          </ContentSwitcher>
+        </div>
+        <div id="ranktable" style={{display:showRankTable}} className="statistics-page__r2">
+          <div className="bx--col-lg-15">
+            <DataTable
+              rows={ideaRankings}
+              headers={rankHeaders}
+              isSortable={true}
+              render={({
+                rows,
+                headers,
+                getHeaderProps,
+                getRowProps,
+                getTableProps,
+                onInputChange
+              }) => (
+                <TableContainer title="Idea Ranks" description="Displays a rank-ordered list of ideas">
+                  <TableToolbar>
+                    <TableToolbarContent>
+                      <TableToolbarSearch onChange={onInputChange} />
+                    </TableToolbarContent>
+                    <Button renderIcon={Renew} hasIconOnly iconDescription='Refresh Table' onClick={() => UpdateStatTable()} />
                     <Button
-                      id="chartExportButton"
-                      hasIconOnly={true}
                       renderIcon={DocumentExport}
-                      iconDescription={exportButtonText}
-                      description={exportButtonText}
-                      onClick={() => ExportChart()}
-                      />
-                  </div>
-                  <div style={{display:exportLoading}}>
-                    <InlineLoading
-                      style={{ marginLeft: '1rem'}}
-                      description='Exporting chart...'
-                      status='active'
+                      kind="secondary" 
+                      hasIconOnly
+                      iconDescription='Export to Excel Spreadsheet'
+                      onClick={() => ExportExcel()}
                     />
-                  </div>
-                  <div style={{display:exportButtonDisplay}}>
-                    <Toggle 
-                      id="shareToggle"
-                      labelText="Share Chart" 
-                      labelB="Shared"
-                      labelA="Not Shared"
-                      toggled={shareToggled}
-                      onToggle={event => {
-                        setShareToggled(event);
-                        setSharedChart(selectedChart);
-                        ProcessChartData("publish",event);
-                      }}
-                    />
-                  </div>
-                </div>
-              </Tile>
-            </div>
-            <div className='statsBarChart'>
-              {chartData && chartOptions ? <SimpleBarChart data={chartData} options={chartOptions}/>:null}
+                    <div style={{marginTop:'0.5%', marginLeft:'1%', display:exportLoading}}>
+                      <InlineLoading description="Exporting..." status='active'></InlineLoading>
+                    </div>
+                  </TableToolbar>
+                  <Table {...getTableProps()}>
+                    <TableHead>
+                      <TableRow>
+                        {headers.map(header => (<TableHeader {...getHeaderProps({ header })}>{header.header}</TableHeader>))}
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {rows.map(row => (
+                        <TableRow {...getRowProps({ row })}>
+                          {row.cells.map(cell => (<TableCell key={cell.id}>{cell.value}</TableCell>))}
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
+            />
+          </div>
+        </div>
+        <div id="charts" style={{display:showCharts}} className="statistics-page__r3">
+          <div className='chartContainer'>
+            <div style={{display:exportLoading,justifyContent:'end'}}>
+              <div><InlineLoading description='Exporting chart...' status='active'/></div>
             </div>
           </div>
-          <div 
-            id="byoffice"
-            style={{display:showByOffice}}
-            className="bx--row bx--offset-lg-1 statistics-page__r4"
-          >
-            <div id="byOfficeContainer">
-              <div id="byOfficeOptions" style={{display:'flex', gap:'0.5rem', alignItems:'center'}}>
-                <div>
-                  {
-                    offices ? <ComboBox
+          <div className='statsBarChart'>
+            {chartData && chartOptions && (<SimpleBarChart data={chartData} options={chartOptions}/>)}
+          </div>
+        </div>
+        <div 
+          id="byoffice"
+          style={{display:showByOffice}}
+          className="statistics-page__r4"
+        >
+          <div id="byOfficeContainer">
+            <div id="byOfficeOptions" style={{display:'flex', gap:'0.5rem', alignItems:'center'}}>
+              <div>
+                {
+                  offices && (
+                    <ComboBox
                       onChange={() => {if(comboBoxInvalid) setComboBoxInvalid(false)}}
                       id="combobox"
                       placeholder="Select Office"
@@ -721,13 +788,14 @@ export default function StatisticsPage() {
                       invalidText="This is a required field." 
                       items={offices}
                       itemToString={(office) => (office ? office.text : '')}
-                    />:null
-                  }
-                </div>
-                <div><Button kind='primary' onClick={() => GetVotesByOffice()}>Get Votes</Button></div>
+                    />
+                  )
+                }
               </div>
-              <div className="bx--row">
-              <div className="bx--col-lg-15 officeTable">
+              <div><Button kind='primary' onClick={() => GetVotesByOffice()}>Get Votes</Button></div>
+            </div>
+            <div>
+              <div className="officeTable">
                 <DataTable rows={voteData} headers={voteHeaders} isSortable>
                   {({ rows, headers, getHeaderProps, getRowProps, getTableProps }) => (
                     <TableContainer>
@@ -748,12 +816,11 @@ export default function StatisticsPage() {
                     </TableContainer>
                   )}
                 </DataTable>
-                </div>
               </div>
             </div>
           </div>
         </div>
-      </Content>
+      </div>
     </>
   )
 };

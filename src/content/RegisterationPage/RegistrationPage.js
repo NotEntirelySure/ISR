@@ -10,6 +10,7 @@ import {
 	SelectItem,
 	TextInput
 } from '@carbon/react';
+import {LicenseThirdParty} from '@carbon/react/icons';
 
 export default function RegistrationPage () {
 
@@ -29,7 +30,7 @@ export default function RegistrationPage () {
 	const [offices, setOffices] = useState([]);
 	const [modalOpen, setModalOpen] = useState(false);
 
-	useEffect(() => GetOffices(),[])
+	useEffect(() => {GetOffices()},[])
 
 	async function GetOffices() {
 		const officesRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/offices/getall`, {mode:'cors'});
@@ -185,9 +186,8 @@ export default function RegistrationPage () {
 							kind='primary'
 							tabIndex={0}
 							onClick={() => register()}
-							>
-								Register    
-						</Button>
+							children={<><LicenseThirdParty /> Register</>}
+						/>
 					</div>
 				</Form>
 			</div>

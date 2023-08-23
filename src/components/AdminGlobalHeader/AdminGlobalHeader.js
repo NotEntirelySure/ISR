@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Checkbox,
   Header,
@@ -37,6 +37,9 @@ import { Link } from 'react-router-dom';
 
 export default function AdminGlobalHeader(props) {
   
+  const setupAck = useRef(); 
+
+  const [isSmallWindow, setIsSmallWindow] = useState(false);
   const [modalSetupOpen, setModalSetupOpen] = useState(false);
   const [modalConfirmOpen, setModalConfirmOpen] = useState(false);
   const [modalSetupExeOpen, setModalSetupExeOpen] = useState(false);
@@ -61,13 +64,23 @@ export default function AdminGlobalHeader(props) {
     "domainsadmin":false
   })
   
-  useEffect(() => {HandleActiveMenuItem(props.activePage)},[props.active])
+  useEffect(() => {
+    handleWindowResize();
+    window.addEventListener('resize', handleWindowResize);
+    return () => window.removeEventListener('resize', handleWindowResize);
+  },[])
 
+  useEffect(() => {HandleActiveMenuItem(props.activePage)},[props.active]);
+  
+  function handleWindowResize() {
+    if (window.innerWidth <1000) setIsSmallWindow(true);
+    else {setIsSmallWindow(false);}
+  }
 
   function HandleLogout() {
     localStorage.removeItem("adminjwt");
     if (!localStorage.getItem("adminjwt")) alert("You have been successfully logged out.")
-  }
+  };
   
   function HandleActiveMenuItem(activePage) {
     const activeObj = {...menuItemActiveStatus};
@@ -75,7 +88,7 @@ export default function AdminGlobalHeader(props) {
       if (activeObj.hasOwnProperty(key)) activeObj[key] = key === activePage;
     }
     setMenuItemActiveStatus(activeObj);
-  }
+  };
 
   async function initSetup() {
     if (!setupCloseButtonDisabled) setSetupCloseButtonDisabled(true);
@@ -177,7 +190,7 @@ export default function AdminGlobalHeader(props) {
             </p>
             <br/>
             <div style={{display:'flex'}}>
-              <WarningHex size={32}/>
+              <WarningHex color="red" size={32}/>
               <p style={{marginLeft:'2%', color:'red'}}>
                 WARNING: Do not use this option on an in progress ISR voting session.
                 IT WILL DELETE ALL VOTING DATA!
@@ -209,10 +222,10 @@ export default function AdminGlobalHeader(props) {
           setModalSetupOpen(false);
           setModalConfirmOpen(false);
           setConfirmDisabled(true);
-          document.getElementById("setupAck").checked = false; // this needs to be a ref
+          setupAck.current.checked = false;
         }}
         onRequestSubmit={() => {
-          document.getElementById("setupAck").checked = false; //this needs to be a ref
+          setupAck.current.checked = false;
           setModalSetupExeOpen(true);
           setModalSetupOpen(false);
           setModalConfirmOpen(false);
@@ -228,10 +241,11 @@ export default function AdminGlobalHeader(props) {
             <br/>
             <Checkbox
               id="setupAck"
+              ref={setupAck}
               labelText="I understand these actions cannot be undone"
               onChange={() => {
-                if (document.getElementById("setupAck").checked === true) setConfirmDisabled(false);
-                if (document.getElementById("setupAck").checked === false) setConfirmDisabled(true);
+                if (setupAck.current.checked) setConfirmDisabled(false);
+                if (!setupAck.current.checked) setConfirmDisabled(true);
               }}
             />
           </>
@@ -318,7 +332,7 @@ export default function AdminGlobalHeader(props) {
             onClick={onClickSideNavExpand}
             isActive={isSideNavExpanded}
           />
-          <HeaderName element={Link} to="/" prefix="ISR">Home</HeaderName>
+          <HeaderName element={Link} to="/adminhome" prefix="ISR">Home</HeaderName>
           <HeaderGlobalBar>
             <HeaderGlobalAction isActive={isSideNavExpanded} tooltipAlignment="end" aria-label="User Avatar">
               <UserAvatar size={20}/>
@@ -327,7 +341,8 @@ export default function AdminGlobalHeader(props) {
         
           <SideNav
             isRail
-            isChildOfHeader={true}
+            isChildOfHeader
+            isFixedNav={isSmallWindow}
             expanded={isSideNavExpanded}
             aria-label="Side navigation">
             <SideNavItems>

@@ -2,12 +2,10 @@ import React, { useState, useEffect, useRef } from 'react'
 import { w3cwebsocket } from "websocket";
 import {
   Button,
-  Content,
-  InlineLoading,
-  Tile,
-  Toggle,
   ComboBox,
-  Modal
+  InlineLoading,
+  Modal,
+  Toggle
 } from '@carbon/react';
 import { ArrowLeft, ArrowRight, Renew } from '@carbon/react/icons';
 
@@ -18,7 +16,36 @@ export default function VoteDashboardPage() {
   const [toggleChecked, setToggleChecked] = useState(false);
   const [connectionMessage, setConnectionMessage] = useState("");
   const [connectionStatus, setConnectionStatus] = useState("inactive");
-  const [remainingVoters, setRemainingVoters] = useState([]);
+  const [remainingVoters, setRemainingVoters] = useState([
+    'test',
+    'test',
+    'test',
+    'test',
+    'test',
+    'test',
+    'test',
+    'test',
+    'test',
+    'test',
+    'test',
+    'test',
+    'test',
+    'test',
+    'test',
+    'test',
+    'test',
+    'test',
+    'test',
+    'test',
+    'test',
+    'test',
+    'test',
+    'test',
+    'test',
+    'test',
+    'test',
+    'test',
+  ]);
   const [currentIdea, setCurrentIdea] = useState({});
   const [votingEnabledIdeas, setVotingEnabledIdeas] = useState([]);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
@@ -35,10 +62,16 @@ export default function VoteDashboardPage() {
     "ideaDomainColor":'#FFFFFF'
   }]);
   
-  useEffect(() => GetIdea(),[])
-  useEffect(() => console.log(remainingVoters),[remainingVoters]);
+  useEffect(() => {GetIdeas();},[])
 
-  async function GetIdea() {
+  useEffect(() => {
+    if (connectionStatus !== "finished") return;
+    //this is setup to prevent a race condition that seems to be happening, where the websocket opens and data is being sent, but the socket is still in the connecting status.
+    if (client && client.readyState === WebSocket.OPEN) GetEnabledIdeas();
+    else {setTimeout(GetEnabledIdeas,1000)}
+  },[connectionStatus]);
+
+  async function GetIdeas() {
     const ideasRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/ideas/getall/${localStorage.getItem('adminjwt')}`, {mode:'cors'});
     const ideasResponse = await ideasRequest.json();
     if (ideasResponse.code !== 200) {
@@ -84,13 +117,6 @@ export default function VoteDashboardPage() {
       setConnectionStatus("finished");
       setConnectionMessage("Connected to server");
       setReconnectAttempts(0);
-
-      client.send(
-        JSON.stringify({
-          sender:"adminDash",
-          action: "getVotingEnabledIdeas",
-        })
-      )
     };
     
     client.onmessage = (message) => {
@@ -133,7 +159,7 @@ export default function VoteDashboardPage() {
       if (reconnectAttempts <= 2) {
         setReconnectAttempts(reconnectAttempts + 1);
         console.log("connection attempt:",reconnectAttempts)
-        setTimeout(() => {this.connectWebSocket()}, 1500);
+        setTimeout(() => {ConnectWebSocket()}, 1500);
       }
 
       if (reconnectAttempts >= 3) {
@@ -149,6 +175,15 @@ export default function VoteDashboardPage() {
       setConnectionMessage("Failed to connect to server");
       console.log("the websocket server is down");
     }
+  }
+
+  function GetEnabledIdeas() {
+    client.send(
+      JSON.stringify({
+        sender:"adminDash",
+        action: "getVotingEnabledIdeas",
+      })
+    );
   }
 
   function HandlePageChange(changeSource, comboboxValue) {
@@ -226,90 +261,90 @@ export default function VoteDashboardPage() {
           {errorInfo.message}
         </div>
       </Modal>
-      <Content>
-        <div  className="bx--grid bx--grid--full-width adminPageBody">
-          <div className='bx--row vote-dashboard-page__banner'>
-            <div><h1 className="vote-dashboard-page__heading">Voting Dashboard</h1></div>
-            <div>
+      <div className="adminPageBody">
+        <div className='vote-dashboard-page__banner'>
+          <div><h1 className="vote-dashboard-page__heading">Voting Dashboard</h1></div>
+          <div className='headingToolBar'>
+            <div style={{display:'flex'}}>
               <div>
                 <InlineLoading
-                style={{ marginLeft: '1rem'}}
                 description={connectionMessage}
                 status={connectionStatus}
-              />
+                />
               </div>
               <div>
                 <button
                   style={{display:reconnectButtonDisplay}}
                   className='reconnectButton'
                   onClick={() => ConnectWebSocket()}
-                >
+                  >
                   <Renew size={20}/>
                 </button>
               </div>
             </div>
-          </div>
-          <div className='bx--row' style={{backgroundColor:currentIdea.ideaDomainColor, textAlign:'center'}}>
-            <div className='bx--col'>
-              <p style={{fontWeight:'bold'}}>{currentIdea.ideaDomain}</p>
+            <div className='votingToggle'>
+              <Toggle
+                id='voteControlToggle'
+                size="sm"
+                labelA="Voting Disabled"
+                labelB="Voting Enabled"
+                toggled={toggleChecked}
+                onToggle={state => {
+                  setToggleChecked(state);
+                  client.send(
+                    JSON.stringify({
+                      sender:"adminDash",
+                      source:"dashboard",
+                      action: state ? "addIdea":"removeIdea",
+                      payload: `{"id":"${currentIdea.ideaId}","description":"${currentIdea.ideaDescription}"}`
+                    })
+                  );
+                }}
+              />
             </div>
           </div>
-          <div className='bx--row bx--offset-lg-1 vote-dashboard-page__r1'>
-            <div className="bx--col ideaNameAndToggle">
-              <div>
-                <h1 style={{fontWeight:'bold', paddingLeft:'1rem'}}>{`${currentIdea.ideaId}: ${currentIdea.ideaDescription}`}</h1>
-              </div>
-              <div style={{paddingRight:"10%"}}>
-                <Toggle
-                  id='voteControlToggle'
-                  labelText="Idea Voting"
-                  size="sm"
-                  labelA="Disabled"
-                  labelB="Enabled"
-                  toggled={toggleChecked}
-                  onToggle={state => {
-                    setToggleChecked(state);
-                    client.send(
-                      JSON.stringify({
-                        sender:"adminDash",
-                        source:"dashboard",
-                        action: state ? "addIdea":"removeIdea",
-                        payload: `{"id":"${currentIdea.ideaId}","description":"${currentIdea.ideaDescription}"}`
-                      })
-                    );
-                  }}
-                />
-              </div>
+        </div>
+        <div style={{backgroundColor:currentIdea.ideaDomainColor, textAlign:'center'}}>
+          <div>
+            <p style={{fontWeight:'bold'}}>{currentIdea.ideaDomain}</p>
+          </div>
+        </div>
+        
+        <div className='vote-dashboard-page__row'>
+          <div className="ideaName">
+            <div>
+              <h1 className='ideaTitle'>{`${currentIdea.ideaId}: ${currentIdea.ideaDescription}`}</h1>
             </div>
           </div>
-          <div className='bx--row bx--offset-lg-1 vote-dashboard-page__r2'>
-            <div className="vote-dashboard-page-voter-list">
-              {
-                remainingVoters.map(office => {
-                  return <>
-                    <div className='officeTile'>
-                      <div id='office-icon-div'>
-                        <img
-                          className='office-icon'
-                          src={`${process.env.PUBLIC_URL}/office_symbols/${office}.png`}
-                          onError={(err) => err.currentTarget.src = `${process.env.PUBLIC_URL}/office_symbols/USCG.png`}
-                          alt=''
-                        />
-                      </div>
-                      <br/>
-                      <div id='office-name-div'>{office}</div>
+        </div>
+        <div className='vote-dashboard-page__row'>
+          <div className="vote-dashboard-page-voter-list">
+            {
+              remainingVoters.map(office => {
+                return <>
+                  <div className='officeTile'>
+                    <div id='office-icon-div'>
+                      <img
+                        className='office-icon'
+                        src={`${process.env.PUBLIC_URL}/office_symbols/${office}.png`}
+                        onError={(err) => err.currentTarget.src = `${process.env.PUBLIC_URL}/office_symbols/USCG.png`}
+                        alt=''
+                      />
                     </div>
-                  </>
-                })
-              }
-            </div>
-            <div style={{zIndex:'2'}}>
-              {remainingVoters.length > 0 ? <p>Remaining Voters: {remainingVoters.length}</p>:null}
-            </div>
+                    <br/>
+                    <div id='office-name-div'>{office}</div>
+                  </div>
+                </>
+              })
+            }
           </div>
-        <div className='vote-dashboard-page__r4'>
+        </div>
+        <div className='vote-dashboard-page__row'>
+          <div style={{position:'absolute', bottom:'2rem'}}>
+            {remainingVoters.length > 0 ? <p className='remainingVoters'>Remaining Voters: {remainingVoters.length}</p>:null}
+          </div>
           <div className='navControls'>
-            <div style={{marginRight:'auto'}}>
+            <div>
               <Button
                 iconDescription="Previous Idea"
                 disabled={previousButtonDisabled}
@@ -318,7 +353,7 @@ export default function VoteDashboardPage() {
                 onClick={() => HandlePageChange("previousButton")}
               />
             </div>
-            <div style={{maxWidth:'75%',minWidth:'50%'}}>
+            <div style={{minWidth:'50vw'}}>
               <ComboBox
                 id="navigationCombo"
                 items={ideas}
@@ -329,7 +364,7 @@ export default function VoteDashboardPage() {
                 helperText={`Idea ${currentIdea.ideaIndex + 1} of ${ideas.length}`}
               />
             </div>
-            <div style={{marginLeft:'auto'}}>
+            <div>
               <Button
                 iconDescription="Next Idea"
                 disabled={nextButtonDisabled}
@@ -341,7 +376,6 @@ export default function VoteDashboardPage() {
           </div>
         </div>
       </div>
-      </Content>
     </>
   )
 }

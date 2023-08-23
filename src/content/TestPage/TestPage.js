@@ -1,60 +1,22 @@
-import React from "react";
-
-//import "@carbon/styles/css/styles.css";
-
-//import "@carbon/charts/styles.css";
-import { SimpleBarChart } from "@carbon/charts-react";
-
-// IBM Plex should either be imported in your project by using Carbon
-// or consumed manually through an import
-//import "./ibm-plex-font.css";
+import React, {useState, useEffect} from "react";
 
 export default function TestPage() {
 
-  const stackedBarData = [
-    {
-      "group": "Qty",
-      "value": 65000
-    },
-    {
-      "group": "More",
-      "value": 29123
-    },
-    {
-      "group": "Sold",
-      "value": 35213
-    },
-    {
-      "group": "Restocking",
-      "value": 51213
-    },
-    {
-      "group": "Misc",
-      "value": 16932
-    }
-  ];
+  const [isSmallScreen, setIsSmallScreen] = useState(false);
 
-const stackedBarOptions = {
-    "title": "Vertical simple bar (discrete)",
-    "axes": {
-      "left": {
-        "mapsTo": "value"
-      },
-      "bottom": {
-        "mapsTo": "group",
-        "scaleType": "labels"
-      }
-    },
-    "height": "400px"
+  useEffect(() => {
+    handleScreenChange();
+    window.addEventListener('resize', handleScreenChange);
+    return () => window.removeEventListener('resize', handleScreenChange);
+  },[])
+
+  function handleScreenChange() {
+    if (window.innerWidth <1000) setIsSmallScreen(true);
+    else {setIsSmallScreen(false);}
   }
-
-return (
-  <div className="App" style={{margin:'5rem'}}>
-    <SimpleBarChart
-      data={stackedBarData}
-      options={stackedBarOptions}
-    />
-  </div>
-);
-
-}
+  return (
+    <>
+      <div className="adminPageBody">Window size is small? {isSmallScreen ? 'yes':'no'}</div>
+    </>
+  )
+};

@@ -89,7 +89,7 @@ export default function AdminIdeasPage() {
   const [progressErrorDisplay, setProgressErrorDisplay] = useState('none');
   const [progressErrorCount, setProgressErrorCount] = useState(0);
 
-  useEffect(() => GetIdeas(),[]);
+  useEffect(() => {GetIdeas()},[]);
   
   async function GetIdeas() {
     const ideasRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/ideas/getall/${localStorage.getItem('adminjwt')}`, {mode:'cors'})

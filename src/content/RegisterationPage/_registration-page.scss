@@ -7,7 +7,11 @@
   background-color: #f4f4f4;
   box-shadow: 0px 0px 10px 0px black;
 }
-  
+
+.registration-page__heading{
+  font-size: clamp(28px, 3vw, 3.5vw);
+}
+
 .registrationFormContainer {
   display: flex;
   justify-content: center;

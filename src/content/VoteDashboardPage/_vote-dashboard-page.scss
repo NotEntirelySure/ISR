@@ -6,23 +6,40 @@
 .vote-dashboard-page__banner {
   display: flex;
   justify-content: space-between;
-  padding: 2rem 2rem 3rem 2rem;
+  padding: 1rem 2rem 1rem 2rem;
   background-color: #f4f4f4;
 }
 
-.vote-dashboard-page__r1 {
-  padding-top: 4rem;
+.vote-dashboard-page__heading {
+  font-size:clamp(2rem, 3vw, 10rem);
 }
-.vote-dashboard-page__r2 {
-  padding-top: 4rem;
+
+.ideaTitle {
+  font-size:clamp(1.5rem, 2.75vw, 10rem);
+  font-weight:bold;
+  padding-left: 1rem;
 }
-.vote-dashboard-page__r3 {
-  padding-top: 4rem;
+
+.vote-dashboard-page__row {padding-top: 1rem;}
+
+.headingToolBar {
+  padding:clamp(0rem, 1vw, 1rem);
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0px 0px 5px black;
 }
-.vote-dashboard-page__r4 {
-  padding-top: 4rem;
+
+.votingToggle {
+  display:flex;
+  justify-content:end;
+  margin:1rem 3rem 0rem 0rem;
 }
-.ideaNameAndToggle{
+
+.remainingVoters{
+  font-size: clamp(1rem, 1.25vw, 1.5rem);
+  margin-top: 0.5rem;
+}
+.ideaName{
   display: flex;
   justify-content: space-between;
 }
@@ -75,6 +92,10 @@
   margin-right: 3rem;
   margin-left: auto; 
   display:flex;
-  justify-content:space-between;
+  justify-content:space-evenly;
   align-items: center;
 }
+
+// @media screen and (max-width:1000px) and (min-width:1px) {
+//   .navControls{margin-left: 0rem;}
+// }

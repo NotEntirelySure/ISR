@@ -19,7 +19,7 @@ export default function ProtectedRoute(props) {
 	
 	const [isAuth, setIsAuth] = useState(null);
 	
-	useEffect(() => VerifyJwt(),[]);
+	useEffect(() => {VerifyJwt()},[]);
 	
 	async function VerifyJwt() {
 		const token = localStorage.getItem("adminjwt");

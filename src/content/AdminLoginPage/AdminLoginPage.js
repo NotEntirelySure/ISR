@@ -82,7 +82,7 @@ export default function AdminLoginPage() {
       >
         <div>{errorInfo.current.message}</div>
       </Modal>
-      <UserGlobalHeader/>
+      <UserGlobalHeader notificationActive={false} isAuth={false}/>
       <div id='loginBody'>
         <div id="loginContent">
           <Form>
@@ -93,24 +93,27 @@ export default function AdminLoginPage() {
                 id="username"
                 invalid={usernameInvalid}
                 invalidText="This is a required field."
-                placeholder=""
-                />
+              />
               <PasswordInput
                 labelText="Password"
                 ref={passwordRef}
                 id="password"
                 invalid={passwordInvalid}
                 invalidText="This is a required field."
-                placeholder=""
                 tabIndex={0}
                 onKeyDown={event => {if (event.key === 'Enter'){Login()}}}
-                />
-              {notification === 0 ? null:<InlineNotification
-              key={notification}
-              kind="error"
-              role="alert"
-              title="Login failure: "
-              subtitle="invalid username or password"/>
+              />
+              {
+                notification === 0 ? 
+                  null
+                  :
+                  <InlineNotification
+                    key={notification}
+                    kind="error"
+                    role="alert"
+                    title="Login failure: "
+                    subtitle="invalid username or password"
+                  />
               }
               <Button kind='primary' tabIndex={0} onClick={() => Login()}>Login</Button>
             </Stack>

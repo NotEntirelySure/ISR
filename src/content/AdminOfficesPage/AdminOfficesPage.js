@@ -41,7 +41,7 @@ export default function AdminOfficesPage() {
   const [displayTable, setDisplayTable] = useState('none');
   const [displaySkeleton, setDisplaySkeleton] = useState('block');
 
-  useEffect(() => GetOffices(),[]);
+  useEffect(() => {GetOffices()},[]);
 
   async function GetOffices() {
     const officesRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/offices/getall`, {mode:'cors'})

@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react';
+import { w3cwebsocket } from "websocket";
 import { 
     Button, 
     DataTable,
     DataTableSkeleton,
-    Content,
     Modal,
     TableContainer,
     Table,
@@ -39,7 +39,7 @@ export default function AdminUsersPage() {
   const [rows, setRows] = useState([{id:'0', voterid:'-', title:'-', fname:'-', lname:'-', office: '-', action:"-"}])
   const [modalOpen, setModalOpen] = useState(false);
   
-  useEffect(() => GetAllParticipants(),[])
+  useEffect(() => {GetAllParticipants()},[])
   
   async function GetAllParticipants() {
     const participantsRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/participants/getall/${localStorage.getItem('adminjwt')}`, {mode:'cors'})
@@ -84,7 +84,7 @@ export default function AdminUsersPage() {
               renderIcon={Logout}
               iconDescription='Log user out'
               kind="primary"
-              onClick={() => ParticipantLogout(participant.participantid)}
+              onClick={() => ParticipantLogout(participant.participantid,participant.officename)}
             />
           </div>
         </>
@@ -115,7 +115,7 @@ export default function AdminUsersPage() {
     if (deleteResponse.code === 200) GetAllParticipants();
   }
 
-  async function ParticipantLogout(participantId) {
+  async function ParticipantLogout(participantId, office) {
     const logoutRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/participants/logout`, {
       method:'POST',
       mode:'cors',
@@ -124,9 +124,21 @@ export default function AdminUsersPage() {
         "participantId":participantId,
         "source":"admin",
         "token":localStorage.getItem('adminjwt')
-      })    
+      })
     });
     const logoutResponse = await logoutRequest.json();
+    if (logoutResponse.code === 200) {
+      const client = new w3cwebsocket(`${process.env.REACT_APP_WEBSOCKET_BASE_URL}/adminUsers`);
+      client.onopen = () => {
+        client.send(
+          JSON.stringify({
+            sender:"adminUsers",
+            action:"logoutUser",
+            officeId:office
+          })
+        );
+      };
+    }
     GetAllParticipants();
   }
 
@@ -162,9 +174,8 @@ export default function AdminUsersPage() {
         open={modalOpen}>
           <p>Are you sure you want to delete {userToDelete.current.title} {userToDelete.current.fname} {userToDelete.current.lname}?</p>
       </Modal>
-      <Content>
         <div 
-          className="bx--offset-lg-1 bx--grid bx--grid--full-width adminPageBody"
+          className="adminPageBody"
           style={{display: `${displayTable}`}}
         >
           <DataTable
@@ -213,12 +224,11 @@ export default function AdminUsersPage() {
             />
         </div>
         <div
-          className="bx--offset-lg-1 bx--grid bx--grid--full-width adminPageBody"
+          className="adminPageBody"
           style={{display: `${displaySkeleton}`}}
         >
           <DataTableSkeleton columnCount={4} headers={headers}/>
         </div>
-      </Content>
     </>
   );
 }

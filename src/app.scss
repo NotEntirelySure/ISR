@@ -1,8 +1,7 @@
-.adminPageBody {
-    margin-top: 1rem;
-    margin-left: 2rem;
-  }
-
+.adminPageBody{margin-left: 3rem;}
+@media screen and (max-width:1000px) and (min-width:1px) {
+  .adminPageBody{margin-left: 0rem};
+};
 @import 'carbon-components/scss/globals/scss/vendor/@carbon/type/scss/font-family.scss';
 @import 'carbon-components/scss/globals/scss/vendor/@carbon/layout/scss/breakpoint.scss';
 @import 'carbon-components/scss/globals/scss/typography.scss';

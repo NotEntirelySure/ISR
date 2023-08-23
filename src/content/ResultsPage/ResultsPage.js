@@ -32,6 +32,7 @@ export default function ResultsPage () {
 
     client.onmessage = (message) => {
 			const messageData = JSON.parse(message.data);
+			if (!messageData.chartData) return;
 			if (messageData.chartData.length === 0) setChartData(null);
 			//only executes if the data from the web sockets server is chart data to publish
 			if (messageData.chartData.length > 0 && messageData.action === "publish") {
@@ -39,7 +40,7 @@ export default function ResultsPage () {
 				let scaleObj = {};
 				const data = messageData.chartData.map(idea => {
 					let name = `${idea.rank}) ${idea.ideaId}: ${idea.ideaDescription}`;
-					scaleObj[name] = idea.ideadomaincolorhex
+					scaleObj[name] = idea.ideadomaincolorhex ? idea.ideadomaincolorhex:'#7F7F7F'
 					return {
 						"group":name,
 						"value":isNaN(idea.averageScore) ? 0:parseFloat(idea.averageScore)
