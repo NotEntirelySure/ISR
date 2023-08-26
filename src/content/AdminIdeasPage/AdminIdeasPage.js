@@ -4,7 +4,6 @@ import {
   Button, 
   Checkbox,
   ComboBox,
-  Content,
   DataTable,
   DataTableSkeleton,
   FileUploader,
@@ -28,10 +27,10 @@ import {
 } from '@carbon/react';
 import {
   Add,
+  Edit,
   DocumentImport,
   Information,
   TrashCan,
-  RequestQuote,
   WarningHex
 } from '@carbon/react/icons';
 import ProgressBar from '@carbon/react/lib/components/ProgressBar/ProgressBar';
@@ -115,7 +114,7 @@ export default function AdminIdeasPage() {
               <Button
                 hasIconOnly
                 size="md"
-                renderIcon={RequestQuote}
+                renderIcon={Edit}
                 iconDescription='Edit Idea'
                 kind="primary"
                 onClick={async() => {
@@ -447,6 +446,7 @@ export default function AdminIdeasPage() {
       />
       <Modal
         id='modalError'
+        size='sm'
         alert={true}
         modalHeading={errorInfo.heading}
         primaryButtonText="Ok"
@@ -492,12 +492,11 @@ export default function AdminIdeasPage() {
         />
         <br/>
         <TextInput
-          labelText="Projet Number"
-          helperText=""
+          labelText="Idea Number"
           id="addID"
           ref={addIdRef}
           invalid={addIdInvalid}
-          onKeyPress={() => setAddIdInvalid(false)}
+          onKeyDown={() => setAddIdInvalid(false)}
           invalidText="This is a required field."
           placeholder="Enter the idea number"
           tabIndex={0}
@@ -537,6 +536,7 @@ export default function AdminIdeasPage() {
       </Modal>
       <Modal
         id='modalImport'
+        size='sm'
         hasScrollingContent
         aria-label="Import Modal"
         primaryButtonText="Import"
@@ -684,84 +684,82 @@ export default function AdminIdeasPage() {
         <p>Are you sure you want to delete {ideaToDelete.ideaid} {ideaToDelete.ideadescription}?</p>
       </Modal>
 
-      <Content>
-        <div style={{display:displayTable, height:'10px'}} className="bx--grid bx--grid--full-width adminPageBody">
-        <div className="bx--row bx--offset-lg-1 ManageIdeas__r1" >
-          <div id='file'/>
-            <div className="bx--col-lg-15">
-              <DataTable
-                rows={ideasList}
-                headers={headers}
-                isSortable={true}
-                render={({
-                  rows,
-                  headers,
-                  getHeaderProps,
-                  getRowProps,
-                  getTableProps,
-                  onInputChange
-                }) => (
-                  <TableContainer title="Ideas" description={`Displays list of all ideas to be considered at the ISR. Total ideas: ${ideasList.length}`}>
-                    <TableToolbar>
-                      <TableToolbarContent>
-                        <TableToolbarSearch onChange={onInputChange} />
-                      </TableToolbarContent>
-                      <Button
-                        renderIcon={Add}
-                        hasIconOnly
-                        iconDescription='Add Idea'
-                        onClick={async() => {
-                          if (domainList.current.length === 0) await GetDomains();
-                          const maxSequence = await GetSequenceNumber();
-                          let sequenceNumber = parseInt(maxSequence[0].max_sequence);
-                          if (isNaN(sequenceNumber)) sequenceNumber = 1
-                          else {sequenceNumber++};
-                          setAddSequenceValue(sequenceNumber);
-                          setModalAddOpen(true);
-                        }}
-                      />
-                      <Button 
-                        renderIcon={DocumentImport} 
-                        hasIconOnly 
-                        iconDescription='Import Ideas List'
-                        kind='secondary'
-                        onClick={() => setModalImportOpen(true)}
-                      />
-                      <Button
-                        kind='danger'
-                        onClick={() => {
-                          setIdeaToDelete({ideaid:"all", ideadescription:"ideas"});
-                          setModalDeleteOpen(true);
-                        }}
-                        children={<><TrashCan/> Delete All</>}
-                      />
-                    </TableToolbar>
-                    <Table {...getTableProps()}>
-                  <TableHead>
-                    <TableRow>
-                      {headers.map(header => (<TableHeader key={header.key} {...getHeaderProps({ header })}>{header.header}</TableHeader>))}
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {
-                      rows.map(row => (
-                        <TableRow key={row.id} {...getRowProps({ row })}>
-                          {row.cells.map(cell => (<TableCell key={cell.id}>{cell.value}</TableCell>))}
-                        </TableRow>
-                      ))
-                    }
-                  </TableBody>
-                </Table>
-                  </TableContainer>
-                )}
-              />
-            </div>
+      <div style={{display:displayTable, height:'10px'}} className="bx--grid bx--grid--full-width adminPageBody">
+      <div className="bx--row bx--offset-lg-1 ManageIdeas__r1" >
+        <div id='file'/>
+          <div className="bx--col-lg-15">
+            <DataTable
+              rows={ideasList}
+              headers={headers}
+              isSortable={true}
+              render={({
+                rows,
+                headers,
+                getHeaderProps,
+                getRowProps,
+                getTableProps,
+                onInputChange
+              }) => (
+                <TableContainer title="Ideas" description={`Displays list of all ideas to be considered at the ISR. Total ideas: ${ideasList.length}`}>
+                  <TableToolbar>
+                    <TableToolbarContent>
+                      <TableToolbarSearch onChange={onInputChange} />
+                    </TableToolbarContent>
+                    <Button
+                      renderIcon={Add}
+                      hasIconOnly
+                      iconDescription='Add Idea'
+                      onClick={async() => {
+                        if (domainList.current.length === 0) await GetDomains();
+                        const maxSequence = await GetSequenceNumber();
+                        let sequenceNumber = parseInt(maxSequence[0].max_sequence);
+                        if (isNaN(sequenceNumber)) sequenceNumber = 1
+                        else {sequenceNumber++};
+                        setAddSequenceValue(sequenceNumber);
+                        setModalAddOpen(true);
+                      }}
+                    />
+                    <Button 
+                      renderIcon={DocumentImport} 
+                      hasIconOnly 
+                      iconDescription='Import Ideas List'
+                      kind='secondary'
+                      onClick={() => setModalImportOpen(true)}
+                    />
+                    <Button
+                      kind='danger'
+                      onClick={() => {
+                        setIdeaToDelete({ideaid:"all", ideadescription:"ideas"});
+                        setModalDeleteOpen(true);
+                      }}
+                      children={<><TrashCan/> Delete All</>}
+                    />
+                  </TableToolbar>
+                  <Table {...getTableProps()}>
+                <TableHead>
+                  <TableRow>
+                    {headers.map(header => (<TableHeader key={header.key} {...getHeaderProps({ header })}>{header.header}</TableHeader>))}
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {
+                    rows.map(row => (
+                      <TableRow key={row.id} {...getRowProps({ row })}>
+                        {row.cells.map(cell => (<TableCell key={cell.id}>{cell.value}</TableCell>))}
+                      </TableRow>
+                    ))
+                  }
+                </TableBody>
+              </Table>
+                </TableContainer>
+              )}
+            />
           </div>
         </div>
-        <div style={{display:displaySkeleton}} className="bx--offset-lg-3 bx--col-lg-13">
-          <DataTableSkeleton columnCount={3} headers={headers}/>
-        </div>
-      </Content>
+      </div>
+      <div style={{display:displaySkeleton}} className="bx--offset-lg-3 bx--col-lg-13">
+        <DataTableSkeleton columnCount={3} headers={headers}/>
+      </div>
     </>
   );
 };

@@ -6,15 +6,16 @@ import {
   AccordionItem,
   Button,
   Content,
+  Dropdown,
   InlineLoading,
+  InlineNotification,
+  ListItem,
   Modal,
+  OrderedList,
   RadioButton,
   RadioButtonGroup,
   Theme,
   ToastNotification,
-  OrderedList,
-  ListItem,
-  Dropdown
 } from '@carbon/react';
 import { Renew, Send } from '@carbon/react/icons';
 import UserGlobalHeader from '../../components/UserGlobalHeader';
@@ -114,10 +115,10 @@ export default function UserVotePage() {
               <p>You have been registered in the system, however, another participant from your office is currently logged in.</p>
               <br/>
               <p>Only one participant from the same office may be logged in at a time. If you wish to vote in the ISR, you can do one of the following:</p>
-              <div style={{marginLeft:'5%'}}>
+              <div style={{marginLeft:'2rem'}}>
                 <OrderedList>
-                  <ListItem>Contact the person from your office and ask them to logout.</ListItem>
-                  <ListItem>Contact the system administrator and ask them to log the other person out.</ListItem>
+                  <ListItem>Contact the person from your office, who is currently logged in, and ask them to logout.</ListItem>
+                  <ListItem>Contact the system administrator and ask them to log the person out.</ListItem>
                 </OrderedList>
               </div>
             </>,
@@ -449,23 +450,20 @@ function HandleThemeChange(selectedTheme) {
             </Accordion>
           </div>
           <Content>
-            <div id='tileContainer'>
-              {ideas.length === 0 ? <>
-                <div
-                  className="tile"
-                  style={{
-                    backgroundColor:themeValues.tileColor,
-                    boxShadow:themeValues.shadowColor,
-                    padding:'3rem 2rem 3rem 2rem'
-                  }}
-                >
-                  <div>
-                    <p>No ideas to vote on at this time.</p>
-                  </div>
+            <div>
+              {ideas.length === 0 ? 
+              <>
+                <div className='votingDisabledNotification'>
+                  <InlineNotification
+								    title="Voting Disabled"
+                    kind='info'
+								    subtitle="There are no ideas to vote on at this time."
+								    hideCloseButton={true}
+                  />
                 </div>
-              </>:
-                ideas.map((idea, index) => {
-                  return <>
+              </>:ideas.map((idea, index) => (
+                <>
+                  <div className='tileContainer'>
                     <div
                       className="tile"
                       style={{backgroundColor:themeValues.tileColor, boxShadow:themeValues.shadowColor}}
@@ -476,6 +474,7 @@ function HandleThemeChange(selectedTheme) {
                         <div>
                         <RadioButtonGroup
                           key={idea.ideaId + index}
+                          legendText='Vote Value'
                           name={`radio-group-${idea.ideaId}`}
                           onChange={value => voteData.current = {"idea":idea.ideaId,"value":value}}
                         >
@@ -521,8 +520,9 @@ function HandleThemeChange(selectedTheme) {
                         </div>
                       </div>
                     </div>
-                  </>
-                })
+                  </div>
+                </>
+                ))
               }
             </div>
           </Content>

@@ -1,21 +1,20 @@
 import React, { useState, useEffect } from 'react'
 import { w3cwebsocket } from "websocket";
 import { 
-    Button, 
-    Content,
-    DataTable,
-    DataTableSkeleton,
-    InlineLoading,
-    TableContainer,
-    Table,
-    TableHead,
-    TableRow,
-    TableHeader,
-    TableBody,
-    TableCell,
-    TableToolbar,
-    TableToolbarContent,
-    TableToolbarSearch,
+  Button, 
+  DataTable,
+  DataTableSkeleton,
+  InlineLoading,
+  TableContainer,
+  Table,
+  TableHead,
+  TableRow,
+  TableHeader,
+  TableBody,
+  TableCell,
+  TableToolbar,
+  TableToolbarContent,
+  TableToolbarSearch,
 } from '@carbon/react';
 import { Renew, TrashCan } from '@carbon/react/icons';
 
@@ -115,71 +114,69 @@ export default function AdminConnectionsPage() {
 
   return (
     <>
-      <Content>
-        <div style={{display: `${displayTable}`}} className="bx--grid adminPageBody">
-          <div className='bx--row vote-dashboard-page__banner'>
-            <div className="bx--offset-lg-1 bx--col-lg-8">
-              <h1 className="vote-dashboard-page__heading">Websocket Connections</h1>
-              <p>Displays a list of connections to the WebSocket server.</p>             
-            </div>
-            <div className='bx--offset-lg-3 bx--col' style={{display:"flex",marginTop:'1%'}}>
-              <div>
-                <InlineLoading
-                style={{ marginLeft: '1rem'}}
-                description={connectionMessage}
-                status={connectionStatus}
-              />
-              </div>
+      <div style={{display: `${displayTable}`}} className="bx--grid adminPageBody">
+        <div className='bx--row vote-dashboard-page__banner'>
+          <div className="bx--offset-lg-1 bx--col-lg-8">
+            <h1 className="vote-dashboard-page__heading">Websocket Connections</h1>
+            <p>Displays a list of connections to the WebSocket server.</p>             
+          </div>
+          <div className='bx--offset-lg-3 bx--col' style={{display:"flex",marginTop:'1%'}}>
+            <div>
+              <InlineLoading
+              style={{ marginLeft: '1rem'}}
+              description={connectionMessage}
+              status={connectionStatus}
+            />
             </div>
           </div>
-          <div className="bx--row bx--offset-lg-1 admin-offices-page__r1" >
-            <div className="bx--col-lg-15">
-              <DataTable
-                rows={clients}
-                headers={headers}
-                isSortable={true}
-                render={({
-                  rows,
-                  headers,
-                  getHeaderProps,
-                  getRowProps,
-                  getTableProps,
-                  onInputChange
-                }) => (
-                  <TableContainer>
-                    <TableToolbar>
-                        <TableToolbarContent>
-                            <TableToolbarSearch onChange={onInputChange} />
-                        </TableToolbarContent>
-                        <Button renderIcon={Renew} hasIconOnly iconDescription='Refresh' onClick={() => GetClients()} />
-                    </TableToolbar>
-                    <Table {...getTableProps()}>
-                  <TableHead>
-                    <TableRow>
-                      {headers.map((header) => (<TableHeader key={header.key} {...getHeaderProps({ header })}>{header.header}</TableHeader>)
-                      )}
+        </div>
+        <div className="bx--row bx--offset-lg-1 admin-offices-page__r1" >
+          <div className="bx--col-lg-15">
+            <DataTable
+              rows={clients}
+              headers={headers}
+              isSortable={true}
+              render={({
+                rows,
+                headers,
+                getHeaderProps,
+                getRowProps,
+                getTableProps,
+                onInputChange
+              }) => (
+                <TableContainer>
+                  <TableToolbar>
+                      <TableToolbarContent>
+                          <TableToolbarSearch onChange={onInputChange} />
+                      </TableToolbarContent>
+                      <Button renderIcon={Renew} hasIconOnly iconDescription='Refresh' onClick={() => GetClients()} />
+                  </TableToolbar>
+                  <Table {...getTableProps()}>
+                <TableHead>
+                  <TableRow>
+                    {headers.map((header) => (<TableHeader key={header.key} {...getHeaderProps({ header })}>{header.header}</TableHeader>)
+                    )}
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {rows.map((row) => (
+                    <TableRow key={row.id} {...getRowProps({ row })}>
+                      {row.cells.map((cell) => (
+                        <TableCell key={cell.id}>{cell.value}</TableCell>
+                      ))}
                     </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {rows.map((row) => (
-                      <TableRow key={row.id} {...getRowProps({ row })}>
-                        {row.cells.map((cell) => (
-                          <TableCell key={cell.id}>{cell.value}</TableCell>
-                        ))}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-                  </TableContainer>
-                )}
-              />
-            </div>
+                  ))}
+                </TableBody>
+              </Table>
+                </TableContainer>
+              )}
+            />
           </div>
         </div>
-        <div style={{display: `${displaySkeleton}`}} className="bx--offset-lg-1 bx--col-lg-13">
-          <DataTableSkeleton columnCount={3} headers={headers}/>
-        </div>
-      </Content>
+      </div>
+      <div style={{display: `${displaySkeleton}`}} className="bx--offset-lg-1 bx--col-lg-13">
+        <DataTableSkeleton columnCount={3} headers={headers}/>
+      </div>
     </>
   );
 }

@@ -22,7 +22,7 @@ import {
 } from '@carbon/react';
 import {
   Add,
-  RequestQuote,
+  Edit,
   TrashCan,
   WarningAltFilled
 } from '@carbon/react/icons';
@@ -88,7 +88,7 @@ export default function AdminDomainsPage() {
               <Button
                 hasIconOnly
                 size="md"
-                renderIcon={RequestQuote}
+                renderIcon={Edit}
                 iconDescription='Edit Domain'
                 kind="primary"
                 onClick={() => {

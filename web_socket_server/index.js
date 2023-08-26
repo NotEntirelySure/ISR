@@ -73,7 +73,7 @@ wsServer.on('request', function (request) {
           break;
         case "adminUsers":
           if (data.action === "logoutUser") {
-            clients[data.officeId].sendUTF(JSON.stringify({source:'adminUsers',action:"logout"}))
+            if (clients[data.officeId]) clients[data.officeId].sendUTF(JSON.stringify({source:'adminUsers',action:"logout"}));
             delete clients[data.officeId];
           }
           break

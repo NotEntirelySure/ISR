@@ -16,36 +16,7 @@ export default function VoteDashboardPage() {
   const [toggleChecked, setToggleChecked] = useState(false);
   const [connectionMessage, setConnectionMessage] = useState("");
   const [connectionStatus, setConnectionStatus] = useState("inactive");
-  const [remainingVoters, setRemainingVoters] = useState([
-    'test',
-    'test',
-    'test',
-    'test',
-    'test',
-    'test',
-    'test',
-    'test',
-    'test',
-    'test',
-    'test',
-    'test',
-    'test',
-    'test',
-    'test',
-    'test',
-    'test',
-    'test',
-    'test',
-    'test',
-    'test',
-    'test',
-    'test',
-    'test',
-    'test',
-    'test',
-    'test',
-    'test',
-  ]);
+  const [remainingVoters, setRemainingVoters] = useState([]);
   const [currentIdea, setCurrentIdea] = useState({});
   const [votingEnabledIdeas, setVotingEnabledIdeas] = useState([]);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
@@ -211,7 +182,6 @@ export default function VoteDashboardPage() {
         break;
       case "nextButton":
         let nextIndex = currentIdea.ideaIndex + 1
-        
         if (nextIndex >= ideas.length - 1) setNextButtonDisabled(true);
         if (nextIndex <= ideas.length - 1) {
           setRemainingVoters([]);

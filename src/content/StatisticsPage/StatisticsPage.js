@@ -698,9 +698,8 @@ export default function StatisticsPage() {
           setModalErrorOpen(false);
           errorInfo.current = ({heading:"", message:""});
         }}
-      >
-        <div>{errorInfo.current.message}</div>
-      </Modal>
+        children={<div>{errorInfo.current.message}</div>}
+      />
       <div className="adminPageBody">
         <div className="statistics-page__r1" >
           <ContentSwitcher onChange={(tab) => {SwitchTabs(tab.name)}}>

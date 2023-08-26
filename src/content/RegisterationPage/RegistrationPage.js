@@ -67,12 +67,12 @@ export default function RegistrationPage () {
 			return;
 		};
 
-		if (!fNameRef.current.value.match(regex)) {
+		if (!fNameRef.current.value.trim().match(regex)) {
 			setFNameInvalid(true);
 			return;
 		}
 
-		if (!lNameRef.current.value.match(regex)) {
+		if (!lNameRef.current.value.trim().match(regex)) {
 			setLNameInvalid(true);
 			return;
 		}
@@ -191,8 +191,6 @@ export default function RegistrationPage () {
 					</div>
 				</Form>
 			</div>
-		
 		</>
 	);
-
-}
+};

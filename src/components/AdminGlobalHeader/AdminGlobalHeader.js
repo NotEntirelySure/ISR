@@ -174,6 +174,7 @@ export default function AdminGlobalHeader(props) {
     <>
       <Modal
         id='initSetup'
+        size='sm'
         modalHeading='Initial Setup'
         primaryButtonText="Execute"
         secondaryButtonText="Cancel"
@@ -190,9 +191,9 @@ export default function AdminGlobalHeader(props) {
             </p>
             <br/>
             <div style={{display:'flex'}}>
-              <WarningHex color="red" size={32}/>
+              <WarningHex color="red" size={48}/>
               <p style={{marginLeft:'2%', color:'red'}}>
-                WARNING: Do not use this option on an in progress ISR voting session.
+                WARNING: Do not use this Initial Setup option on an in progress ISR voting session.
                 IT WILL DELETE ALL VOTING DATA!
               </p>
             </div>
@@ -212,6 +213,7 @@ export default function AdminGlobalHeader(props) {
         
       <Modal
         danger
+        size='sm'
         modalHeading='Initial Setup Confirm Execute'
         primaryButtonText="Confirm"
         primaryButtonDisabled={confirmDisabled}
@@ -235,8 +237,8 @@ export default function AdminGlobalHeader(props) {
         children={
           <>
             <div style={{display:'flex'}}>
-              <WarningHex size={32}/>
-              <p style={{paddingLeft:'8px'}}>Warning! Once executed, initial setup actions cannot be undone. Please confirm you that wish to take this action.</p>
+              <WarningHex color='red' size={48}/>
+              <p style={{paddingLeft:'8px', color:'red'}}>Warning! Once executed, initial setup actions cannot be undone. Please confirm that you wish to take this action.</p>
             </div>
             <br/>
             <Checkbox
@@ -251,7 +253,8 @@ export default function AdminGlobalHeader(props) {
           </>
         }
       />
-      <Modal 
+      <Modal
+        size='xs'
         modalHeading="Executing Initial Setup"
         open={modalSetupExeOpen}
         preventCloseOnClickOutside={true}

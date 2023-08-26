@@ -17,7 +17,7 @@ export default function ResultsPage () {
 	
 	useEffect(() => {
 		
-    setConnectionStatus("active")
+    setConnectionStatus("active");
     setConnectionMessage("Connecting...");
 
 		if (!sessionStorage.getItem('resultsPageId')) sessionStorage.setItem('resultsPageId',`resultsPage-${Date.now()}-${Math.floor(Math.random()*1000)}`)
@@ -26,7 +26,7 @@ export default function ResultsPage () {
 
     client.onopen = () => {
 			setConnectionStatus("finished")
-    	setConnectionMessage("Connected");
+    	setConnectionMessage("Connected to server");
       client.send(JSON.stringify({sender:"client",id:connectionId, msg:"getResults"}))
     };
 
@@ -114,6 +114,7 @@ export default function ResultsPage () {
 						<div style={{display:'flex',justifyContent:'center', marginTop:'5rem'}}>
 							<InlineNotification
 								title="Nothing to Display"
+								kind="info"
 								subtitle="There are no results to show at this time. Please check back later."
 								hideCloseButton={true}
 							/>
