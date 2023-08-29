@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react'
 import {
   Button,
   ComboBox,
-  Content,
   Checkbox,
   DataTable,
   DataTableSkeleton,

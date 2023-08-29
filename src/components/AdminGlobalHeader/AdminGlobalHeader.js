@@ -110,6 +110,9 @@ export default function AdminGlobalHeader(props) {
         setVoteStatus("error");
         setVoteDescription("an error was encountreded deleting votes.");
         break;
+      default: 
+        setVoteStatus("error");
+        setVoteDescription("an unknown was encountreded deleting votes.");
     }
     //Remove all ideas
     setIdeaStatus("active");
@@ -128,6 +131,9 @@ export default function AdminGlobalHeader(props) {
         setIdeaStatus("error");
         setIdeaDescription("an error was encountreded deleting ideas.");
         break;
+      default: 
+        setVoteStatus("error");
+        setVoteDescription("an unknown was encountreded deleting votes.");
     }
     //Delete all users
     setUserStatus("active");
@@ -147,6 +153,9 @@ export default function AdminGlobalHeader(props) {
         setUserStatus("error");
         setUserDescription("an error was encountreded deleting participants.");
         break;
+      default: 
+        setVoteStatus("error");
+        setVoteDescription("an unknown was encountreded deleting votes.");
     }
     //Clear change log
     setLogStatus("active");
@@ -165,6 +174,9 @@ export default function AdminGlobalHeader(props) {
         setLogStatus("error");
         setLogDescription("an error was encountered clearing the change log.");
         break;
+      default:
+        setVoteStatus("error");
+        setVoteDescription("an unknown was encountreded deleting votes.");
     }
 
     setSetupCloseButtonDisabled(false);

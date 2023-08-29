@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import UserGlobalHeader from '../../components/UserGlobalHeader';
 import { w3cwebsocket } from 'websocket';
 import { InlineLoading, InlineNotification } from '@carbon/react';
@@ -36,7 +36,6 @@ export default function ResultsPage () {
 			if (messageData.chartData.length === 0) setChartData(null);
 			//only executes if the data from the web sockets server is chart data to publish
 			if (messageData.chartData.length > 0 && messageData.action === "publish") {
-
 				let scaleObj = {};
 				const data = messageData.chartData.map(idea => {
 					let name = `${idea.rank}) ${idea.ideaId}: ${idea.ideaDescription}`;
@@ -47,6 +46,11 @@ export default function ResultsPage () {
 					};
 				});
 
+				let threshold;
+				if (window.innerWidth <= 500) {console.log("500");threshold = 38};
+				if (window.innerWidth > 500 && window.innerWidth <= 1500) {console.log("500-1000");threshold = 56};
+				if (window.innerWidth > 1500) {console.log("1000+");threshold = 112};
+				
 				setChartData(data.reverse());
 				setChartOptions({
 					"title": "",
@@ -56,8 +60,8 @@ export default function ResultsPage () {
 							"scaleType": "labels",
 							"truncation": {
 								"type": "end_line",
-								"threshold": 56,
-								"numCharacter": 56
+								"threshold": threshold,
+								"numCharacter":threshold
 							}
 						},
 						"bottom": {

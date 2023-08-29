@@ -1,5 +1,4 @@
-import React, {useState, useEffect, useRef } from 'react'
-import { Buffer } from 'buffer';
+import React, {useState, useEffect } from 'react'
 import { Content } from 'carbon-components-react';
 import AdminGlobalHeader from "../AdminGlobalHeader";
 import UserGlobalHeader from '../UserGlobalHeader';

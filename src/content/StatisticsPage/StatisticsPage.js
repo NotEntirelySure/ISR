@@ -5,7 +5,6 @@ import { w3cwebsocket } from "websocket";
 import {
   Button,
   ComboBox,
-  Content,
   ContentSwitcher,
   DataTable,
   InlineLoading,
@@ -22,7 +21,7 @@ import {
   TableRow,
   TableContainer
 } from '@carbon/react';
-import { DocumentExport, Renew, Share } from '@carbon/react/icons';
+import { DocumentExport, Renew } from '@carbon/react/icons';
 import { SimpleBarChart } from "@carbon/charts-react";
 
 const rankHeaders = [
