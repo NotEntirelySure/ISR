@@ -171,6 +171,12 @@ app.post('/votes/add', (req, res) => {
     .catch(error => res.status(500).send(error))
 });
 
+app.post('/votes/batchadd', (req, res) => {
+  votes_model.batchAddVote(req.body)
+    .then(response => res.status(200).send(response))
+    .catch(error => res.status(500).send(error))
+});
+
 app.post('/votes/edit', (req, res) => {
   votes_model.editVote(req.body)
     .then(response => res.status(200).send(response))

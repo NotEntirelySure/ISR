@@ -164,7 +164,7 @@ BEGIN
     IF (source = 'admin') THEN
 	INSERT INTO changelog (
         changevoteid,
-	  changepreviousvalue,
+	changepreviousvalue,
         changenewvalue,
         changetime,
         changeaction,
@@ -172,16 +172,16 @@ BEGIN
       )
       VALUES (
         (
-	    SELECT voteid 
-	    FROM votes 
-	    WHERE voteideaid=idea
-	    AND voteparticipantid=participant
+	  SELECT voteid 
+	  FROM votes 
+	  WHERE voteideaid=idea
+	  AND voteparticipantid=participant
         ),
-	  (
-	    SELECT votevalue
-	    FROM votes
-	    WHERE voteideaid=idea
-	    AND voteparticipantid=participant
+	(
+	  SELECT votevalue
+	  FROM votes
+	  WHERE voteideaid=idea
+	  AND voteparticipantid=participant
         ),
         vote,
         (SELECT NOW()),
@@ -223,7 +223,7 @@ BEGIN
         voteideaid,
         voteparticipantid,
         votevalue,
-	  votetime,
+	votetime,
         votemodified
       )
       VALUES (idea, participant, vote,(SELECT NOW()),true);
@@ -250,6 +250,235 @@ BEGIN
     END IF;
   END IF;
   RETURN 0;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION batch_vote(idea VARCHAR, title VARCHAR, firstname VARCHAR, lastname VARCHAR, office VARCHAR, vote INT) RETURNS INT
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  PERFORM FROM ideas WHERE ideaid=idea;
+  IF NOT FOUND THEN 
+    RETURN 0;
+  END IF;
+
+  PERFORM FROM offices WHERE officename=office;
+  IF NOT FOUND THEN
+    INSERT INTO offices (officename) VALUES (office);
+    INSERT INTO changelog (
+      changetime,
+      changeaction,
+      changecomment
+    ) 
+    VALUES (
+      (SELECT(NOW())), 
+      'add',
+      'Office ' || office || ' created by batch vote function.'
+    );
+  END IF;
+
+  PERFORM 
+    p.participanttitle,
+    p.participantfname,
+    p.participantlname,
+    o.officename
+  FROM participants AS p
+  INNER JOIN offices AS o ON p.participantoffice=o.officeid
+  WHERE p.participanttitle=title
+  AND p.participantfname=firstname
+  AND p.participantlname=lastname
+  AND o.officename=office;
+  
+  IF NOT FOUND THEN
+    INSERT INTO participants (
+      participanttitle,
+      participantfname,
+      participantlname,
+      participantoffice,
+      participantloggedin
+    ) 
+    VALUES (
+      title,
+      firstname,
+      lastname,
+      (SELECT officeid FROM offices WHERE officename=office),
+      false
+    );
+    
+    INSERT INTO changelog (
+      changetime,
+      changeaction,
+      changecomment
+    ) 
+    VALUES (
+      (SELECT(NOW())), 
+      'add',
+      'Participant ' || title || ' ' || firstname || ' ' || lastname || ' was created by batch vote function'
+    );
+    
+    INSERT INTO votes (
+        voteideaid,
+        voteparticipantid,
+        votevalue,
+	votetime,
+        votemodified
+      )
+    VALUES (
+      idea,
+      (
+        SELECT participantid
+        FROM participants 
+        WHERE participanttitle=title
+        AND participantfname=firstname
+        AND participantlname=lastname
+      ), 
+      vote,
+      (SELECT NOW()),
+      true
+    );
+
+    INSERT INTO changelog (
+      changevoteid,
+      changenewvalue,
+      changetime,
+      changeaction,
+      changecomment
+    )
+    VALUES (
+      (
+        SELECT voteid 
+	      FROM votes 
+	      WHERE voteideaid=idea
+	      AND voteparticipantid=(
+          SELECT participantid
+          FROM participants
+          WHERE participanttitle=title
+          AND participantfname=firstname
+          AND participantlname=lastname
+        )
+      ),
+      vote,
+      (SELECT NOW()),
+      'add',
+      'Vote added by batch vote function'
+    );
+    RETURN 1;
+  END IF;
+
+  IF FOUND THEN
+    PERFORM FROM votes
+    WHERE voteideaid=idea
+    AND voteparticipantid=(
+      SELECT participantid
+      FROM participants
+      WHERE participanttitle=title
+      AND participantfname=firstname
+      AND participantlname=lastname
+    );
+    IF FOUND THEN
+      INSERT INTO changelog (
+        changevoteid,
+	      changepreviousvalue,
+        changenewvalue,
+        changetime,
+        changeaction,
+        changecomment
+      )
+      VALUES (
+        (
+          SELECT voteid 
+          FROM votes 
+          WHERE voteideaid=idea
+          AND voteparticipantid=(
+            SELECT participantid
+            FROM participants
+            WHERE participanttitle=title
+            AND participantfname=firstname
+            AND participantlname=lastname
+          )
+        ),
+	      (
+          SELECT votevalue
+          FROM votes
+          WHERE voteideaid=idea
+          AND voteparticipantid=(
+            SELECT participantid
+            FROM participants
+            WHERE participanttitle=title
+            AND participantfname=firstname
+            AND participantlname=lastname
+          )
+        ),
+        vote,
+        (SELECT NOW()),
+        'edit',
+        'Vote updated through batch vote function'
+      );
+      UPDATE votes
+      SET 
+        votevalue=vote,
+        votetime=(SELECT NOW()),
+	      votemodified=true
+      WHERE voteideaid=idea
+      AND voteparticipantid=(
+        SELECT participantid
+        FROM participants
+        WHERE participanttitle=title
+        AND participantfname=firstname
+        AND participantlname=lastname
+      );
+      RETURN 1;
+    END IF;
+    IF NOT FOUND THEN
+      INSERT INTO votes (
+        voteideaid,
+        voteparticipantid,
+        votevalue,
+        votetime,
+        votemodified
+      )
+      VALUES (
+        idea,
+        (
+          SELECT participantid
+          FROM participants
+          WHERE participanttitle=title
+          AND participantfname=firstname
+          AND participantlname=lastname
+        ),
+        vote,
+        (SELECT(NOW())),
+        true
+      );
+      INSERT INTO changelog (
+        changevoteid,
+        changenewvalue,
+        changetime,
+        changeaction,
+        changecomment
+      )
+      VALUES (
+        (
+	        SELECT voteid 
+	        FROM votes
+	        WHERE voteideaid=idea
+	        AND voteparticipantid=(
+            SELECT participantid
+            FROM participants
+            WHERE participanttitle=title
+            AND participantfname=firstname
+            AND participantlname=lastname
+          )
+	      ),
+        vote,
+        (SELECT NOW()),
+        'add',
+        'Vote added though batch vote function'
+      );
+      RETURN 1;
+    END IF;
+  END IF;
+  RETURN 2;
 END;
 $$;
 

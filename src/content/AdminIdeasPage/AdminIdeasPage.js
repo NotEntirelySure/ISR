@@ -75,13 +75,13 @@ export default function AdminIdeasPage() {
   const [editSequenceValue, setEditSequenceValue] = useState(0);
   const [displayTable, setDisplayTable] = useState('none');
   const [displaySkeleton, setDisplaySkeleton] = useState('block');
-  const [uploadFileStatus, setFileUploadStatus] = useState('uploading')
+  const [fileUploadStatus, setFileUploadStatus] = useState('uploading');
   const [importButtonDisabled, setImportButtonDisabled] = useState(true);
   const [errorInfo, setErrorInfo] = useState({heading:"", message:""});
   const [progressButtonDisabled, setProgressButtonDisabled] = useState(true);
   const [progressLabel, setProgressLabel] = useState('');
   const [progressStatus, setProgressStatus] = useState(null);
-  const [progressHelperText, setProgressHelperText] = useState('')
+  const [progressHelperText, setProgressHelperText] = useState('');
   const [progressCurrentValue, setProgressCurrentValue] = useState(null);
   const [progressMaxValue, setProgressMaxValue] = useState(null);
   const [progressErrorInfo, setProgressErrorInfo] = useState('');
@@ -302,7 +302,7 @@ export default function AdminIdeasPage() {
     setProgressButtonDisabled(false);
     uploadFile.current = null;
     GetIdeas();
-  }
+  };
   
   async function EditIdea() {
     
@@ -574,7 +574,7 @@ export default function AdminIdeasPage() {
             iconDescription="Clear file"
             labelDescription="This import function accepts three file types: .csv, .xls, and .xlsx."
             labelTitle="Upload"
-            status={uploadFileStatus}
+            status={fileUploadStatus}
             onChange={event => HandleFileChange(event)}
             onDelete={() => HandleFileChange("removeFile")}
           />

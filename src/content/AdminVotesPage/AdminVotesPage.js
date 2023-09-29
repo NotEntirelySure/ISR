@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react'
+import * as XLSX from "xlsx";
 import {
   Button,
   ComboBox,
   Checkbox,
   DataTable,
   DataTableSkeleton,
+	FileUploader,
   Modal,
   NumberInput,
   TableContainer,
@@ -18,15 +20,20 @@ import {
   TableToolbarContent,
   TableToolbarSearch,
   TextArea,
+	Tile,
+	Tooltip,
   Loading
 } from '@carbon/react';
 import {
   Add,
-  RecentlyViewed,
+	DocumentImport,
   Edit,
+	Information,
+  RecentlyViewed,
   TrashCan,
   WarningHex
 } from '@carbon/react/icons';
+import ProgressBar from '@carbon/react/lib/components/ProgressBar/ProgressBar';
 
 const headers = [
 	{key:'voteId', header:'Vote ID'},
@@ -49,6 +56,8 @@ export default function AdminVotesPage() {
 	const voteToEditRef = useRef({});
 	const editVoteCommentRef = useRef();
 	const deleteAllAck = useRef();
+	const skipHeaderRef = useRef();
+	const uploadFile = useRef();
 	const voteToDelete = useRef({
 		voteId:"",
 		ideaId:"",
@@ -62,6 +71,7 @@ export default function AdminVotesPage() {
 	const [modalDeleteAllOpen, setModalDeleteAllOpen] = useState(false);
 	const [modalHistoryOpen, setModalHistoryOpen] = useState(false);
 	const [modalErrorOpen, setModalErrorOpen] = useState(false);
+	const [modalProgressOpen, setModalProgressOpen] = useState(false);
 	const [deleteAllDisabled, setDeleteAllDisabled] = useState(true);
 	const [userComboInvalid, setUserComboInvalid] = useState(false);
 	const [ideaComboInvalid, setIdeaComboInvalid] = useState(false);
@@ -75,6 +85,18 @@ export default function AdminVotesPage() {
 	const [currentVoteHistory, setCurrentVoteHistory] = useState(0);
 	const [addIdeaComboSelection, setAddIdeaComboSelection] = useState({ideaid:""});
 	const [addVoteInputValue, setAddVoteInputValue] = useState(0);
+	const [importButtonDisabled, setImportButtonDisabled] = useState(true);
+	const [modalImportOpen, setModalImportOpen] = useState(false);
+	const [fileUploadStatus, setFileUploadStatus] = useState('uploading')
+	const [progressButtonDisabled, setProgressButtonDisabled] = useState(true);
+	const [progressLabel, setProgressLabel] = useState('');
+  const [progressStatus, setProgressStatus] = useState(null);
+  const [progressHelperText, setProgressHelperText] = useState('')
+  const [progressCurrentValue, setProgressCurrentValue] = useState(null);
+  const [progressMaxValue, setProgressMaxValue] = useState(null);
+  const [progressErrorInfo, setProgressErrorInfo] = useState('');
+  const [progressErrorDisplay, setProgressErrorDisplay] = useState('none');
+  const [progressErrorCount, setProgressErrorCount] = useState(0);
 	const [addUserComboSeletion, setAddUserComboSelection] = useState({
 		fname:"",
 		lname:"",
@@ -396,6 +418,86 @@ export default function AdminVotesPage() {
     setShowHistoryContent('block');
   }
 
+	function HandleFileChange(event) {
+    
+    if (event === "removeFile") {
+      uploadFile.current = null;
+      setImportButtonDisabled(true);
+      return;
+    };
+    setFileUploadStatus('uploading');
+    const file = event.target.files[0];
+    if (
+      file.type === "text/csv" ||
+      file.type === "application/vnd.ms-excel" ||  
+      file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      ) {
+      let fileReader = new FileReader();
+      fileReader.onloadend = event => uploadFile.current = event.target.result;
+      fileReader.readAsBinaryString(file);
+      setFileUploadStatus('complete');
+      setImportButtonDisabled(false);
+    };
+  };
+
+	async function BatchAddVotes() {
+    if (!progressButtonDisabled) setProgressButtonDisabled(true);
+    if (progressErrorInfo.length > 0) setProgressErrorInfo('');
+    if (progressErrorCount > 0) setProgressErrorCount(0);
+    setModalImportOpen(false);
+    setImportButtonDisabled(true);
+    setModalProgressOpen(true);
+    setProgressLabel("Importing Votes...");
+    setProgressHelperText('Processing file...');
+    //process file
+    const workbook = XLSX.read(uploadFile.current, {type:'binary'});
+    const worksheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[worksheetName];
+    const fileData = XLSX.utils.sheet_to_row_object_array(worksheet, {header:1});
+  
+    const objVoteList = [];
+    let i=1;
+    if (skipHeaderRef.current.checked) i=0;
+    for (i; i<fileData.length; i++) {
+      
+      objVoteList.push({
+				ideaId:fileData[i][0],
+				title:fileData[i][1],
+				fName:fileData[i][2],
+				lName:fileData[i][3],
+				office:fileData[i][4],
+				vote:fileData[i][5]
+      });
+		}
+    //batch add
+    setProgressMaxValue(objVoteList.length);
+    setProgressStatus('active');
+    for (let i=0; i<objVoteList.length;i++) {
+      setProgressHelperText(`Adding vote ${i+1} of ${objVoteList.length}`);
+      
+      setProgressCurrentValue(i+1);
+      const addRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/votes/batchadd`, {
+        method:'POST',
+        mode:'cors',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({values:objVoteList[i], "token":localStorage.getItem('adminjwt')})
+      });
+      const addResponse = await addRequest.json();
+      if (addResponse.code !== 200) {
+        setProgressErrorCount(previousState => previousState + 1);
+        if (progressErrorDisplay === 'none') setProgressErrorDisplay('block');
+        setProgressErrorInfo(previousState => previousState + `Error ${addResponse.code} encountered when adding vote for idea ${objVoteList[i].ideaId} from office ${objVoteList[i].office} \nDetails: ${addResponse.message}\n\n`);
+      }
+      
+    };
+    setProgressLabel("Done.");
+    setProgressStatus('finished');
+    setProgressMaxValue(null);
+    setProgressButtonDisabled(false);
+    uploadFile.current = null;
+    GetVotes();
+  }
+
 	return (
 		<>
 			<Modal
@@ -657,6 +759,107 @@ export default function AdminVotesPage() {
 				}}
 				children={<div>{errorInfo.current.message}</div>}
 			/>
+			<Modal
+        id='modalImport'
+        size='sm'
+        hasScrollingContent
+        aria-label="Import Modal"
+        primaryButtonText="Import"
+        primaryButtonDisabled={importButtonDisabled}
+        secondaryButtonText="Cancel"
+        modalHeading='Import'
+        onRequestClose={() => {
+          skipHeaderRef.current.checked = false;
+          setModalImportOpen(false);
+          setImportButtonDisabled(true);
+          HandleFileChange("removeFile")
+        }}
+        onRequestSubmit={() => BatchAddVotes()} 
+        open={modalImportOpen}
+      >
+        <Tile>
+          <p>This import function allows you to specify a file containing a list of votes, and add the list of votes to the database.</p>  
+        </Tile>
+        <Tile className='file-import-warining-tile'>
+          <div style={{display:'flex',gap:'1rem',alignItems:'center'}}>
+            <div id="warningIcon"><WarningHex size={32} fill="orange"/></div>
+            <div><p>Important: the contents of the file must be formatted as shown below, or else the import will fail.</p></div>
+          </div>
+          <br/>
+          <div style={{paddingLeft:'2rem'}}><img id='exampleImport' src={`${process.env.PUBLIC_URL}/import_example.png`} alt='Example Import Format'></img></div>
+        </Tile>
+        <hr/>
+        <div className="cds--file__container">
+          <FileUploader
+            accept={['.csv', '.xls', '.xlsx']}
+            size="lg"
+            buttonKind="primary"
+            buttonLabel="Add file"
+            filenameStatus="edit"
+            iconDescription="Clear file"
+            labelDescription="This import function accepts three file types: .csv, .xls, and .xlsx."
+            labelTitle="Upload"
+            status={fileUploadStatus}
+            onChange={event => HandleFileChange(event)}
+            onDelete={() => HandleFileChange("removeFile")}
+          />
+        </div>
+        <div>
+          <div style={{float: 'left'}}>
+            <Checkbox 
+              id="skipHeader"
+              ref={skipHeaderRef}
+              labelText="Do not skip first row header"
+            />
+          </div>
+          <div>
+          <Tooltip 
+            align="top"
+            label="By default the import function skips the first row because it's assumed to be the header row. Select this option if the input file does not utilize a header on the first row."
+          >
+            <Information/>
+          </Tooltip>
+          </div>
+        </div>
+      </Modal>
+			<Modal
+        id="modalProgress"
+        preventCloseOnClickOutside={true}
+        primaryButtonDisabled={progressButtonDisabled}
+        primaryButtonText="Done"
+        modalHeading="Idea Import"
+        open={modalProgressOpen}
+        onRequestClose={() => {
+          setProgressErrorInfo('');
+          setModalProgressOpen(false);
+        }}
+        onRequestSubmit={() => {
+          setProgressErrorInfo('');
+          setModalProgressOpen(false);
+        }}
+        children={
+          <>
+            <div>
+              <ProgressBar
+                label={progressLabel}
+                helperText={progressHelperText}
+                status={progressStatus}
+                max={progressMaxValue}
+                value={progressCurrentValue}
+              />
+            </div>
+            <div style={{marginTop:'2rem'}}>
+              <TextArea
+                labelText="Upload Errors"
+                helperText={`Error count: ${progressErrorCount}`}
+                readOnly={true}
+                rows={4}
+                value={progressErrorInfo}
+              />
+            </div>
+          </>
+        }
+      />
 			<div style={{display:displayTable}} className="adminPageBody">
 				<div className="dataTable">
 					<DataTable
@@ -687,6 +890,13 @@ export default function AdminVotesPage() {
 											setModalAddOpen(true);
 										}}
 									/>
+									<Button 
+                      renderIcon={DocumentImport} 
+                      hasIconOnly 
+                      iconDescription='Import Votes'
+                      kind='secondary'
+                      onClick={() => setModalImportOpen(true)}
+                    />
 									<Button 
 										kind='danger'
 										onClick={() => setModalDeleteAllOpen(true)}

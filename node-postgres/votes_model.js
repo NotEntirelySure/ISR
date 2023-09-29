@@ -142,7 +142,7 @@ function addVote(data) {
     const isAuthResponse = await isAuthReqest;
     if (isAuthResponse.code !== 200) resolve(isAuthResponse);
     if (isAuthResponse.code === 200) {
-      if (data.values.source === "admin" && data.values.comment === "") data.values["comment"] = "Admin created/edited this vote."
+      if (data.values.source === "admin" && data.values.comment === "") data.values["comment"] = "Admin created/edited this vote.";
       pool.query(
         'SELECT submit_vote($1,$2,$3,$4,$5);',
         [
@@ -157,6 +157,35 @@ function addVote(data) {
           if (results.rows[0].submit_vote === 0) reject({code:500, message:"An error occured submitting the vote."});
           if (results.rows[0].submit_vote === 1) resolve({code:200});
           resolve({code:404,message:"An unknown error occured while attempting to submit vote."});
+        }
+      );
+    };
+  });
+};
+
+//used by admin vote page
+function batchAddVote(data) {
+  return new Promise(async(resolve, reject) => {
+    const isAuthReqest = await auth_model._verifyAdmin(data.token);
+    const isAuthResponse = await isAuthReqest;
+    if (isAuthResponse.code !== 200) resolve(isAuthResponse);
+    if (isAuthResponse.code === 200) {
+      pool.query(
+        `SELECT batch_vote ($1,$2,$3,$4,$5,$6);`,
+        [
+          data.values.ideaId,
+          data.values.title,
+          data.values.fName,
+          data.values.lName,
+          data.values.office,
+          data.values.vote
+        ],
+        (error, results) => {
+          if (error) resolve({code:500,message:error.detail});
+          if (results.rows[0].batch_vote === 0) resolve({code:500, message:`Could not submit vote. Idea ID ${data.values.ideaId} was not found in the database.`});
+          if (results.rows[0].batch_vote === 1) resolve({code:200});
+          if (results.rows[0].batch_vote === 2) resolve({code:500, message:`The vote was processed by the database function but the function took no action.`});
+          resolve({code:404,message:"An unknown error occured while attempting to submit the vote."});
         }
       );
     };
@@ -320,6 +349,7 @@ module.exports = {
   getChangeLogById,
   getAllChangeLogs,
   addVote,
+  batchAddVote,
   editVote,
   deleteVote,
   deleteAllVotes,
