@@ -226,9 +226,15 @@ export default function AdminIdeasPage() {
 
     let objIdeaList = [];
     let domainId;
-    let i=1;
-    if (skipHeaderRef.current.checked) i=0;
-    for (i; i<fileData.length; i++) {
+    for (let i=skipHeaderRef.current.checked ? 0:1; i<fileData.length; i++) {
+
+      if (!fileData[i][0]) {
+        console.log('count: ',i);
+        setProgressErrorCount(previousState => previousState + 1);
+        if (progressErrorDisplay === 'none') setProgressErrorDisplay('block');
+        setProgressErrorInfo(previousState => previousState + `Warning: line item ${i+1} skipped\nDetails: line item ${i+1} contained a null value in the idea number column. An idea cannot be added without a valid, unique idea number. Update line ${i+1} and try again, or add this idea individually.\n\n`);
+        continue;
+      };
       
       let domainFound = false;
       for (let id=0;id<domainList.current.length;id++){
@@ -239,13 +245,13 @@ export default function AdminIdeasPage() {
         }
       }
 
-      //if no direct match can be found between the provided domain name and one recorded in the database, try different iterations of domain names.
+      //if no direct match can be found between the provided domain name and one recorded in the database, try different permutations of domain names.
       if (!domainFound) {
         let refArray = [];
-        const ewIterations = ["ew", "e&w","environment and waterways","environment & waterways"];
-        const msIterations = ["ms", "m&s","msa","modeling and simulation","modeling & simulation"];
-        const itnetIterations = ["itnet","itnet","it and networks","it & networks"];
-        const asIterations = ["aviation/systems","aviation and systems","aviation & systems","systems","aviation"]
+        const ewIterations = ["ew", "e&w","e/w","environment/waterways","environment and waterways","environment & waterways","environment&waterways"];
+        const msIterations = ["ms", "m&s","m/s","msa","modeling/simulation","modeling and simulation","modeling & simulation","modeling&simulation"];
+        const itnetIterations = ["itnet","it&net","it/net","it and networks","it & networks","it&networks"];
+        const asIterations = ["aviation/systems","aviation and systems","aviation & systems","aviation&systems","systems","aviation"]
         const c5Iterations = ["c5isr","c5i","c5isc"]
         
         if (ewIterations.includes(String(fileData[i][2]).toLowerCase())) refArray = [...ewIterations];
@@ -254,7 +260,7 @@ export default function AdminIdeasPage() {
         if (asIterations.includes(String(fileData[i][2]).toLowerCase())) refArray = [...asIterations];
         if (c5Iterations.includes(String(fileData[i][2]).toLowerCase())) refArray = [...c5Iterations];
         
-        //if one of the iterations matches the provided domain name, check if the database also contains that iteration.
+        //if one of the permutations matches the provided domain name, check if the database also contains that permutation.
         for (let i=0;i<domainList.current.length;i++){
           if (refArray.includes(domainList.current[i].ideadomainname.toLowerCase())) {
             domainId = domainList.current[i].ideadomainid
@@ -264,6 +270,7 @@ export default function AdminIdeasPage() {
       };
 
       sequenceNumber++;
+      
       objIdeaList.push({
         "ideaId":fileData[i][0],
         "ideaDescription":fileData[i][1],
@@ -368,6 +375,12 @@ export default function AdminIdeasPage() {
 
   function HandleFileChange(event) {
     
+    const fileTypes = {
+      "csv":"text/csv",
+      "xls":"application/vnd.ms-excel",
+      "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    }
+
     if (event === "removeFile") {
       uploadFile.current = null;
       setImportButtonDisabled(true);
@@ -375,11 +388,7 @@ export default function AdminIdeasPage() {
     };
     setFileUploadStatus('uploading');
     const file = event.target.files[0];
-    if (
-      file.type === "text/csv" ||
-      file.type === "application/vnd.ms-excel" ||  
-      file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-      ) {
+    if (file.type === fileTypes.csv || file.type === fileTypes.xls || file.type === fileTypes.xlsx) {
       let fileReader = new FileReader();
       fileReader.onloadend = event => uploadFile.current = event.target.result;
       fileReader.readAsBinaryString(file);
