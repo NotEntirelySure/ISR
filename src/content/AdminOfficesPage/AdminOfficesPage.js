@@ -63,7 +63,8 @@ export default function AdminOfficesPage() {
                 size="md"
                 renderIcon={TrashCan}
                 iconDescription='Delete office'
-                kind="danger"
+                style={{color:'#DA1E28'}}
+                kind="primary--ghost"
                 onClick={() => {
                   officeToDelete.current = {
                     officeId:office.officeid,

@@ -30,6 +30,7 @@ export default function App() {
         <Route path="/statistics" element={<ProtectedRoute page="statistics"/>}/>
         <Route path="/officesadmin" element={<ProtectedRoute page="officesadmin"/>}/>
         <Route path="/domainsadmin" element={<ProtectedRoute page="domainsadmin"/>}/>
+        <Route path="/logsadmin" element={<ProtectedRoute page="logsadmin"/>}/>
         <Route path='/test' element={<ProtectedRoute page="test"/>}/>
       </Routes>
     </>

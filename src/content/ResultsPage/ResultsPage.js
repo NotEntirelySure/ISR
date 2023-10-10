@@ -94,6 +94,20 @@ export default function ResultsPage () {
 
 	},[])
 	
+	function GetDate() {
+		const fullYear = new Date().getFullYear();
+		const shortYear = String(fullYear).substring(0);
+		console.log(shortYear);
+		return <h1 className="results-page__heading">FY{shortYear} ISR Voting Results</h1>
+	}
+
+	const shortYear = () => {
+		const fullYear = new Date().getFullYear();
+
+		const shortYear = fullYear.toString().substring(2);
+		return shortYear;
+	};
+
 	return (
 		<>
 			<UserGlobalHeader notificationActive={false} isAuth={false}/>
@@ -101,7 +115,7 @@ export default function ResultsPage () {
 			<div className='results-page__banner'>
 				<div style={{display:'flex', justifyContent:"space-between"}}>
 					<div>
-						<h1 className="results-page__heading">{`FY ${new Date().getFullYear()+2} ISR`} Voting Results</h1>
+					<h1 className="results-page__heading">FY{String(new Date().getFullYear() + 2).substring(2)} ISR Voting Results</h1>
 					</div>
 					<div style={{paddingRight:'2rem'}}>
             <InlineLoading description={connectionMessage} status={connectionStatus}/>   

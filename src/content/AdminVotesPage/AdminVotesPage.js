@@ -144,7 +144,8 @@ export default function AdminVotesPage() {
                 size='md'
                 renderIcon={Edit}
                 iconDescription='Edit Vote'
-                kind="primary"
+								style={{color:'#0F62FE'}}
+                kind="primary--ghost"
                 onClick={() => {
 									editVoteValueRef.current.value = item.votevalue;
                   voteToEditRef.current = {
@@ -161,7 +162,7 @@ export default function AdminVotesPage() {
                 size='md'
                 renderIcon={RecentlyViewed}
                 iconDescription='Vote History'
-                kind="secondary"
+                kind="secondary--ghost"
                 onClick={() => {
 									setModalHistoryOpen(true);
 									setShowLoading('block');
@@ -174,14 +175,15 @@ export default function AdminVotesPage() {
                 size='md'
                 renderIcon={TrashCan}
                 iconDescription='Delete Vote'
-                kind='danger'
+								style={{color:'red'}}
+                kind='primary--ghost'
                 onClick={() => {
-					voteToDelete.current = {
-						voteId:item.voteid,
-                    	ideaId:item.voteideaid,
-                    	voter:`${item.participanttitle} ${item.participantfname} ${item.participantlname}`
-                  	};
-                  	setModalDeleteOpen(true);
+									voteToDelete.current = {
+										voteId:item.voteid,
+										ideaId:item.voteideaid,
+										voter:`${item.participanttitle} ${item.participantfname} ${item.participantlname}`
+									};
+									setModalDeleteOpen(true);
                 }}
 								/>
             </div>
@@ -456,9 +458,7 @@ export default function AdminVotesPage() {
     const fileData = XLSX.utils.sheet_to_row_object_array(worksheet, {header:1});
   
     const objVoteList = [];
-    let i=1;
-    if (skipHeaderRef.current.checked) i=0;
-    for (i; i<fileData.length; i++) {
+    for (let i = skipHeaderRef.current.checked ? 0:1; i<fileData.length; i++) {
       
       objVoteList.push({
 				ideaId:fileData[i][0],
@@ -486,7 +486,7 @@ export default function AdminVotesPage() {
       if (addResponse.code !== 200) {
         setProgressErrorCount(previousState => previousState + 1);
         if (progressErrorDisplay === 'none') setProgressErrorDisplay('block');
-        setProgressErrorInfo(previousState => previousState + `Error ${addResponse.code} encountered when adding vote for idea ${objVoteList[i].ideaId} from office ${objVoteList[i].office} \nDetails: ${addResponse.message}\n\n`);
+        setProgressErrorInfo(previousState => previousState + `Error ${addResponse.code} encountered when adding vote for idea "${objVoteList[i].ideaId}"\n\tImport file line number: ${skipHeaderRef.current.checked ? i+1:i+2} \n\tDetails: ${addResponse.message}\n\n`);
       }
       
     };
@@ -494,6 +494,7 @@ export default function AdminVotesPage() {
     setProgressStatus('finished');
     setProgressMaxValue(null);
     setProgressButtonDisabled(false);
+		skipHeaderRef.current.checked = false;
     uploadFile.current = null;
     GetVotes();
   }
@@ -767,7 +768,7 @@ export default function AdminVotesPage() {
         primaryButtonText="Import"
         primaryButtonDisabled={importButtonDisabled}
         secondaryButtonText="Cancel"
-        modalHeading='Import'
+        modalHeading='Import Votes'
         onRequestClose={() => {
           skipHeaderRef.current.checked = false;
           setModalImportOpen(false);
@@ -786,7 +787,9 @@ export default function AdminVotesPage() {
             <div><p>Important: the contents of the file must be formatted as shown below, or else the import will fail.</p></div>
           </div>
           <br/>
-          <div style={{paddingLeft:'2rem'}}><img id='exampleImport' src={`${process.env.PUBLIC_URL}/import_example.png`} alt='Example Import Format'></img></div>
+          <div style={{paddingLeft:'2rem'}}>
+						<img id='exampleImport' src={`${process.env.PUBLIC_URL}/vote_import_example.png`} alt='Example Import Format'></img>
+					</div>
         </Tile>
         <hr/>
         <div className="cds--file__container">
@@ -899,8 +902,9 @@ export default function AdminVotesPage() {
                     />
 									<Button 
 										kind='danger'
+										renderIcon={TrashCan}
 										onClick={() => setModalDeleteAllOpen(true)}
-										children={<><TrashCan/> Delete All</>}
+										children={"Delete All"}
 								/>
 								</TableToolbar>
 								<Table {...getTableProps()}>

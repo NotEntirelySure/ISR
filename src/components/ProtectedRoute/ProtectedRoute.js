@@ -13,6 +13,7 @@ import AdminOfficesPage from '../../content/AdminOfficesPage';
 import LandingPage from "../../content/LandingPage";
 import TestPage from '../../content/TestPage';
 import AdminDomainsPage from '../../content/AdminDomainsPage';
+import AdminLogsPage from '../../content/AdminLogsPage';
 
 export default function ProtectedRoute(props) {
 	
@@ -62,6 +63,9 @@ export default function ProtectedRoute(props) {
 						break;
 					case "domainsadmin":
 						page = <AdminDomainsPage/>;
+						break;
+					case "logsadmin":
+						page = <AdminLogsPage/>;
 						break;
 					case "test":
 						page = <TestPage/>;

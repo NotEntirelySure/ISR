@@ -9,12 +9,13 @@ import {
     Stack,
     TextInput
 } from '@carbon/react';
+import { Login } from '@carbon/react/icons'
 import UserGlobalHeader from '../../components/UserGlobalHeader';
 
 export default function AdminLoginPage() {
-  
+
   const navigate = useNavigate();
-  
+
   const usernameRef = useRef('');
   const passwordRef = useRef('');
   const errorInfo = useRef({heading:"", message:""});
@@ -23,9 +24,9 @@ export default function AdminLoginPage() {
   const [usernameInvalid, setUsernameInvalid] = useState(false);
   const [passwordInvalid, setPasswordInvalid] = useState(false);
   const [notification, setNotification] = useState(0);
-  
-  async function Login() {
-    
+
+  async function AdminLogin() {
+
     setUsernameInvalid(false);
     setPasswordInvalid(false);
 
@@ -33,14 +34,14 @@ export default function AdminLoginPage() {
       setUsernameInvalid(true);
       return;
     };
-    
+
     if (passwordRef.current.value === "") {
       setPasswordInvalid(true);
       return;
     };
 
     if (usernameRef.current.value !== "" && passwordRef.current.value !== "") {
-        
+
       const loginRequest = await fetch(`${process.env.REACT_APP_API_BASE_URL}/login/admin`, {
         method:'POST',
         mode:'cors',
@@ -49,7 +50,7 @@ export default function AdminLoginPage() {
       });
 
       const loginResponse = await loginRequest.json();
-      
+
       switch (loginResponse.code) {
         case 200:
           localStorage.setItem("adminjwt", loginResponse.jwt);
@@ -101,10 +102,10 @@ export default function AdminLoginPage() {
                 invalid={passwordInvalid}
                 invalidText="This is a required field."
                 tabIndex={0}
-                onKeyDown={event => {if (event.key === 'Enter'){Login()}}}
+                onKeyDown={event => {if (event.key === 'Enter'){AdminLogin()}}}
               />
               {
-                notification === 0 ? 
+                notification === 0 ?
                   null
                   :
                   <InlineNotification
@@ -115,9 +116,14 @@ export default function AdminLoginPage() {
                     subtitle="invalid username or password"
                   />
               }
-              <Button kind='primary' tabIndex={0} onClick={() => Login()}>Login</Button>
+              <Button
+                tabIndex={0}
+                renderIcon={Login}
+                onClick={() => AdminLogin()}
+                children={"Login"}
+              />
             </Stack>
-          </Form>     
+          </Form>
         </div>
       </div>
     </>

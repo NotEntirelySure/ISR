@@ -166,29 +166,64 @@ function addVote(data) {
 //used by admin vote page
 function batchAddVote(data) {
   return new Promise(async(resolve, reject) => {
-    const isAuthReqest = await auth_model._verifyAdmin(data.token);
-    const isAuthResponse = await isAuthReqest;
-    if (isAuthResponse.code !== 200) resolve(isAuthResponse);
-    if (isAuthResponse.code === 200) {
-      pool.query(
-        `SELECT batch_vote ($1,$2,$3,$4,$5,$6);`,
-        [
-          data.values.ideaId,
-          data.values.title,
-          data.values.fName,
-          data.values.lName,
-          data.values.office,
-          data.values.vote
-        ],
-        (error, results) => {
-          if (error) resolve({code:500,message:error.detail});
-          if (results.rows[0].batch_vote === 0) resolve({code:500, message:`Could not submit vote. Idea ID ${data.values.ideaId} was not found in the database.`});
-          if (results.rows[0].batch_vote === 1) resolve({code:200});
-          if (results.rows[0].batch_vote === 2) resolve({code:500, message:`The vote was processed by the database function but the function took no action.`});
-          resolve({code:404,message:"An unknown error occured while attempting to submit the vote."});
-        }
-      );
-    };
+    try {
+      if (!data.values.ideaId) {
+        resolve({code:500, message:'The supplied idea number is null.'});
+        return;
+      };
+      if (!data.values.title) {
+        resolve({code:500, message:'The supplied participant title is null.'});
+        return;
+      };
+      if (!data.values.fName) {
+        resolve({code:500, message:'The supplied participant first name is null.'});
+        return;
+      };
+      if (!data.values.lName) {
+        resolve({code:500, message:'The supplied participant last name is null.'});
+        return;
+      };
+      if (!data.values.office) {
+        resolve({code:500, message:'The supplied office is null.'});
+        return;
+      };
+      if (!data.values.vote) {
+        resolve({code:500, message:'The supplied vote value is null.'});
+        return;
+      };
+      if (data.values.vote < 0 || data.values.vote > 10 || isNaN(data.values.vote)) {
+        resolve({code:500, message:`The supplied vote value of '${data.values.vote}' is out of range. Please provide a number between 0 and 10.`});
+        return;
+      };
+      
+      const isAuthReqest = await auth_model._verifyAdmin(data.token);
+      const isAuthResponse = await isAuthReqest;
+      if (isAuthResponse.code !== 200) resolve(isAuthResponse);
+      if (isAuthResponse.code === 200) {
+        pool.query(
+          `SELECT batch_vote ($1,$2,$3,$4,$5,$6);`,
+          [
+            String(data.values.ideaId).trim(),
+            String(data.values.title).trim(),
+            String(data.values.fName).trim(),
+            String(data.values.lName).trim(),
+            String(data.values.office).trim(),
+            data.values.vote
+          ],
+          (error, results) => {
+            if (error) {
+              resolve({code:500,message:error.detail});
+              return;
+            };
+            if (results.rows[0].batch_vote === 0) resolve({code:500, message:`Could not submit vote. Idea ID ${data.values.ideaId} was not found in the database.`});
+            if (results.rows[0].batch_vote === 1) resolve({code:200});
+            if (results.rows[0].batch_vote === 2) resolve({code:500, message:`The vote was processed by the database function but the function took no action.`});
+            resolve({code:404,message:"An unknown error occured while attempting to submit the vote."});
+          }
+        );
+      };
+    }
+    catch (error) {console.log(error)};
   });
 };
 

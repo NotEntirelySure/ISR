@@ -116,7 +116,8 @@ export default function AdminIdeasPage() {
                 size="md"
                 renderIcon={Edit}
                 iconDescription='Edit Idea'
-                kind="primary"
+                style={{color:'#0F62FE'}}
+                kind="primary--ghost"
                 onClick={async() => {
                   setEditSequenceValue(idea.ideasequence);
                   editIdRef.current.value = idea.ideaid;
@@ -141,7 +142,8 @@ export default function AdminIdeasPage() {
                 size="md"
                 renderIcon={TrashCan}
                 iconDescription='Delete Idea'
-                kind="danger"
+                style={{color:'#DA1E28'}}
+                kind="primary--ghost"
                 onClick={() => {
                   setIdeaToDelete({
                     ideaid:idea.ideaid,
@@ -551,7 +553,7 @@ export default function AdminIdeasPage() {
         primaryButtonText="Import"
         primaryButtonDisabled={importButtonDisabled}
         secondaryButtonText="Cancel"
-        modalHeading='Import'
+        modalHeading='Import Ideas'
         onRequestClose={() => {
           skipHeaderRef.current.checked = false;
           setModalImportOpen(false);
@@ -570,7 +572,7 @@ export default function AdminIdeasPage() {
             <div><p>Important: the contents of the file must be formatted as shown below, or else the import will fail.</p></div>
           </div>
           <br/>
-          <div style={{paddingLeft:'2rem'}}><img id='exampleImport' src={`${process.env.PUBLIC_URL}/import_example.png`} alt='Example Import Format'></img></div>
+          <div style={{paddingLeft:'2rem'}}><img id='exampleImport' src={`${process.env.PUBLIC_URL}/idea_import_example.png`} alt='Example Import Format'></img></div>
         </Tile>
         <hr/>
         <div className="cds--file__container">
@@ -693,10 +695,10 @@ export default function AdminIdeasPage() {
         <p>Are you sure you want to delete {ideaToDelete.ideaid} {ideaToDelete.ideadescription}?</p>
       </Modal>
 
-      <div style={{display:displayTable, height:'10px'}} className="bx--grid bx--grid--full-width adminPageBody">
-      <div className="bx--row bx--offset-lg-1 ManageIdeas__r1" >
+      <div style={{display:displayTable, height:'10px'}} className="adminPageBody">
+      <div className="ManageIdeas__r1" >
         <div id='file'/>
-          <div className="bx--col-lg-15">
+          <div>
             <DataTable
               rows={ideasList}
               headers={headers}
@@ -737,11 +739,12 @@ export default function AdminIdeasPage() {
                     />
                     <Button
                       kind='danger'
+                      renderIcon={TrashCan}
                       onClick={() => {
                         setIdeaToDelete({ideaid:"all", ideadescription:"ideas"});
                         setModalDeleteOpen(true);
                       }}
-                      children={<><TrashCan/> Delete All</>}
+                      children={"Delete All"}
                     />
                   </TableToolbar>
                   <Table {...getTableProps()}>
@@ -766,7 +769,7 @@ export default function AdminIdeasPage() {
           </div>
         </div>
       </div>
-      <div style={{display:displaySkeleton}} className="bx--offset-lg-3 bx--col-lg-13">
+      <div style={{display:displaySkeleton}}>
         <DataTableSkeleton columnCount={3} headers={headers}/>
       </div>
     </>

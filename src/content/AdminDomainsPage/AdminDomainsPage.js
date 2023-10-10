@@ -89,7 +89,8 @@ export default function AdminDomainsPage() {
                 size="md"
                 renderIcon={Edit}
                 iconDescription='Edit Domain'
-                kind="primary"
+                style={{color:'#0F62FE'}}
+                kind="primary--ghost"
                 onClick={() => {
                   setDomainToEdit({
                     "domainId":domain.ideadomainid,
@@ -107,7 +108,8 @@ export default function AdminDomainsPage() {
                 size="md"
                 renderIcon={TrashCan}
                 iconDescription='Delete Domain'
-                kind="danger"
+                style={{color:'#DA1E28'}}
+                kind='primary--ghost'
                 onClick={() => {
                   setDomainToDelete({
                     "domainId":domain.ideadomainid,

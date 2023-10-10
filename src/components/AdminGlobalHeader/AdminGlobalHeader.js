@@ -28,6 +28,7 @@ import {
   UserAdmin,
   UserAvatar,
   Logout,
+  Result,
   Rocket,
   ServerProxy,
   WarningHex,
@@ -61,7 +62,8 @@ export default function AdminGlobalHeader(props) {
     "votesadmin":false,
     "statistics":false,
     "officesadmin":false,
-    "domainsadmin":false
+    "domainsadmin":false,
+    "logsadmin":false
   })
   
   useEffect(() => {
@@ -398,6 +400,12 @@ export default function AdminGlobalHeader(props) {
                   to="/ideasadmin"
                   isActive={menuItemActiveStatus.ideasadmin}
                   children={<><Idea/> Idea Administration</>}
+                />
+                <SideNavMenuItem
+                  element={Link}
+                  to="/logsadmin"
+                  isActive={menuItemActiveStatus.logsadmin}
+                  children={<><Result/> Change Logs</>}
                 />
                 <SideNavMenuItem
                   element={Link}

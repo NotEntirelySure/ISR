@@ -510,9 +510,10 @@ function HandleThemeChange(selectedTheme) {
                         <div style={{padding:'1rem'}}>
                           <Button
                             id={`vote-button-${idea.ideaId}`}
-                            onClick={() => SubmitVote(idea.ideaId)}
                             disabled={voteButtonDisabled}
-                            children={<><Send/> Submit</>}
+                            renderIcon={Send}
+                            onClick={() => SubmitVote(idea.ideaId)}
+                            children={"Cast Vote"}
                           />
                         </div>
                         <div id={`loading-${idea.ideaId}`} style={{display:showLoading}}>

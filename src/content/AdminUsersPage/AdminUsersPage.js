@@ -66,7 +66,8 @@ export default function AdminUsersPage() {
               size="md"
               renderIcon={TrashCan}
               iconDescription='Delete User'
-              kind="danger"
+              style={{color:'#DA1E28'}}
+              kind="primary--ghost"
               onClick={() => {
                 userToDelete.current = {
                   voterid:participant.participantid,
@@ -83,7 +84,7 @@ export default function AdminUsersPage() {
               disabled={!participant.participantloggedin}
               renderIcon={Logout}
               iconDescription='Log user out'
-              kind="primary"
+              kind="primary--ghost"
               onClick={() => ParticipantLogout(participant.participantid,participant.officename)}
             />
           </div>

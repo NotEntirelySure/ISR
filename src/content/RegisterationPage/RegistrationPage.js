@@ -183,10 +183,10 @@ export default function RegistrationPage () {
 					</div>
 					<div className='registrationFormItem'>
 						<Button
-							kind='primary'
+							renderIcon={LicenseThirdParty}
 							tabIndex={0}
 							onClick={() => register()}
-							children={<><LicenseThirdParty /> Register</>}
+							children={"Register"}
 						/>
 					</div>
 				</Form>

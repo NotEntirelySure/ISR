@@ -65,7 +65,8 @@ export default function AdminConnectionsPage() {
                   size="md"
                   renderIcon={TrashCan}
                   iconDescription='Remove Connecton'
-                  kind="danger"
+                  style={{color:'#DA1E28'}}
+                  kind="primary--ghost"
                   onClick={() => RemoveClient(payload[i].client)}
                 />
               </>
