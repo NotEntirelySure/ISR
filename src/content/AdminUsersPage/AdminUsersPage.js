@@ -195,7 +195,6 @@ export default function AdminUsersPage() {
               <TableContainer 
                 title="Users"
                 description="Displays list of all registered users"
-                
               >
                 <TableToolbar>
                   <TableToolbarContent>
