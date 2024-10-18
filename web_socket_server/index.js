@@ -13,8 +13,8 @@ const https = require('https');
 const fs = require('fs'); 
 const server = https.createServer(  
   {
-    pfx:fs.readFileSync('C:/inetpub/isr/www_isrvote_com_pfx.pfx'),
-    passphrase:'2J[F#41CRx.zF3//'
+    pfx:fs.readFileSync('[redacted]'),
+    passphrase:'[redacted]'
   }
 ).listen(webSocketsServerPort, () => console.log(`Websocket server listening on port ${webSocketsServerPort}`));
 */
